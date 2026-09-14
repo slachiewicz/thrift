@@ -355,7 +355,7 @@ whether the front end or the emitter is at fault.
 
 Positive corpus: every `.thrift` file under these directories, walked
 recursively, skipping `gen-*` and `gopath` output directories. The harness
-found 147 files at the time of writing.
+found 158 files at the time of writing.
 
 | Directory | Notes |
 |---|---|
@@ -365,6 +365,7 @@ found 147 files at the time of writing.
 | `tutorial` | `tutorial.thrift` includes `shared.thrift`; the Makefile runs it with `-r`. |
 | `contrib` | Older idioms. |
 | `compiler/cpp/tests/cpp` | Small feature probes. |
+| `lib/java/src/test/resources` | The Java library's own test IDL, including the definition-order and annotation-metadata cases that `generateTestThrift.gradle` compiles. |
 
 The include-heavy files, the `-r` runs and the `ConflictNamespaceTest*`
 group in `lib/go/test` are the include-resolution and scope tests. They are
@@ -483,8 +484,8 @@ last local run with the oracle built from the same commit.
 
 | Item | State |
 |---|---|
-| Scanner, parser, AST, `sema` (`compiler/go/idl`, `compiler/go/sema`) | Done. Front-end parity green on 149 of 150 corpus files; the JSON generator cannot render `ConstEdgeCases.thrift` (a container constant named by identifier) and the test skips it, while output parity covers it. `test/BrokenConstants.thrift` is rejected by both. |
-| Generator port (`compiler/go/generate/golang`), including the validator generator | Done. Output parity green for all 150 files on all 8 option rows: 1,200 subtests, of which 8 are the both-reject file and 1,192 are byte-identical trees. |
+| Scanner, parser, AST, `sema` (`compiler/go/idl`, `compiler/go/sema`) | Done. Front-end parity green on 157 of 158 corpus files; the JSON generator cannot render `ConstEdgeCases.thrift` (a container constant named by identifier) and the test skips it, while output parity covers it. `test/BrokenConstants.thrift` is rejected by both. |
+| Generator port (`compiler/go/generate/golang`), including the validator generator | Done. Output parity green for all 158 files on all 8 option rows: 1,264 subtests, of which 8 are the both-reject file and 1,256 are byte-identical trees. |
 | `thrift-go` command (`compiler/go/cmd/thrift-go`) | Done; accepts the C++ flag syntax. |
 | Version string test (`compiler/go/internal/version`) | Done. `build/veralign.sh` bumps the constant. |
 | Scanner, parser and `sema` unit tests | Done: token tables for the flex quirks, one AST test per grammar rule with negative cases pinned to line and message, one `sema` test per rule of section 5.3. They found three differences from the C++ compiler, fixed and pinned by the accept corpus: the `byte` warning level and once-per-run behaviour, whitespace-only doc comments counting as a doc, and a trailing empty doc line printing as `//`. A fourth suspect, a container constant named by identifier, turned out to be identical in both compilers (it stays a reference); the test expectation was wrong and the behaviour is pinned. The commit message of the unit-test commit overstates this as four fixes. |
