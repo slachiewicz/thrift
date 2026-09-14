@@ -37,7 +37,8 @@ re-litigates it mid-implementation.
 - `gofmt`-clean output. The C++ generator does not produce it today, and
   changing the output breaks parity. Formatting improvements come after the
   C++ generator is retired.
-- Generators for any language other than Go.
+- Generators for any language other than Go. Overridden on 2026-09-14: the
+  Java generator was ported next, on the same terms; see section 12.
 - Replacing the C++ compiler for the cross-language test suite. Every other
   language keeps using it.
 
@@ -499,3 +500,46 @@ Building the oracle locally needs bison 3; the bison 2.3 that ships with
 macOS fails on the `--file-prefix-map` flag the CMake build passes. Point
 CMake at Homebrew's bison with `-DBISON_EXECUTABLE`. The autotools
 configure needs the same bison on `PATH`.
+
+## 12. The Java generator
+
+A second port on the same terms: `compiler/go/generate/java` is
+`t_java_generator.cc` function for function, the C++ compiler stays the
+reference, and the parity test holds the output byte-identical. The
+front end, the corpus and the harness are shared; only the emitter and
+its option table are new. `compiler/go/generate/internal/emit` holds the
+`t_generator` pieces both emitters need (conditional file write, string
+escaping, the `generate_docstring_comment` loop).
+
+Things the port reproduces on purpose, because parity requires them:
+
+- `t_typedef` overrides only `is_typedef`, so `is_binary`, `is_set` and
+  `is_list` on a declared type are false through a typedef. The port
+  resolves typedefs only where the C++ code calls `get_true_type`.
+- A field of enum type always gets a javadoc, even without a doc comment:
+  the text is `"\n@see " + class`, and the class prefix is the namespace
+  plus a dot even when the namespace is empty.
+- Mid-line `indent()` calls in the C++ code (binary setters, field value
+  metadata, the `@Generated` date) emit indentation inside a line.
+- `generate_standard_writer` uses `get_sorted_members`; everything else
+  uses declaration order.
+- The `@Generated` annotation carries the local date unless
+  `generated_annotations=undated` or `suppress` is given. Both compilers
+  read the clock, so a parity run that straddles midnight can fail once.
+
+Option matrix for the parity test, in `internal/parity/java_test.go`: the
+seven invocations from `lib/java/gradle/generateTestThrift.gradle`
+verbatim, then `none`, `none` with `-r`, and one row per remaining option
+(`android`, `private_members`, `sorted_containers`, `java5`,
+`generated_annotations=undated`, `generated_annotations=suppress`,
+`rethrow_unhandled_exceptions`, `option_type=thrift`, `fullcamel`,
+`nocamel`). `lib/java/src/test/resources` joined the corpus, which also
+grew the Go and JSON parity runs.
+
+| Item | State |
+|---|---|
+| Generator port (`compiler/go/generate/java`) | Done. Output parity green for all 158 corpus files on all 19 rows: 3,002 subtests, of which 19 are the both-reject file and 2,983 are byte-identical trees. Green on the first full run; no compiler difference was found. |
+| `thrift-go --gen java` | Done. The command dispatches on the language and accepts several `--gen` arguments. `beans` writes to `gen-javabean` without `-out`. |
+| Unit tests | `ParseOptions` errors and the naming helpers (`constant_name`, `as_camel_case`, `make_valid_java_identifier`). |
+| Behavioural run | Done locally once with the Gradle version CI pins (8.4): `gradle -p lib/java -Pthrift.compiler=<thrift-go> compileTestJava` ran all eight generate tasks with the Go binary and compiled the result. The unit tests themselves were not run through gradle. Gradle 9 cannot run this build at all (`exec {}` was removed), which is unrelated to the port. |
+| CI | No workflow change: the `lib-go` job's `go test ./compiler/go/...` step runs the Java parity test with the same oracle. |
