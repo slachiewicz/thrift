@@ -1,10 +1,14 @@
 # Go-native code generator for Go: design and test plan
 
-**Status: proposal on a branch. No code exists, nothing has been accepted.**
-This document describes how a Go code generator written in Go could be built
-and, above all, how it would be proven equivalent to the C++ generator. It does
-not commit the project to building it. The decisions in [section 2](#2-decisions-the-pmc-owns)
-belong to the PMC and must be settled on dev@ before phase 1 starts.
+**Status: prototype on a branch, nothing has been accepted.** The front end,
+the generator port and the parity harness described here exist under
+`compiler/go/` on the same branch as this document; see
+[section 11](#11-implementation-status) for what is done and what is not.
+This document describes how a Go code generator written in Go is built and,
+above all, how it is proven equivalent to the C++ generator. It does not
+commit the project to shipping it. The decisions in
+[section 2](#2-decisions-the-pmc-owns) belong to the PMC and must be settled
+on dev@ before anything merges.
 
 Measured sizes in this document were read from the tree at the commit this file
 was added in. Effort figures are estimates and are labelled as such.
@@ -69,6 +73,8 @@ re-litigates it mid-implementation.
 |---|---|---|
 | `compiler/cpp/src/thrift/generate/t_go_generator.cc` | 4,982 lines | The emitter: 101 methods, about 930 stream writes, 7 generator options. |
 | `compiler/cpp/src/thrift/generate/t_go_generator.h` | 351 lines | Option parsing, member state. |
+| `compiler/cpp/src/thrift/generate/go_validator_generator.cc` | 955 lines | The `Validate()` method every struct gets, driven by `vt.*` annotations. Called from the Go generator, so it is part of the port. |
+| `compiler/cpp/src/thrift/generate/validator_parser.cc` | 551 lines | Parses the `vt.*` annotations into rules for the validator generator. |
 | `compiler/cpp/src/thrift/thrifty.yy` | 1,341 lines | Bison grammar: 41 tokens, 57 rules. 1,103 of the lines are C++ actions. |
 | `compiler/cpp/src/thrift/thriftl.ll` | 347 lines | Flex lexer: 51 rules, no start conditions. |
 | `compiler/cpp/src/thrift/parse/*.h` | 2,240 lines | The AST: `t_program`, `t_scope`, `t_struct`, `t_const_value` and friends. |
@@ -248,8 +254,14 @@ compiler rejects:
   matches its declared type, recursively.
 - `validate_field_value`: a field default matches the field type.
 - `validate_throws`: every `throws` entry is an exception type.
-- `validate_input` on the generator: Go-specific checks the emitter performs
-  before writing anything.
+- `validate_input` on the generator: runs the `validate()` method of every
+  element before writing anything. The checks in `t_struct`, `t_function`,
+  `t_map`, `t_list` and `t_set` that forbid an exception type outside a
+  `throws` clause are guarded by `#ifndef ALLOW_EXCEPTIONS_AS_TYPE`, and
+  `t_type.h` defines that macro unconditionally (THRIFT-5835), so the C++
+  compiler never runs them and the Go front end must not either. Reading
+  the headers with preprocessor lines filtered out hid this; the parity
+  test caught it.
 
 **Field and enum numbering.** Fields without an explicit id receive negative
 ids counting down from -1, with a warning. An explicit non-positive id is
@@ -340,15 +352,17 @@ whether the front end or the emitter is at fault.
 
 ### 6.1 Corpus
 
-Positive corpus, all files in the tree at the time of writing:
+Positive corpus: every `.thrift` file under these directories, walked
+recursively, skipping `gen-*` and `gopath` output directories. The harness
+found 147 files at the time of writing.
 
-| Directory | Files | Notes |
-|---|---|---|
-| `lib/go/test/*.thrift` | 40 | The Go-specific cases. `IncludesTest`, `DuplicateImportsTest` and `ConstOptionalField` run with `-r`. |
-| `test/*.thrift` | 32 | The cross-language cases, including `ThriftTest`, `Recursive`, `Include`, `DocTest`, `AnnotationTest` and `DoubleConstantsTest`. |
-| `tutorial/*.thrift` | 2 | Run with `-r`; `tutorial.thrift` includes `shared.thrift`. |
-| `contrib/**/*.thrift` | 5 | Older idioms. |
-| `compiler/cpp/tests/cpp/*.thrift` | 5 | Small feature probes. |
+| Directory | Notes |
+|---|---|
+| `lib/go/test` | The Go-specific cases and their `common/` includes. `IncludesTest`, `DuplicateImportsTest` and `ConstOptionalField` run with `-r` in the Makefile. |
+| `test` | The cross-language cases, including `ThriftTest`, `Recursive`, `Include`, `DocTest`, `AnnotationTest` and `DoubleConstantsTest`, plus the per-language subdirectories. |
+| `tutorial` | `tutorial.thrift` includes `shared.thrift`; the Makefile runs it with `-r`. |
+| `contrib` | Older idioms. |
+| `compiler/cpp/tests/cpp` | Small feature probes. |
 
 The include-heavy files, the `-r` runs and the `ConflictNamespaceTest*`
 group in `lib/go/test` are the include-resolution and scope tests. They are
@@ -360,12 +374,13 @@ row, except where the C++ compiler itself rejects the combination.
 | Row | Options | Exercised today by |
 |---|---|---|
 | base | `thrift_import=...,package_prefix=...` | `lib/go/test/Makefile.am`, `test/go/Makefile.am`, `tutorial/go/Makefile.am` |
+| base-r | base, with `-r` | The three `-r` files in `lib/go/test` and the tutorial |
+| none | no options at all | Nothing in the Makefiles. Covers the default `thrift_import`. |
 | skip_remote | base + `skip_remote` | `ProcessorMiddlewareTest.thrift` |
 | struct_key_entries | base + `struct_key_entries` | `StructKeyTest.thrift` |
 | read_write_private | base + `read_write_private` | `DontExportRWTest.thrift` |
 | ignore_initialisms | base + `ignore_initialisms` | `IgnoreInitialismsTest.thrift` |
-| package | base + `package=<name>` | Nothing. A corpus case must be added. |
-| none | no options at all | Nothing in the Makefiles. Covers the default `thrift_import`. |
+| package | base + `package=parity` | Nothing in the Makefiles; the harness row is the only coverage. |
 
 Negative corpus: one file per rule in [section 5.3](#53-semantic-analysis-sema),
 under `compiler/go/testdata/reject/`, each with a comment naming the rule it
@@ -399,7 +414,7 @@ who knows the grammar and the Go runtime, and exclude review latency.
 |---|---|---|---|
 | 0 | dev@ thread on the decisions in [section 2](#2-decisions-the-pmc-owns) | PMC answer recorded in a JIRA ticket | Not engineering time |
 | 1 | Parity harness: corpus enumeration, option matrix, `THRIFT_COMPILER` discovery, JSON-shape AST serialiser, directory diff. No parser yet. | `go test ./compiler/go/internal/parity` runs, finds the C++ compiler in CI, and reports "Go tool not built" cleanly. | 1 to 2 weeks |
-| 2 | Scanner, parser, AST, `sema`. | Front-end parity green on all 84 corpus files. Reject corpus green. Fuzz target runs for an hour without a crash. | 3 to 5 weeks |
+| 2 | Scanner, parser, AST, `sema`. | Front-end parity green on all corpus files. Reject corpus green. Fuzz target runs for an hour without a crash. | 3 to 5 weeks |
 | 3 | Emitter port and CLI. | Output parity green for every corpus file and every option row. | 3 to 4 weeks |
 | 4 | Makefile `THRIFT` override, CI second run, version-string test, release checklist entry, user documentation in `lib/go/README.md`. | `lib-go` job green with both compilers. | 1 to 2 weeks |
 | 5 | Deprecation window. C++ generator remains the reference; every fix lands there first. | Two minor releases with parity green on every push. | Calendar time |
@@ -447,8 +462,30 @@ No fix lands in the Go tool alone while the C++ generator is the reference.
 ## 10. Open questions
 
 1. Name of the binary: `thrift-go`, `thriftgo` (taken by CloudWeGo), or
-   `thrift-gen-go` (suggests a protoc-style plugin, which it is not).
+   `thrift-gen-go` (suggests a protoc-style plugin, which it is not). The
+   prototype uses `thrift-go`.
 2. Whether the release procedure in `doc/ReleaseManagement.md` gains a step
    or the version file is generated by `bootstrap.sh`.
 3. Whether the PMC wants the parity harness to also cover `-audit`, which
    would pull that mode back into scope.
+
+## 11. Implementation status
+
+What exists on the branch, and how it was verified.
+
+| Item | State |
+|---|---|
+| Scanner, parser, AST, `sema` (`compiler/go/idl`, `compiler/go/sema`) | Done. Front-end parity green on all 147 corpus files; the one file the C++ compiler rejects, `test/BrokenConstants.thrift`, is rejected too. |
+| Generator port (`compiler/go/generate/golang`), including the validator generator | Done. Output parity green for all 147 files on all 8 option rows. |
+| `thrift-go` command (`compiler/go/cmd/thrift-go`) | Done; accepts the C++ flag syntax. |
+| Version string test (`compiler/go/internal/version`) | Done. |
+| Behavioural run | Done by hand once: `lib/go/test` and `test/go` regenerated with `thrift-go` using the Makefile recipe lines, then built and tested green. Not wired into the Makefiles or CI. |
+| Scanner, parser and `sema` unit tests | Not written. The parity layers are the only tests of the front end so far. |
+| Reject corpus (`compiler/go/testdata/reject`) | Not written. |
+| Fuzz target | Not written. |
+| CI steps in `lib-go` | Not added. |
+| PMC decision on dev@ | Not started. |
+
+Building the oracle locally needs bison 3; the bison 2.3 that ships with
+macOS fails on the `--file-prefix-map` flag the CMake build passes. Point
+CMake at Homebrew's bison with `-DBISON_EXECUTABLE`.
