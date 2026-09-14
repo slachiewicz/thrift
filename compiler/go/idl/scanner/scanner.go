@@ -46,6 +46,12 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("line %d: %s", e.Line, e.Msg)
 }
 
+// Warnings the lexer can raise, with the text the C++ compiler prints.
+const (
+	ByteAliasWarning = `The "byte" type is a compatibility alias for "i8". Use "i8" to emphasize the signedness of this type.`
+	AsyncWarning     = `"async" is deprecated.  It is called "oneway" now.`
+)
+
 // Scanner produces tokens from a byte slice.
 type Scanner struct {
 	src  []byte
@@ -59,8 +65,10 @@ type Scanner struct {
 	OnDoc func(raw string, line int)
 
 	// OnWarning, when set, receives the warnings the C++ lexer prints:
-	// the "byte" alias notice and the "async" deprecation notice.
-	OnWarning func(line int, msg string)
+	// ByteAliasWarning at level 1 and AsyncWarning at level 0. The C++
+	// compiler prints ByteAliasWarning once per run; that is the caller's
+	// job, since one scanner sees one file.
+	OnWarning func(line, level int, msg string)
 }
 
 // New returns a scanner positioned at the start of src. A UTF-8 byte-order
@@ -311,9 +319,9 @@ func (s *Scanner) Next() (token.Token, error) {
 		if k, ok := token.Keywords[text]; ok {
 			switch k {
 			case token.Byte:
-				s.warn(`The "byte" type is a compatibility alias for "i8". Use "i8" to emphasize the signedness of this type.`)
+				s.warn(1, ByteAliasWarning)
 			case token.Async:
-				s.warn(`"async" is deprecated.  It is called "oneway" now.`)
+				s.warn(0, AsyncWarning)
 			}
 			return token.Token{Kind: k, Line: s.line, Text: text}, nil
 		}
@@ -369,9 +377,9 @@ func (s *Scanner) Next() (token.Token, error) {
 	return token.Token{}, s.errorf("Unexpected token in input: %q", string(c))
 }
 
-func (s *Scanner) warn(msg string) {
+func (s *Scanner) warn(level int, msg string) {
 	if s.OnWarning != nil {
-		s.OnWarning(s.line, msg)
+		s.OnWarning(s.line, level, msg)
 	}
 }
 

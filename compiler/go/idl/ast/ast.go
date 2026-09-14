@@ -38,6 +38,9 @@ type Program struct {
 	Definitions []Definition
 	// Doc is the program-level doc comment, or empty.
 	Doc string
+	// HasDoc is set when a doc comment was captured, even an empty one;
+	// the C++ compiler distinguishes a NULL doc from an empty string.
+	HasDoc bool
 }
 
 // Header is an include, namespace, or cpp_include declaration.
@@ -143,6 +146,7 @@ type Typedef struct {
 	Name        string
 	Annotations []Annotation
 	Doc         string
+	HasDoc      bool
 	Line        int
 }
 
@@ -152,6 +156,7 @@ type Enum struct {
 	Values      []*EnumValue
 	Annotations []Annotation
 	Doc         string
+	HasDoc      bool
 	Line        int
 }
 
@@ -163,16 +168,18 @@ type EnumValue struct {
 	HasValue    bool
 	Annotations []Annotation
 	Doc         string
+	HasDoc      bool
 	Line        int
 }
 
 // Const is `const Type Name = Value`.
 type Const struct {
-	Type  TypeRef
-	Name  string
-	Value *ConstValue
-	Doc   string
-	Line  int
+	Type   TypeRef
+	Name   string
+	Value  *ConstValue
+	Doc    string
+	HasDoc bool
+	Line   int
 }
 
 // StructKind distinguishes struct, union and exception declarations.
@@ -193,6 +200,7 @@ type Struct struct {
 	Fields      []*Field
 	Annotations []Annotation
 	Doc         string
+	HasDoc      bool
 	Line        int
 }
 
@@ -222,6 +230,7 @@ type Field struct {
 	HasXsdAttrs bool
 	Annotations []Annotation
 	Doc         string
+	HasDoc      bool
 	Line        int
 }
 
@@ -233,6 +242,7 @@ type Service struct {
 	Functions   []*Function
 	Annotations []Annotation
 	Doc         string
+	HasDoc      bool
 	Line        int
 }
 
@@ -246,6 +256,7 @@ type Function struct {
 	HasThrows   bool
 	Annotations []Annotation
 	Doc         string
+	HasDoc      bool
 	Line        int
 }
 

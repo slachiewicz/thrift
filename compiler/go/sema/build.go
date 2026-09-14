@@ -90,7 +90,7 @@ func (b *builder) build(prog *ast.Program) {
 			b.serviceDef(d)
 		}
 	}
-	if prog.Doc != "" {
+	if prog.HasDoc {
 		b.p.SetDoc(prog.Doc)
 	}
 }
@@ -118,7 +118,7 @@ func (b *builder) constDef(d *ast.Const) {
 		b.parent.AddConstant(b.prefix+d.Name, c)
 	}
 	b.p.addConst(c)
-	if d.Doc != "" {
+	if d.HasDoc {
 		c.SetDoc(d.Doc)
 	}
 }
@@ -130,7 +130,7 @@ func (b *builder) typedefDef(d *ast.Typedef) {
 	td.setAnnotations(toAnnotations(d.Annotations))
 	b.p.addTypedef(td)
 	b.addType(td)
-	if d.Doc != "" {
+	if d.HasDoc {
 		td.SetDoc(d.Doc)
 	}
 }
@@ -152,7 +152,7 @@ func (b *builder) enumDef(d *ast.Enum) {
 			b.enumVal++
 		}
 		ev := &EnumValue{name: v.Name, value: b.enumVal}
-		if v.Doc != "" {
+		if v.HasDoc {
 			ev.SetDoc(v.Doc)
 		}
 		ev.annotations = toAnnotations(v.Annotations)
@@ -172,7 +172,7 @@ func (b *builder) enumDef(d *ast.Enum) {
 	}
 	b.p.addEnum(e)
 	b.addType(e)
-	if d.Doc != "" {
+	if d.HasDoc {
 		e.SetDoc(d.Doc)
 	}
 }
@@ -196,7 +196,7 @@ func (b *builder) structDef(d *ast.Struct) {
 		b.p.addStruct(s)
 	}
 	b.addType(s)
-	if d.Doc != "" {
+	if d.HasDoc {
 		s.SetDoc(d.Doc)
 	}
 }
@@ -275,7 +275,7 @@ func (b *builder) field(d *ast.Field) *Field {
 	}
 	f.xsdOptional = d.XsdOptional
 	f.xsdNillable = d.XsdNillable
-	if d.Doc != "" {
+	if d.HasDoc {
 		f.SetDoc(d.Doc)
 	}
 	if d.HasXsdAttrs {
@@ -313,7 +313,7 @@ func (b *builder) serviceDef(d *ast.Service) {
 	if !b.p.IsUniqueTypename(s) {
 		fail("Type \"%s\" is already defined.", d.Name)
 	}
-	if d.Doc != "" {
+	if d.HasDoc {
 		s.SetDoc(d.Doc)
 	}
 }
@@ -335,7 +335,7 @@ func (b *builder) function(d *ast.Function) *Function {
 	validateSimpleIdentifier(d.Name)
 	args.SetName(d.Name + "_args")
 	f := NewFunction(returnType, d.Name, args, throws, d.Oneway, b.diag)
-	if d.Doc != "" {
+	if d.HasDoc {
 		f.SetDoc(d.Doc)
 	}
 	f.annotations = toAnnotations(d.Annotations)
