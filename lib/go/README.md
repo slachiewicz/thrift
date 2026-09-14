@@ -265,11 +265,11 @@ The Go-native compiler
 ======================
 
 `compiler/go` holds a Thrift IDL compiler written in Go that emits the same
-Go code as the C++ compiler's `--gen go`. It is a prototype: the C++
-compiler stays the reference, every generator fix lands there first, and
-a parity test keeps the two byte-identical over the repository's IDL
-corpus. See `doc/go-native-generator-plan.md` for the design and the test
-plan.
+Go code as the C++ compiler's `--gen go`, and the same Java code as its
+`--gen java`. It is a prototype: the C++ compiler stays the reference,
+every generator fix lands there first, and a parity test keeps the two
+byte-identical over the repository's IDL corpus. See
+`doc/go-native-generator-plan.md` for the design and the test plan.
 
 Build it from the repository root and use it wherever the build files
 expect the `thrift` binary:
@@ -278,8 +278,8 @@ expect the `thrift` binary:
     $ compiler/go/thrift-go --gen go:thrift_import=github.com/apache/thrift/lib/go/thrift file.thrift
 
 It accepts the C++ compiler's command line (`-I`, `-o`, `-out`, `-r`,
-`-strict`, `-nowarn`, `--gen go:<options>`), with only the Go generator
-available. The autotools build takes the compiler through the `THRIFT`
+`-strict`, `-nowarn`, `--gen go:<options>`, `--gen java:<options>`), with
+only the Go and Java generators available. The autotools build takes the compiler through the `THRIFT`
 variable, which must be an absolute path to an existing file because the
 Makefiles list it as a prerequisite:
 
