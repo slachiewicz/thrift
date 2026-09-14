@@ -727,7 +727,10 @@ func (g *Generator) generateDocstringComment(out *strings.Builder, contents stri
 			line, rest = rest[:1023], ""
 			truncated = true
 		}
-		eof := rest == ""
+		// getline sets eofbit only when it runs into the end of the
+		// stream, not when it consumes the final newline. A trailing empty
+		// line therefore still prints as "//".
+		eof := nl < 0
 		if len(line) > 0 {
 			docLine := line
 			if !strings.HasPrefix(docLine, "  -") {

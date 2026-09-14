@@ -26,6 +26,7 @@ import (
 
 	"github.com/apache/thrift/compiler/go/idl/ast"
 	"github.com/apache/thrift/compiler/go/idl/parser"
+	"github.com/apache/thrift/compiler/go/idl/scanner"
 )
 
 // Loader reads a Thrift file and everything it includes. It is the Go
@@ -44,7 +45,8 @@ type Loader struct {
 	// Diag receives warnings; nil discards them.
 	Diag *Diagnostics
 
-	known map[string]bool
+	known      map[string]bool
+	byteWarned bool
 }
 
 // Load parses the file named on the command line and its includes, and
@@ -72,6 +74,7 @@ func (l *Loader) Load(inputPath string) (prog *Program, err error) {
 	}
 	prog.SetIncludePrefix(prefix)
 	l.known = map[string]bool{}
+	l.byteWarned = false
 	l.parse(prog, nil)
 	return prog, nil
 }
@@ -138,11 +141,18 @@ func (l *Loader) parse(prog *Program, parent *Program) {
 	if l.Diag != nil {
 		l.Diag.Path = path
 	}
-	warn := func(line int, msg string) {
+	warn := func(line, level int, msg string) {
+		if msg == scanner.ByteAliasWarning {
+			// emit_byte_type_warning fires once per compiler run.
+			if l.byteWarned {
+				return
+			}
+			l.byteWarned = true
+		}
 		if l.Diag != nil {
 			l.Diag.Path = path
 			l.Diag.Line = line
-			l.Diag.warn(0, msg)
+			l.Diag.warn(level, msg)
 		}
 	}
 	tree, perr := parser.Parse(path, src, warn)
