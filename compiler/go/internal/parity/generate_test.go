@@ -141,6 +141,7 @@ func checkGenerateParity(t *testing.T, thrift, file string, row optionRow) {
 		if goErr == nil {
 			t.Fatalf("C++ compiler rejected the file but the Go generator accepted it.\ncpp: %s", stderr.String())
 		}
+		t.Logf("both reject: cpp=%q go=%q", strings.TrimSpace(stderr.String()), goErr)
 		return
 	}
 	if goErr != nil {
