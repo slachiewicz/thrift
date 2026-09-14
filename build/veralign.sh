@@ -53,6 +53,7 @@ FILES[appveyor.yml]=simpleReplace
 FILES[bower.json]=jsonReplace
 FILES[CMakeLists.txt]=simpleReplace
 FILES[compiler/cpp/src/thrift/version.h]=simpleReplace
+FILES[compiler/go/internal/version/version.go]=simpleReplace
 FILES[configure.ac]=configureReplace
 FILES[contrib/Rebus/Properties/AssemblyInfo.cs]=simpleReplace
 FILES[contrib/thrift.spec]=simpleReplace
