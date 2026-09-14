@@ -507,22 +507,12 @@ func (s *Struct) FieldByName(name string) *Field {
 	return nil
 }
 
-// Validate is t_struct::validate.
+// Validate is t_struct::validate. The check that forbids exception types
+// as members is compiled out of the C++ compiler by ALLOW_EXCEPTIONS_AS_TYPE
+// (THRIFT-5835), so only the member types are visited.
 func (s *Struct) Validate() {
-	what := "struct"
-	if s.IsUnion() {
-		what = "union"
-	}
-	if s.IsXception() {
-		what = "exception"
-	}
 	for _, f := range s.members {
 		f.typ.Validate()
-		if !s.isMethodXcepts {
-			if TrueType(f.typ).IsXception() {
-				fail("%s %s: exception type \"%s\" cannot be used as member field type %s", what, s.name, f.typ.Name(), f.name)
-			}
-		}
 	}
 }
 
@@ -614,17 +604,12 @@ func (f *Function) Xceptions() *Struct       { return f.xceptions }
 func (f *Function) IsOneway() bool           { return f.oneway }
 func (f *Function) Annotations() Annotations { return f.annotations }
 
-// Validate is t_function::validate.
+// Validate is t_function::validate, without the exception-as-type checks
+// that ALLOW_EXCEPTIONS_AS_TYPE compiles out.
 func (f *Function) Validate() {
 	f.returnType.Validate()
-	if TrueType(f.returnType).IsXception() {
-		fail("method %s(): exception type \"%s\" cannot be used as function return", f.name, f.returnType.Name())
-	}
 	for _, a := range f.arglist.Members() {
 		a.typ.Validate()
-		if TrueType(a.typ).IsXception() {
-			fail("method %s(): exception type \"%s\" cannot be used as function argument %s", f.name, a.typ.Name(), a.name)
-		}
 	}
 }
 
@@ -714,15 +699,9 @@ func (m *Map) KeyType() Type { return m.keyType }
 func (m *Map) ValType() Type { return m.valType }
 func (m *Map) IsMap() bool   { return true }
 
-// Validate is t_map::validate.
-func (m *Map) Validate() {
-	if TrueType(m.keyType).IsXception() {
-		fail("exception type \"%s\" cannot be used inside a map", m.keyType.Name())
-	}
-	if TrueType(m.valType).IsXception() {
-		fail("exception type \"%s\" cannot be used inside a map", m.valType.Name())
-	}
-}
+// Validate is t_map::validate; its exception check is compiled out by
+// ALLOW_EXCEPTIONS_AS_TYPE.
+func (m *Map) Validate() {}
 
 // List is t_list.
 type List struct {
@@ -736,12 +715,9 @@ func NewList(elem Type) *List { return &List{elemType: elem} }
 func (l *List) ElemType() Type { return l.elemType }
 func (l *List) IsList() bool   { return true }
 
-// Validate is t_list::validate.
-func (l *List) Validate() {
-	if TrueType(l.elemType).IsXception() {
-		fail("exception type \"%s\" cannot be used inside a list", l.elemType.Name())
-	}
-}
+// Validate is t_list::validate; its exception check is compiled out by
+// ALLOW_EXCEPTIONS_AS_TYPE.
+func (l *List) Validate() {}
 
 // Set is t_set.
 type Set struct {
@@ -755,12 +731,9 @@ func NewSet(elem Type) *Set { return &Set{elemType: elem} }
 func (s *Set) ElemType() Type { return s.elemType }
 func (s *Set) IsSet() bool    { return true }
 
-// Validate is t_set::validate.
-func (s *Set) Validate() {
-	if TrueType(s.elemType).IsXception() {
-		fail("exception type \"%s\" cannot be used inside a set", s.elemType.Name())
-	}
-}
+// Validate is t_set::validate; its exception check is compiled out by
+// ALLOW_EXCEPTIONS_AS_TYPE.
+func (s *Set) Validate() {}
 
 // Const is t_const.
 type Const struct {
