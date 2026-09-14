@@ -75,6 +75,7 @@ var corpusDirs = []string{
 	"contrib",
 	"compiler/cpp/tests/cpp",
 	"compiler/go/testdata/accept",
+	"lib/java/src/test/resources",
 }
 
 // Corpus returns every .thrift file of the positive corpus, sorted.
