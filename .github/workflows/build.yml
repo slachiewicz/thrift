@@ -277,6 +277,16 @@ jobs:
           chmod a+x compiler/cpp/thrift
           compiler/cpp/thrift -version
 
+      # The Go-native compiler front end and Go generator. The parity tests
+      # find the C++ oracle at compiler/cpp/thrift, downloaded above.
+      - name: Run go vet and go test for compiler/go
+        run: |
+          go vet ./compiler/go/...
+          go test ./compiler/go/...
+
+      - name: Build thrift-go
+        run: go build -o compiler/go/thrift-go ./compiler/go/cmd/thrift-go
+
       - name: Run make for go
         run: make -C lib/go
 
@@ -298,6 +308,23 @@ jobs:
           path: |
             test/go/bin/*
           retention-days: 3
+
+      # Behavioural layer: regenerate and test with the Go-native compiler.
+      # THRIFT is a make prerequisite, so it must be an absolute path to a
+      # file. One matrix entry is enough; the parity test above covers the
+      # generated code byte for byte on both.
+      - name: Run make check for lib/go with thrift-go
+        if: matrix.go == '1.27'
+        run: |
+          make -C lib/go/test clean
+          make -C lib/go/test/fuzz clean
+          make -C lib/go check THRIFT="$PWD/compiler/go/thrift-go"
+
+      - name: Run make check for test/go with thrift-go
+        if: matrix.go == '1.27'
+        run: |
+          make -C test/go clean
+          make -C test/go check THRIFT="$PWD/compiler/go/thrift-go"
 
   lib-java-kotlin:
     needs: compiler
