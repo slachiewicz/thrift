@@ -28,7 +28,7 @@ import (
 
 // seedDirs are the repository directories, relative to its root, whose
 // .thrift files seed the fuzzer. They are the positive parity corpus.
-var seedDirs = []string{"lib/go/test", "test", "tutorial", "contrib", "compiler/cpp/tests/cpp", "compiler/go/testdata/accept", "compiler/go/testdata/reject"}
+var seedDirs = []string{"lib/go/test", "test", "tutorial", "contrib", "compiler/cpp/tests/cpp", "compiler/go/testdata/accept", "compiler/go/testdata/reject", "lib/java/src/test/resources"}
 
 // repoRoot walks up from the working directory to the checkout root, or
 // returns "" when the package is built outside the repository.

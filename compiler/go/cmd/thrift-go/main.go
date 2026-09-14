@@ -17,14 +17,15 @@
  * under the License.
  */
 
-// Command thrift-go compiles Thrift IDL to Go.
+// Command thrift-go compiles Thrift IDL to Go and to Java.
 //
 // It accepts the command line of the C++ thrift compiler, so that the
 // existing build files can point their THRIFT variable at it:
 //
 //	thrift-go [options] --gen go[:option,...] file.thrift
+//	thrift-go [options] --gen java[:option,...] file.thrift
 //
-// Only the Go generator is available.
+// Only the Go and Java generators are available.
 package main
 
 import (
@@ -33,6 +34,7 @@ import (
 	"strings"
 
 	"github.com/apache/thrift/compiler/go/generate/golang"
+	"github.com/apache/thrift/compiler/go/generate/java"
 	"github.com/apache/thrift/compiler/go/internal/version"
 	"github.com/apache/thrift/compiler/go/sema"
 )
@@ -80,6 +82,33 @@ func help() {
 	fmt.Fprintln(os.Stderr, "                     Skip the generating of -remote folders for the client binaries for services")
 	fmt.Fprintln(os.Stderr, "    struct_key_entries")
 	fmt.Fprintln(os.Stderr, "                     Generate maps keyed by a struct, union or exception as []thrift.MapEntry[*K, V] instead of map[*K]V")
+	fmt.Fprintln(os.Stderr, "  java (Java):")
+	fmt.Fprintln(os.Stderr, "    beans:           Members will be private, and setter methods will return void.")
+	fmt.Fprintln(os.Stderr, "    private_members: Members will be private, but setter methods will return 'this' like usual.")
+	fmt.Fprintln(os.Stderr, "    private-members: Same as 'private_members' (deprecated).")
+	fmt.Fprintln(os.Stderr, "    nocamel:         Do not use CamelCase field accessors with beans.")
+	fmt.Fprintln(os.Stderr, "    fullcamel:       Convert underscored_accessor_or_service_names to camelCase.")
+	fmt.Fprintln(os.Stderr, "    android:         Generated structures are Parcelable.")
+	fmt.Fprintln(os.Stderr, "    android_legacy:  Do not use java.io.IOException(throwable) (available for Android 2.3 and above).")
+	fmt.Fprintln(os.Stderr, "    option_type=[thrift|jdk8]:")
+	fmt.Fprintln(os.Stderr, "                     thrift: wrap optional fields in thrift Option type.")
+	fmt.Fprintln(os.Stderr, "                     jdk8: Wrap optional fields in JDK8+ Option type.")
+	fmt.Fprintln(os.Stderr, "                     If the Option type is not specified, 'thrift' is used.")
+	fmt.Fprintln(os.Stderr, "    rethrow_unhandled_exceptions:")
+	fmt.Fprintln(os.Stderr, "                     Enable rethrow of unhandled exceptions and let them propagate further. (Default behavior is to catch and log it.)")
+	fmt.Fprintln(os.Stderr, "    java5:           Generate Java 1.5 compliant code (includes android_legacy flag).")
+	fmt.Fprintln(os.Stderr, "    future_iface:    Generate CompletableFuture based iface based on async client.")
+	fmt.Fprintln(os.Stderr, "    reuse_objects:   Data objects will not be allocated, but existing instances will be used (read and write).")
+	fmt.Fprintln(os.Stderr, "    reuse-objects:   Same as 'reuse_objects' (deprecated).")
+	fmt.Fprintln(os.Stderr, "    sorted_containers:")
+	fmt.Fprintln(os.Stderr, "                     Use TreeSet/TreeMap instead of HashSet/HashMap as a implementation of set/map.")
+	fmt.Fprintln(os.Stderr, "    generated_annotations=[undated|suppress]:")
+	fmt.Fprintln(os.Stderr, "                     undated: suppress the date at @Generated annotations")
+	fmt.Fprintln(os.Stderr, "                     suppress: suppress @Generated annotations entirely")
+	fmt.Fprintln(os.Stderr, "    unsafe_binaries: Do not copy ByteBuffers in constructors, getters, and setters.")
+	fmt.Fprintln(os.Stderr, "    jakarta_annotations: generate jakarta annotations (javax by default)")
+	fmt.Fprintln(os.Stderr, "    annotations_as_metadata:")
+	fmt.Fprintln(os.Stderr, "                     Include Thrift field annotations as metadata in the generated code.")
 	os.Exit(0)
 }
 
@@ -179,20 +208,28 @@ func main() {
 		usage()
 	}
 
-	var optionSets []golang.Options
+	var generators []generatorFactory
 	for _, spec := range generatorStrings {
 		language, options := spec, ""
 		if i := strings.IndexByte(spec, ':'); i >= 0 {
 			language, options = spec[:i], spec[i+1:]
 		}
-		if language != "go" {
-			failure("Unable to get a generator for \"%s\": only the go generator is available in this compiler.", spec)
+		switch language {
+		case "go":
+			opts, err := golang.ParseOptions(options)
+			if err != nil {
+				failure("Error: %s", err.Error())
+			}
+			generators = append(generators, func(p *sema.Program) generator { return golang.New(p, opts) })
+		case "java":
+			opts, err := java.ParseOptions(options)
+			if err != nil {
+				failure("Error: %s", err.Error())
+			}
+			generators = append(generators, func(p *sema.Program) generator { return java.New(p, opts) })
+		default:
+			failure("Unable to get a generator for \"%s\": only the go and java generators are available in this compiler.", spec)
 		}
-		opts, err := golang.ParseOptions(options)
-		if err != nil {
-			failure("Error: %s", err.Error())
-		}
-		optionSets = append(optionSets, opts)
 	}
 
 	program, err := loader.Load(last)
@@ -204,25 +241,34 @@ func main() {
 	}
 	loader.Diag.Path = "generation"
 	loader.Diag.Line = 1
-	generate(program, optionSets, recurse)
+	generate(program, generators, recurse)
 }
+
+// generator is what every language generator offers.
+type generator interface {
+	Generate() error
+}
+
+// generatorFactory builds a generator for one program; it is the
+// t_generator_registry lookup with the options already parsed.
+type generatorFactory func(*sema.Program) generator
 
 // generate is generate() in main.cc: with -r the included programs come
 // first, each inheriting the output path.
-func generate(program *sema.Program, optionSets []golang.Options, recurse bool) {
+func generate(program *sema.Program, generators []generatorFactory, recurse bool) {
 	if recurse {
 		program.SetRecursive(true)
 		for _, inc := range program.Includes() {
 			inc.SetOutPath(program.OutPath(), program.IsOutPathAbsolute())
-			generate(inc, optionSets, recurse)
+			generate(inc, generators, recurse)
 		}
 	}
-	if err := generateProgram(program, optionSets); err != nil {
+	if err := generateProgram(program, generators); err != nil {
 		failure("Error: %s", err.Error())
 	}
 }
 
-func generateProgram(program *sema.Program, optionSets []golang.Options) (err error) {
+func generateProgram(program *sema.Program, generators []generatorFactory) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(*sema.Error); ok {
@@ -233,9 +279,9 @@ func generateProgram(program *sema.Program, optionSets []golang.Options) (err er
 		}
 	}()
 	program.Scope.ResolveAllConsts()
-	for _, opts := range optionSets {
+	for _, newGenerator := range generators {
 		sema.ValidateInput(program)
-		if err := golang.New(program, opts).Generate(); err != nil {
+		if err := newGenerator(program).Generate(); err != nil {
 			return err
 		}
 	}
