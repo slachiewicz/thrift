@@ -52,12 +52,12 @@ type Parser struct {
 	hasTok bool
 	doc    docState
 	// Warn receives the warnings that the C++ lexer prints.
-	Warn func(line int, msg string)
+	Warn func(line, level int, msg string)
 }
 
 // Parse parses one file's source. The path is recorded in the result and
 // is not opened.
-func Parse(path string, src []byte, warn func(line int, msg string)) (prog *ast.Program, err error) {
+func Parse(path string, src []byte, warn func(line, level int, msg string)) (prog *ast.Program, err error) {
 	p := &Parser{sc: scanner.New(src), Warn: warn}
 	p.sc.OnDoc = p.doc.onDoc
 	p.sc.OnWarning = warn
@@ -144,7 +144,7 @@ func (p *Parser) parseProgram(prog *ast.Program) {
 		p.fail(t.Line, "syntax error: unexpected %s", t)
 	}
 	if doc, ok := p.doc.programDoc(); ok {
-		prog.Doc = doc
+		prog.Doc, prog.HasDoc = doc, true
 		p.doc.setDoc()
 	}
 	p.doc.destroy()
@@ -162,14 +162,17 @@ func setDefinitionDoc(def ast.Definition, doc string) {
 	switch d := def.(type) {
 	case *ast.Const:
 		d.Doc = doc
+		d.HasDoc = true
 	case *ast.Typedef:
-		d.Doc = doc
+		d.Doc, d.HasDoc = doc, true
 	case *ast.Enum:
 		d.Doc = doc
+		d.HasDoc = true
 	case *ast.Struct:
-		d.Doc = doc
+		d.Doc, d.HasDoc = doc, true
 	case *ast.Service:
 		d.Doc = doc
+		d.HasDoc = true
 	}
 }
 
@@ -256,7 +259,7 @@ func (p *Parser) parseEnum() *ast.Enum {
 		v.Annotations = p.parseTypeAnnotations()
 		p.separator()
 		if hasDoc {
-			v.Doc = doc
+			v.Doc, v.HasDoc = doc, true
 			p.doc.setDoc()
 		}
 		e.Values = append(e.Values, v)
@@ -393,7 +396,7 @@ func (p *Parser) parseFunction() *ast.Function {
 	f.Annotations = p.parseTypeAnnotations()
 	p.separator()
 	if hasDoc {
-		f.Doc = doc
+		f.Doc, f.HasDoc = doc, true
 		p.doc.setDoc()
 	}
 	return f
@@ -446,7 +449,7 @@ func (p *Parser) parseField() *ast.Field {
 	f.Annotations = p.parseTypeAnnotations()
 	p.separator()
 	if hasDoc {
-		f.Doc = doc
+		f.Doc, f.HasDoc = doc, true
 		p.doc.setDoc()
 	}
 	return f
