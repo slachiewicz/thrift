@@ -343,7 +343,7 @@ checkout without a built compiler while CI always runs the comparison.
 | Output parity | `go test ./compiler/go/internal/parity -run Generate` | `thrift --gen go:<opts>` over every corpus file, once per option set | Output directory trees are byte-identical, including the file set | CI, and locally with `THRIFT_COMPILER` set |
 | Negative corpus | `go test ./compiler/go/internal/parity -run Reject` | The C++ compiler must fail on each file in `compiler/go/testdata/reject` | Both tools reject; the test fails if the C++ compiler accepts a file, so the corpus cannot drift into asserting the wrong thing | CI |
 | Behavioural | `make -C lib/go check`, `make -C test/go check`, `make -C tutorial/go` with `THRIFT=<go binary>` | The existing Go test suites and the cross-language test | Green | CI, a second run of the `lib-go` job |
-| Fuzz | `go test -fuzz=FuzzParse ./compiler/go/idl/parser` | Seed corpus from the positive corpus | No panic, no hang | Nightly, following the precedent of `lib/go/test/fuzz` |
+| Fuzz | `go test -fuzz=FuzzParse ./compiler/go/idl/parser` | Seed corpus from the positive and negative corpora | No panic, no hang; `Parse` returns a program or an `*Error` with a line | Seed mode on every `go test`, like `lib/go/test/fuzz`; no workflow in this repository runs on a schedule, so longer runs are by hand with `-fuzztime` |
 
 The front-end parity layer is the important one. It proves the parser and
 `sema` independently of the emitter, using a generator that already exists
@@ -358,6 +358,7 @@ found 147 files at the time of writing.
 
 | Directory | Notes |
 |---|---|
+| `compiler/go/testdata/accept` | Hand-written edge cases the unit tests found and the shipped corpus does not cover: doc comments that are empty or end in an empty line, container constants named by identifier, exceptions as types, implicit and nonpositive field ids, keywords as field names. |
 | `lib/go/test` | The Go-specific cases and their `common/` includes. `IncludesTest`, `DuplicateImportsTest` and `ConstOptionalField` run with `-r` in the Makefile. |
 | `test` | The cross-language cases, including `ThriftTest`, `Recursive`, `Include`, `DocTest`, `AnnotationTest` and `DoubleConstantsTest`, plus the per-language subdirectories. |
 | `tutorial` | `tutorial.thrift` includes `shared.thrift`; the Makefile runs it with `-r`. |
@@ -392,18 +393,23 @@ if the C++ compiler accepts it.
 The `lib-go` job in `.github/workflows/build.yml` already downloads the
 `thrift-compiler` artifact from the `compiler` job, runs `make -C lib/go
 check`, `make -C test/go check` and `make -C test/go precross` on a Go
-version matrix. Two additions:
+version matrix. Two additions, both in place:
 
-1. A step before the existing checks: `go build ./compiler/go/...` and
-   `THRIFT_COMPILER=compiler/cpp/thrift go test ./compiler/go/...`. This runs
-   the unit, parity and reject layers against the same compiler binary the
-   job already has.
-2. Once phase 3 is complete, a second execution of the three `make` targets
-   with `THRIFT=$PWD/compiler/go/thrift-go`, so the behavioural layer runs
-   on every push.
+1. Before the existing checks: `go vet ./compiler/go/...`, `go test
+   ./compiler/go/...` and `go build -o compiler/go/thrift-go`. The parity
+   tests find the oracle at `compiler/cpp/thrift`, where the artifact
+   lands, so no environment variable is needed. This runs the unit,
+   parity, reject and fuzz-seed layers against the same compiler binary
+   the job already has.
+2. After the existing checks, on one matrix entry: `make clean` in
+   `lib/go/test`, `lib/go/test/fuzz` and `test/go`, then `make -C lib/go
+   check` and `make -C test/go check` with `THRIFT=$PWD/compiler/go/thrift-go`.
+   The `gopath` stamps from the first pass have to go, or make would not
+   regenerate. `THRIFT` is a make prerequisite, so it must be an absolute
+   path to an existing file.
 
 Nothing else in the workflow changes. No new job, no new runner, no new
-dependency.
+dependency. `tutorial/go` is not built by this job today and stays out.
 
 ## 7. Phases and exit criteria
 
@@ -471,21 +477,25 @@ No fix lands in the Go tool alone while the C++ generator is the reference.
 
 ## 11. Implementation status
 
-What exists on the branch, and how it was verified.
+What exists on the branch, and how it was verified. Counts are from the
+last local run with the oracle built from the same commit.
 
 | Item | State |
 |---|---|
-| Scanner, parser, AST, `sema` (`compiler/go/idl`, `compiler/go/sema`) | Done. Front-end parity green on all 147 corpus files; the one file the C++ compiler rejects, `test/BrokenConstants.thrift`, is rejected too. |
-| Generator port (`compiler/go/generate/golang`), including the validator generator | Done. Output parity green for all 147 files on all 8 option rows. |
+| Scanner, parser, AST, `sema` (`compiler/go/idl`, `compiler/go/sema`) | Done. Front-end parity green on 149 of 150 corpus files; the JSON generator cannot render `ConstEdgeCases.thrift` (a container constant named by identifier) and the test skips it, while output parity covers it. `test/BrokenConstants.thrift` is rejected by both. |
+| Generator port (`compiler/go/generate/golang`), including the validator generator | Done. Output parity green for all 150 files on all 8 option rows: 1,200 subtests, of which 8 are the both-reject file and 1,192 are byte-identical trees. |
 | `thrift-go` command (`compiler/go/cmd/thrift-go`) | Done; accepts the C++ flag syntax. |
-| Version string test (`compiler/go/internal/version`) | Done. |
-| Behavioural run | Done by hand once: `lib/go/test` and `test/go` regenerated with `thrift-go` using the Makefile recipe lines, then built and tested green. Not wired into the Makefiles or CI. |
-| Scanner, parser and `sema` unit tests | Not written. The parity layers are the only tests of the front end so far. |
-| Reject corpus (`compiler/go/testdata/reject`) | Not written. |
-| Fuzz target | Not written. |
-| CI steps in `lib-go` | Not added. |
+| Version string test (`compiler/go/internal/version`) | Done. `build/veralign.sh` bumps the constant. |
+| Scanner, parser and `sema` unit tests | Done: token tables for the flex quirks, one AST test per grammar rule with negative cases pinned to line and message, one `sema` test per rule of section 5.3. They found four differences from the C++ compiler, fixed and pinned by the accept corpus: the `byte` warning level and once-per-run behaviour, whitespace-only doc comments counting as a doc, a trailing empty doc line printing as `//`, and container constants named by identifier staying references. |
+| Accept corpus (`compiler/go/testdata/accept`) | Done, 3 files, walked by the parity tests. |
+| Reject corpus (`compiler/go/testdata/reject`) | Done, 33 files. `TestRejectGo` runs on every checkout; `TestRejectParity` needs the oracle and fails if the C++ compiler accepts a file. |
+| Fuzz target (`FuzzParse`) | Done. Seeds from the corpora; runs in seed mode under `go test`. A 45-second run by hand found nothing. No scheduled workflow exists in this repository, so there is no nightly run. |
+| Behavioural run through make | Done locally with a configured tree: `make -C lib/go check`, `make -C test/go check` and `make -C tutorial/go check`, each with `THRIFT=<path to thrift-go>`, all green; the recipe lines show the Go binary being invoked. |
+| CI steps in `lib-go` | Added to `.github/workflows/build.yml` as described in section 6.2. Not yet seen running: the branch has no PR. |
+| User documentation | A section in `lib/go/README.md`. |
 | PMC decision on dev@ | Not started. |
 
 Building the oracle locally needs bison 3; the bison 2.3 that ships with
 macOS fails on the `--file-prefix-map` flag the CMake build passes. Point
-CMake at Homebrew's bison with `-DBISON_EXECUTABLE`.
+CMake at Homebrew's bison with `-DBISON_EXECUTABLE`. The autotools
+configure needs the same bison on `PATH`.
