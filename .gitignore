@@ -89,6 +89,7 @@ SKILL.md
 /compiler/cpp/src/thrift/thrifty.hh
 /compiler/cpp/src/thrift/windows/version.h
 /compiler/cpp/thrift
+/compiler/go/thrift-go
 /compiler/cpp/thriftl.cc
 /compiler/cpp/thrifty.cc
 /compiler/cpp/lex.yythriftl.cc
