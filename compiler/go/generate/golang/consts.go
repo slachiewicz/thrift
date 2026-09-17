@@ -47,7 +47,7 @@ func (g *Generator) generateTypedef(td *sema.Typedef) {
 func (g *Generator) generateEnum(e *sema.Enum) {
 	g.beginTypesDeclaration()
 	out := &g.fTypes
-	var toString, fromString, knownValues strings.Builder
+	var toString, fromString, knownValues, isDefined strings.Builder
 	enumName := g.publicize(e.Name())
 	g.generateDocstring(out, e)
 	g.generateDeprecationComment(out, e.Annotations())
@@ -61,6 +61,11 @@ func (g *Generator) generateEnum(e *sema.Enum) {
 	fromString.WriteString(g.indent() + "func " + enumName + "FromString(s string) (" + enumName + ", error) {\n")
 	g.indentUp()
 	fromString.WriteString(g.indent() + "switch s {\n")
+	g.indentDown()
+	g.generateDeprecationComment(&isDefined, e.Annotations())
+	isDefined.WriteString(g.indent() + "func (p " + enumName + ") IsDefined() bool {\n")
+	g.indentUp()
+	isDefined.WriteString(g.indent() + "switch p {\n")
 	g.indentDown()
 	constants := e.Constants()
 	maxEnumNameLen := 0
@@ -95,9 +100,13 @@ func (g *Generator) generateEnum(e *sema.Enum) {
 		g.indentUp()
 		fromString.WriteString(g.indent() + "return " + goEnumName + ", nil\n")
 		g.indentDown()
+		isDefined.WriteString(g.indent() + "case " + goEnumName + ":\n")
+		g.indentUp()
+		isDefined.WriteString(g.indent() + "return true\n")
+		g.indentDown()
 	}
 	toString.WriteString(g.indent() + "}\n")
-	toString.WriteString(g.indent() + "return \"<UNSET>\"\n")
+	toString.WriteString(g.indent() + "return fmt.Sprintf(\"" + enumName + "(%d)\", p)\n")
 	g.indentDown()
 	toString.WriteString(g.indent() + "}\n")
 	g.indentUp()
@@ -105,6 +114,11 @@ func (g *Generator) generateEnum(e *sema.Enum) {
 	fromString.WriteString(g.indent() + "return " + enumName + "(0)," + " fmt.Errorf(\"not a valid " + enumName + " string\")\n")
 	g.indentDown()
 	fromString.WriteString(g.indent() + "}\n")
+	g.indentUp()
+	isDefined.WriteString(g.indent() + "}\n")
+	isDefined.WriteString(g.indent() + "return false\n")
+	g.indentDown()
+	isDefined.WriteString(g.indent() + "}\n")
 	if len(constants) == 0 {
 		knownValues.Reset()
 		knownValues.WriteString(g.indent() + "var known" + enumName + "Values" + " = []" + enumName + "{}\n\n")
@@ -131,7 +145,7 @@ func (g *Generator) generateEnum(e *sema.Enum) {
 	if len(constants) != 0 {
 		out.WriteString(")\n\n")
 	}
-	out.WriteString(knownValues.String() + toString.String() + "\n" + fromString.String() + "\n")
+	out.WriteString(knownValues.String() + toString.String() + "\n" + fromString.String() + "\n" + isDefined.String() + "\n")
 	if g.generateDeprecationComment(out, e.Annotations()) {
 		out.WriteString(g.indent() + "//\n")
 	}
@@ -203,6 +217,20 @@ func (g *Generator) generateConst(c *sema.Const) {
 }
 
 // renderConstValue is render_const_value.
+// constContainerLiteral returns the type that opens a container literal in a
+// constant. A container field with a default value is a pointer field, so
+// the literal has to be addressed, and a typedef'd one has to use the typedef
+// name for the address to have the field's type.
+func constContainerLiteral(containerType, typedefName string, pointer bool) string {
+	if !pointer {
+		return containerType
+	}
+	if typedefName == "" {
+		return "&" + containerType
+	}
+	return "&" + typedefName
+}
+
 func (g *Generator) renderConstValue(typ sema.Type, value *sema.ConstValue, name string, opt bool) string {
 	typedefOpt := ""
 	if typ.IsTypedef() {
@@ -355,11 +383,11 @@ func (g *Generator) renderConstValue(typ sema.Type, value *sema.ConstValue, name
 		ktype, vtype := m.KeyType(), m.ValType()
 		val := value.Map()
 		if g.isContainerKeyedMap(typ) {
-			entry := g.mapEntryType(m)
+			literal := constContainerLiteral("[]"+g.mapEntryType(m), typedefOpt, opt)
 			if len(val) == 0 {
-				return "[]" + entry + "{}"
+				return literal + "{}"
 			}
-			out.WriteString("[]" + entry + "{\n")
+			out.WriteString(literal + "{\n")
 			g.indentUp()
 			for _, e := range val {
 				out.WriteString(g.indent() + "{Key: " + g.renderConstValue(ktype, e.Key, name, false) +
@@ -369,10 +397,11 @@ func (g *Generator) renderConstValue(typ sema.Type, value *sema.ConstValue, name
 			out.WriteString(g.indent() + "}")
 			return out.String()
 		}
+		literal := constContainerLiteral("map["+g.typeToGoKeyType(ktype)+"]"+g.typeToGoType(vtype), typedefOpt, opt)
 		if len(val) == 0 {
-			return "map[" + g.typeToGoKeyType(ktype) + "]" + g.typeToGoType(vtype) + "{}"
+			return literal + "{}"
 		}
-		out.WriteString("map[" + g.typeToGoKeyType(ktype) + "]" + g.typeToGoType(vtype) + "{\n")
+		out.WriteString(literal + "{\n")
 		g.indentUp()
 		maxKeyLen := 0
 		for _, e := range val {
@@ -404,10 +433,11 @@ func (g *Generator) renderConstValue(typ sema.Type, value *sema.ConstValue, name
 			etype = typ.(*sema.Set).ElemType()
 		}
 		val := value.List()
+		literal := constContainerLiteral("[]"+g.typeToGoType(etype), typedefOpt, opt)
 		if len(val) == 0 {
-			return "[]" + g.typeToGoType(etype) + "{}"
+			return literal + "{}"
 		}
-		out.WriteString("[]" + g.typeToGoType(etype) + "{\n")
+		out.WriteString(literal + "{\n")
 		g.indentUp()
 		for _, v := range val {
 			out.WriteString(g.indent() + g.renderConstValue(etype, v, name, false) + ",\n")

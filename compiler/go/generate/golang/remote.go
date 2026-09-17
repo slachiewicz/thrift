@@ -30,13 +30,16 @@ import (
 // generateServiceRemote writes the <service>-remote command line client.
 func (g *Generator) generateServiceRemote(s *sema.Service) {
 	var functions []*sema.Function
-	funcToService := map[string]string{}
+	// Functions may come from a parent service, and when that service lives
+	// in an included file its args struct is in another package, so the map
+	// records the declaring service rather than only its name.
+	funcToService := map[string]*sema.Service{}
 	for parent := s; parent != nil; parent = parent.Extends() {
 		pFunctions := parent.Functions()
 		functions = append(functions, pFunctions...)
 		for _, f := range pFunctions {
 			if _, ok := funcToService[f.Name()]; !ok {
-				funcToService[f.Name()] = parent.Name()
+				funcToService[f.Name()] = parent
 			}
 		}
 	}
@@ -61,6 +64,14 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 	for _, inc := range g.program.Includes() {
 		if _, ok := localPrograms[g.realGoModule(inc)]; !ok {
 			localPrograms[g.realGoModule(inc)] = inc
+		}
+	}
+	// A function inherited from a service declared in a file that this
+	// program does not include directly still needs that file's package for
+	// its args struct.
+	for ancestor := s.Extends(); ancestor != nil; ancestor = ancestor.Extends() {
+		if _, ok := localPrograms[g.realGoModule(ancestor.Program())]; !ok {
+			localPrograms[g.realGoModule(ancestor.Program())] = ancestor.Program()
 		}
 	}
 	if _, ok := localPrograms[g.realGoModule(g.program)]; !ok {
@@ -267,7 +278,15 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 		numArgs := len(args)
 		funcName := f.Name()
 		pubName := g.publicize(funcName)
-		argumentsName := g.publicizeIn(funcName+"_args", true, funcToService[funcName])
+		declaringService := funcToService[funcName]
+		argumentsName := g.publicizeIn(funcName+"_args", true, declaringService.Name())
+		// The args struct is generated next to the service that declares the
+		// function, which is another package when that service comes from an
+		// included file.
+		argumentsModule := g.moduleName(declaringService)
+		if argumentsModule == "" {
+			argumentsModule = packageNameAliased
+		}
 		out.WriteString(g.indent() + "case \"" + escapeString(funcName) + "\":\n")
 		g.indentUp()
 		out.WriteString(g.indent() + "if flag.NArg()-1 != " + itoa(int64(numArgs)) + " {\n")
@@ -290,7 +309,13 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 				out.WriteString(g.indent() + "return\n")
 				g.indentDown()
 				out.WriteString(g.indent() + "}\n")
-				out.WriteString(g.indent() + "argvalue" + is + " := " + packageNameAliased + "." + g.publicize(theType.Name()) + "(tmp" + is + ")\n")
+				// An enum declared in an included file lives in that file's
+				// package, not in the one this service was generated into.
+				enumModule := g.moduleName(theType)
+				if enumModule == "" {
+					enumModule = packageNameAliased
+				}
+				out.WriteString(g.indent() + "argvalue" + is + " := " + enumModule + "." + g.publicize(theType.Name()) + "(tmp" + is + ")\n")
 			case theType2.IsBaseType():
 				err := g.tmp("err")
 				switch theType2.(*sema.BaseType).Base() {
@@ -392,7 +417,7 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 				out.WriteString(g.indent() + "}\n")
 				out.WriteString(g.indent() + factory + " := thrift.NewTJSONProtocolFactory()\n")
 				out.WriteString(g.indent() + jsProt + " := " + factory + ".GetProtocol(" + mbTrans + ")\n")
-				out.WriteString(g.indent() + "containerStruct" + is + " := " + packageNameAliased + ".New" + argumentsName + "()\n")
+				out.WriteString(g.indent() + "containerStruct" + is + " := " + argumentsModule + ".New" + argumentsName + "()\n")
 				out.WriteString(g.indent() + err2 + " := containerStruct" + is + ".ReadField" + itoa(int64(i+1)) + "(context.Background(), " + jsProt + ")\n")
 				out.WriteString(g.indent() + "if " + err2 + " != nil {\n")
 				g.indentUp()

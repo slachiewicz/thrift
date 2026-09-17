@@ -152,9 +152,9 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, origType 
 		g.indentDown()
 		out.WriteString(g.indent() + "}\n")
 		if g.isContainerKeyedMap(ttype) {
-			out.WriteString(g.indent() + "tMap := make(" + g.typeToGoType(origType) + ", 0, size)\n")
+			out.WriteString(g.indent() + "tMap := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
 		} else {
-			out.WriteString(g.indent() + "tMap := make(" + g.typeToGoType(origType) + ", size)\n")
+			out.WriteString(g.indent() + "tMap := make(" + g.typeToGoType(origType) + ", thrift.PreallocSize(size))\n")
 		}
 		out.WriteString(g.indent() + prefix + eq + amp + "tMap\n")
 	case ttype.IsSet():
@@ -164,7 +164,7 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, origType 
 		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading set begin: \", err)\n")
 		g.indentDown()
 		out.WriteString(g.indent() + "}\n")
-		out.WriteString(g.indent() + "tSet := make(" + g.typeToGoType(origType) + ", 0, size)\n")
+		out.WriteString(g.indent() + "tSet := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
 		out.WriteString(g.indent() + prefix + eq + amp + "tSet\n")
 	case ttype.IsList():
 		out.WriteString(g.indent() + "_, size, err := iprot.ReadListBegin(ctx)\n")
@@ -173,7 +173,7 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, origType 
 		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading list begin: \", err)\n")
 		g.indentDown()
 		out.WriteString(g.indent() + "}\n")
-		out.WriteString(g.indent() + "tSlice := make(" + g.typeToGoType(origType) + ", 0, size)\n")
+		out.WriteString(g.indent() + "tSlice := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
 		out.WriteString(g.indent() + prefix + eq + amp + "tSlice\n")
 	default:
 		throw("INVALID TYPE IN generate_deserialize_container '%s' for prefix '%s'", ttype.Name(), prefix)
@@ -370,7 +370,9 @@ func (g *Generator) generateSerializeContainer(out *strings.Builder, ttype sema.
 				g.indentUp()
 				out.WriteString(g.indent() + seen + " := make(map[" + keyValueType + "]struct{}, len(" + wrappedPrefix + "))\n")
 				out.WriteString(g.indent() + sawNil + " := false\n")
-				out.WriteString(g.indent() + "for _, " + entry + " := range " + wrappedPrefix + " {\n")
+				// gofmt strips parentheses around a range expression, so a
+				// pointer field ranges over *p.Field rather than (*p.Field).
+				out.WriteString(g.indent() + "for _, " + entry + " := range " + prefix + " {\n")
 				g.indentUp()
 				out.WriteString(g.indent() + "if " + entry + ".Key == nil {\n")
 				g.indentUp()
