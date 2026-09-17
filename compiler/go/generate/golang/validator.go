@@ -641,7 +641,7 @@ func (v *validatorGenerator) generateEnumFieldValidator(out *strings.Builder, ct
 			if !values[0].boolVal {
 				continue
 			}
-			out.WriteString(v.indent() + "if (" + ctx.tgt + ").String() == \"<UNSET>\" {\n")
+			out.WriteString(v.indent() + "if !(" + ctx.tgt + ").IsDefined() {\n")
 			v.failure(out, ctx, key)
 		}
 	}

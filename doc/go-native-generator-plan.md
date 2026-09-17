@@ -355,7 +355,7 @@ whether the front end or the emitter is at fault.
 
 Positive corpus: every `.thrift` file under these directories, walked
 recursively, skipping `gen-*` and `gopath` output directories. The harness
-found 158 files at the time of writing.
+found 159 files at the time of writing.
 
 | Directory | Notes |
 |---|---|
@@ -484,8 +484,8 @@ last local run with the oracle built from the same commit.
 
 | Item | State |
 |---|---|
-| Scanner, parser, AST, `sema` (`compiler/go/idl`, `compiler/go/sema`) | Done. Front-end parity green on 157 of 158 corpus files; the JSON generator cannot render `ConstEdgeCases.thrift` (a container constant named by identifier) and the test skips it, while output parity covers it. `test/BrokenConstants.thrift` is rejected by both. |
-| Generator port (`compiler/go/generate/golang`), including the validator generator | Done. Output parity green for all 158 files on all 8 option rows: 1,264 subtests, of which 8 are the both-reject file and 1,256 are byte-identical trees. |
+| Scanner, parser, AST, `sema` (`compiler/go/idl`, `compiler/go/sema`) | Done. Front-end parity green on 158 of 159 corpus files; the JSON generator cannot render `ConstEdgeCases.thrift` (a container constant named by identifier) and the test skips it, while output parity covers it. `test/BrokenConstants.thrift` is rejected by both. |
+| Generator port (`compiler/go/generate/golang`), including the validator generator | Done. Output parity green for all 159 files on all 8 option rows: 1,272 subtests, of which 8 are the both-reject file and 1,264 are byte-identical trees. |
 | `thrift-go` command (`compiler/go/cmd/thrift-go`) | Done; accepts the C++ flag syntax. |
 | Version string test (`compiler/go/internal/version`) | Done. `build/veralign.sh` bumps the constant. |
 | Scanner, parser and `sema` unit tests | Done: token tables for the flex quirks, one AST test per grammar rule with negative cases pinned to line and message, one `sema` test per rule of section 5.3. They found three differences from the C++ compiler, fixed and pinned by the accept corpus: the `byte` warning level and once-per-run behaviour, whitespace-only doc comments counting as a doc, and a trailing empty doc line printing as `//`. A fourth suspect, a container constant named by identifier, turned out to be identical in both compilers (it stays a reference); the test expectation was wrong and the behaviour is pinned. The commit message of the unit-test commit overstates this as four fixes. |
@@ -496,6 +496,7 @@ last local run with the oracle built from the same commit.
 | CI steps in `lib-go` | Added to `.github/workflows/build.yml` as described in section 6.2. Not yet seen running: the branch has no PR. |
 | User documentation | A section in `lib/go/README.md`. |
 | PMC decision on dev@ | Not started. |
+| Tracking master | Each rebase reruns the parity tests with the oracle rebuilt from the same commit and ports whatever the C++ generators gained. The rebase of 2026-09-17 ported six changes: THRIFT-5807 (`IsDefined` and the `Name(%d)` fallback in `String`, with the validator following), THRIFT-5806 (nil guard in `CountSetFields`), `thrift.PreallocSize` in the container readers, THRIFT-6200 (declaring package in the `-remote` stub), THRIFT-5463 (addressed container literals in constants) and `TBaseHelper.preallocSize` in the Java readers. |
 
 Building the oracle locally needs bison 3; the bison 2.3 that ships with
 macOS fails on the `--file-prefix-map` flag the CMake build passes. Point
@@ -539,7 +540,7 @@ grew the Go and JSON parity runs.
 
 | Item | State |
 |---|---|
-| Generator port (`compiler/go/generate/java`) | Done. Output parity green for all 158 corpus files on all 19 rows: 3,002 subtests, of which 19 are the both-reject file and 2,983 are byte-identical trees. Green on the first full run; no compiler difference was found. |
+| Generator port (`compiler/go/generate/java`) | Done. Output parity green for all 159 corpus files on all 19 rows: 3,021 subtests, of which 19 are the both-reject file and 3,002 are byte-identical trees. Green on the first full run; no compiler difference was found. |
 | `thrift-go --gen java` | Done. The command dispatches on the language and accepts several `--gen` arguments. `beans` writes to `gen-javabean` without `-out`. |
 | Unit tests | `ParseOptions` errors and the naming helpers (`constant_name`, `as_camel_case`, `make_valid_java_identifier`). |
 | Behavioural run | Done locally once with the Gradle version CI pins (8.4): `gradle -p lib/java -Pthrift.compiler=<thrift-go> compileTestJava` ran all eight generate tasks with the Go binary and compiled the result. The unit tests themselves were not run through gradle. Gradle 9 cannot run this build at all (`exec {}` was removed), which is unrelated to the port. |
