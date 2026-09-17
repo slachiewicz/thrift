@@ -149,7 +149,7 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, t sema.Ty
 		if t.IsList() {
 			mul = ""
 		}
-		out.WriteString("(" + mul + obj + ".size" + ");\n")
+		out.WriteString("(org.apache.thrift.TBaseHelper.preallocSize(" + mul + obj + ".size));\n")
 	}
 
 	if g.opts.ReuseObjects {

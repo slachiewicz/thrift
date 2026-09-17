@@ -329,6 +329,11 @@ func (g *Generator) generateIssetHelpers(out *strings.Builder, s *sema.Struct, s
 func (g *Generator) generateCountSetFieldsHelper(out *strings.Builder, s *sema.Struct, structName string) {
 	out.WriteString(g.indent() + "func (p *" + structName + ") CountSetFields" + structName + "() int {\n")
 	g.indentUp()
+	out.WriteString(g.indent() + "if p == nil {\n")
+	g.indentUp()
+	out.WriteString(g.indent() + "return 0\n")
+	g.indentDown()
+	out.WriteString(g.indent() + "}\n")
 	out.WriteString(g.indent() + "count := 0\n")
 	for _, f := range s.Members() {
 		if f.Req() == sema.Required {
