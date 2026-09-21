@@ -50,6 +50,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/erl"      // registers erl
 	_ "github.com/apache/thrift/compiler/go/generate/golang"   // registers go
 	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
+	_ "github.com/apache/thrift/compiler/go/generate/haxe"     // registers haxe
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
 	_ "github.com/apache/thrift/compiler/go/generate/java"     // registers java
 	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js

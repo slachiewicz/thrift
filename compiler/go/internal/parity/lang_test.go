@@ -31,6 +31,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/cpp"      // registers cpp
 	_ "github.com/apache/thrift/compiler/go/generate/erl"      // registers erl
 	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
+	_ "github.com/apache/thrift/compiler/go/generate/haxe"     // registers haxe
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
 	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
@@ -86,6 +87,13 @@ var langRows = map[string][]optionRow{
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
 		{name: "exceptions", spec: "exceptions"},
+	},
+	"haxe": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "callbacks", spec: "callbacks"},
+		{name: "rtti", spec: "rtti"},
+		{name: "buildmacro", spec: "buildmacro=my.macros.Class.method(args)"},
 	},
 	"json": {
 		{name: "none", spec: ""},
