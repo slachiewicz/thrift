@@ -49,6 +49,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/golang" // registers go
 	_ "github.com/apache/thrift/compiler/go/generate/java"   // registers java
 	_ "github.com/apache/thrift/compiler/go/generate/json"   // registers json
+	_ "github.com/apache/thrift/compiler/go/generate/mmd"    // registers mmd
 )
 
 // Exit statuses, shared by both command lines.
