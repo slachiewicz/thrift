@@ -33,6 +33,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/apache/thrift/compiler/go/audit"
 	"github.com/apache/thrift/compiler/go/generate/golang"
 	"github.com/apache/thrift/compiler/go/generate/java"
 	"github.com/apache/thrift/compiler/go/internal/version"
@@ -68,6 +69,18 @@ func help() {
 	fmt.Fprintln(os.Stderr, "               STR has the form language[:key1=val1[,key2[,key3=val3]]].")
 	fmt.Fprintln(os.Stderr, "               Keys and values are options passed to the generator.")
 	fmt.Fprintln(os.Stderr, "               Many options will not require values.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Options related to audit operation")
+	fmt.Fprintln(os.Stderr, "   --audit OldFile   Old Thrift file to be audited with 'file'")
+	fmt.Fprintln(os.Stderr, "   --audit-allow-optional-field-removal")
+	fmt.Fprintln(os.Stderr, "                Allow explicitly optional fields to be removed")
+	fmt.Fprintln(os.Stderr, "   --audit-allow-required-field-to-default")
+	fmt.Fprintln(os.Stderr, "                Allow required fields to use default requiredness")
+	fmt.Fprintln(os.Stderr, "                Binding-dependent; includes service method arguments")
+	fmt.Fprintln(os.Stderr, "  -Iold dir    Add a directory to the list of directories")
+	fmt.Fprintln(os.Stderr, "                searched for include directives for old thrift file")
+	fmt.Fprintln(os.Stderr, "  -Inew dir    Add a directory to the list of directories")
+	fmt.Fprintln(os.Stderr, "                searched for include directives for new thrift file")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Available generators (and options):")
 	fmt.Fprintln(os.Stderr, "  go (Go):")
@@ -124,6 +137,10 @@ func main() {
 
 	loader := &sema.Loader{Diag: &sema.Diagnostics{Out: os.Stderr, WarnLevel: 1, Path: "arguments"}}
 	var generatorStrings []string
+	auditMode := false
+	auditFatal := true
+	auditOpts := audit.Options{WarnLevel: 1, Stdout: os.Stdout, Stderr: os.Stderr}
+	oldInputFile, oldIncludePath, newIncludePath := "", "", ""
 	outPath := ""
 	outPathIsAbsolute := false
 	recurse := false
@@ -148,9 +165,11 @@ func main() {
 			case "-debug":
 			case "-nowarn":
 				loader.Diag.WarnLevel = 0
+				auditOpts.WarnLevel = 0
 			case "-strict":
 				loader.Strict = 255
 				loader.Diag.WarnLevel = 2
+				auditOpts.WarnLevel = 2
 			case "-v", "-verbose":
 			case "-r", "-recurse":
 				recurse = true
@@ -184,9 +203,34 @@ func main() {
 					fmt.Fprintf(os.Stderr, "Output directory %s is unusable: does not exist or is not a directory\n", outPath)
 					os.Exit(255)
 				}
-			case "-audit", "-audit-nofatal", "-audit-allow-optional-field-removal",
-				"-audit-allow-required-field-to-default", "-Iold", "-Inew":
-				failure("The audit mode is not available in this compiler; use the C++ thrift compiler.")
+			case "-audit":
+				auditMode = true
+				i++
+				if i >= len(args) {
+					fmt.Fprintln(os.Stderr, "Missing old thrift file name for audit operation")
+					usage()
+				}
+				oldInputFile = args[i]
+			case "-audit-nofatal":
+				auditFatal = false
+			case "-audit-allow-optional-field-removal":
+				auditOpts.AllowOptionalFieldRemoval = true
+			case "-audit-allow-required-field-to-default":
+				auditOpts.AllowRequiredFieldToDefault = true
+			case "-Iold":
+				i++
+				if i >= len(args) {
+					fmt.Fprintln(os.Stderr, "Missing Include directory for old thrift file")
+					usage()
+				}
+				oldIncludePath = args[i]
+			case "-Inew":
+				i++
+				if i >= len(args) {
+					fmt.Fprintln(os.Stderr, "Missing Include directory for new thrift file")
+					usage()
+				}
+				newIncludePath = args[i]
 			default:
 				fmt.Fprintf(os.Stderr, "Unrecognized option: %s\n", arg)
 				usage()
@@ -201,6 +245,35 @@ func main() {
 	case "-version", "--version":
 		fmt.Printf("Thrift version %s\n", version.Version)
 		os.Exit(0)
+	}
+
+	if auditMode {
+		if oldInputFile == "" {
+			fmt.Fprintln(os.Stderr, "Missing file name of old thrift file for audit")
+			usage()
+		}
+		// The old file is parsed first, each file with its own include
+		// directory added to the shared ones, like audit() in main.cc.
+		shared := loader.IncludeDirs
+		if oldIncludePath != "" {
+			loader.IncludeDirs = append(append([]string{}, shared...), oldIncludePath)
+		}
+		oldProgram, err := loader.Load(oldInputFile)
+		if err != nil {
+			failure("%s", err.Error())
+		}
+		loader.IncludeDirs = shared
+		if newIncludePath != "" {
+			loader.IncludeDirs = append(append([]string{}, shared...), newIncludePath)
+		}
+		newProgram, err := loader.Load(last)
+		if err != nil {
+			failure("%s", err.Error())
+		}
+		if audit.Audit(newProgram, oldProgram, auditOpts) && auditFatal {
+			os.Exit(2)
+		}
+		return
 	}
 
 	if len(generatorStrings) == 0 {

@@ -314,8 +314,9 @@ expect the `thrift` binary:
     $ compiler/go/thrift-go --gen go:thrift_import=github.com/apache/thrift/lib/go/thrift file.thrift
 
 It accepts the C++ compiler's command line (`-I`, `-o`, `-out`, `-r`,
-`-strict`, `-nowarn`, `--gen go:<options>`, `--gen java:<options>`), with
-only the Go and Java generators available. The autotools build takes the compiler through the `THRIFT`
+`-strict`, `-nowarn`, `--gen go:<options>`, `--gen java:<options>`, and
+`-audit` with its options), with only the Go and Java generators
+available. The autotools build takes the compiler through the `THRIFT`
 variable, which must be an absolute path to an existing file because the
 Makefiles list it as a prerequisite:
 
