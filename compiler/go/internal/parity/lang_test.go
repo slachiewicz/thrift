@@ -35,6 +35,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
+	_ "github.com/apache/thrift/compiler/go/generate/php"      // registers php
 	_ "github.com/apache/thrift/compiler/go/generate/py"       // registers py
 	_ "github.com/apache/thrift/compiler/go/generate/rb"       // registers rb
 	_ "github.com/apache/thrift/compiler/go/generate/rs"       // registers rs
@@ -182,6 +183,27 @@ var langRows = map[string][]optionRow{
 		// file from a prior generation step that a fresh checkout does
 		// not have.
 		{name: "node_ts_episode", spec: "node,ts,thrift_package_output_directory=first-episode"},
+	},
+	"php": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "inlined", spec: "inlined"},
+		{name: "server", spec: "server"},
+		{name: "oop", spec: "oop"},
+		{name: "rest", spec: "rest"},
+		{name: "nsglobal", spec: "nsglobal="},
+		{name: "validate", spec: "validate"},
+		{name: "json", spec: "json"},
+		{name: "getters_setters", spec: "getters_setters"},
+		{name: "classmap", spec: "classmap"},
+		// The repository's own build files' distinct --gen php:... specs.
+		{name: "classmap_server_rest", spec: "classmap,server,rest"},
+		{name: "classmap_server_rest_nsglobal", spec: "classmap,server,rest,nsglobal="},
+		{name: "inlined_nsglobal", spec: "inlined,nsglobal="},
+		{name: "json_nsglobal", spec: "json,nsglobal="},
+		{name: "oop_nsglobal", spec: "oop,nsglobal="},
+		{name: "validate_nsglobal", spec: "validate,nsglobal="},
+		{name: "validate_oop_nsglobal", spec: "validate,oop,nsglobal="},
 	},
 }
 
