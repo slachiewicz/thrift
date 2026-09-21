@@ -100,9 +100,6 @@ fdcace3dcf26c3c7	lib/go/test/ForwardType.thrift	forwardtypetest/GoUnusedProtecti
 039909650ac0ad0d	lib/go/test/IgnoreInitialismsTest.thrift	ignoreinitialismstest/GoUnusedProtection__.go
 1771ad0fe209bc18	lib/go/test/IgnoreInitialismsTest.thrift	ignoreinitialismstest/IgnoreInitialismsTest-consts.go
 599e305d4be159ed	lib/go/test/IgnoreInitialismsTest.thrift	ignoreinitialismstest/IgnoreInitialismsTest.go
-ef5c978e3b7e8b4b	lib/go/test/IncludesTest.thrift	includestest/GoUnusedProtection__.go
-d70c45e3ef0265b1	lib/go/test/IncludesTest.thrift	includestest/IncludesTest-consts.go
-13fa6764924ba77a	lib/go/test/IncludesTest.thrift	includestest/IncludesTest.go
 5fd1d11b0dfac0bd	lib/go/test/InitialismsTest.thrift	initialismstest/GoUnusedProtection__.go
 77fd918f8146fe5c	lib/go/test/InitialismsTest.thrift	initialismstest/InitialismsTest-consts.go
 e9df3bc022ec8f56	lib/go/test/InitialismsTest.thrift	initialismstest/InitialismsTest.go
@@ -115,9 +112,6 @@ f24cfdb220c4b66d	lib/go/test/NamesTest.thrift	namestest/GoUnusedProtection__.go
 6557e844a2e86320	lib/go/test/NamespacedBaseTest.thrift	lib/go/test/namespacedbasetest/GoUnusedProtection__.go
 7a06d087bc9e9a46	lib/go/test/NamespacedBaseTest.thrift	lib/go/test/namespacedbasetest/NamespacedBaseTest-consts.go
 b35224736356b8bb	lib/go/test/NamespacedBaseTest.thrift	lib/go/test/namespacedbasetest/NamespacedBaseTest.go
-cc965b2ea6bec8d1	lib/go/test/NamespacedTest.thrift	lib/go/test/namespacedtest/GoUnusedProtection__.go
-55bc66de9c6d264a	lib/go/test/NamespacedTest.thrift	lib/go/test/namespacedtest/NamespacedTest-consts.go
-e50202503a1c46d0	lib/go/test/NamespacedTest.thrift	lib/go/test/namespacedtest/NamespacedTest.go
 26afac2ba1977cc6	lib/go/test/OnewayTest.thrift	onewaytest/GoUnusedProtection__.go
 55e093fe51d44c4b	lib/go/test/OnewayTest.thrift	onewaytest/OnewayTest-consts.go
 1975ab976a2d3e7b	lib/go/test/OnewayTest.thrift	onewaytest/OnewayTest.go
@@ -142,9 +136,6 @@ dd2218b3ab8f4753	lib/go/test/StringParseAllocationTest.thrift	stringparseallocat
 8d6b953cea811e29	lib/go/test/StructKeyTest.thrift	structkeytest/GoUnusedProtection__.go
 627ecbf3355f0937	lib/go/test/StructKeyTest.thrift	structkeytest/StructKeyTest-consts.go
 04ef81c2af32f982	lib/go/test/StructKeyTest.thrift	structkeytest/StructKeyTest.go
-319927ebb9c6385e	lib/go/test/ThriftTest.thrift	thrifttest/GoUnusedProtection__.go
-f17a31bb9bbc7a7b	lib/go/test/ThriftTest.thrift	thrifttest/ThriftTest-consts.go
-5f820dbecd36f4da	lib/go/test/ThriftTest.thrift	thrifttest/ThriftTest.go
 68db1b18972af43e	lib/go/test/TypedefFieldTest.thrift	typedeffieldtest/GoUnusedProtection__.go
 2b388408f4c32747	lib/go/test/TypedefFieldTest.thrift	typedeffieldtest/TypedefFieldTest-consts.go
 778d27fab3ea0f72	lib/go/test/TypedefFieldTest.thrift	typedeffieldtest/TypedefFieldTest.go
