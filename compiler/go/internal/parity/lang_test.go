@@ -31,6 +31,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/erl"      // registers erl
 	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
+	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
 	_ "github.com/apache/thrift/compiler/go/generate/rb"       // registers rb
@@ -110,6 +111,32 @@ var langRows = map[string][]optionRow{
 		{name: "none-r", spec: "", recurse: true},
 		{name: "crate_prefix", spec: "crate_prefix=super"},
 	},
+	"js": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "jquery", spec: "jquery"},
+		{name: "node", spec: "node"},
+		{name: "ts", spec: "ts"},
+		{name: "es6", spec: "es6"},
+		// with_ns and esm are only valid combined with node; a spec that
+		// is rejected outright (independent of any input file) is not a
+		// parity row this harness can run, since generate.New fails
+		// before any file is read, so only the valid combination is a row.
+		{name: "node_with_ns", spec: "node,with_ns"},
+		{name: "node_ts", spec: "node,ts"},
+		{name: "es6_ts", spec: "es6,ts"},
+		{name: "node_bigint", spec: "node,bigint"},
+		{name: "node_es6", spec: "node,es6"},
+		{name: "node_es6_bigint", spec: "node,es6,bigint"},
+		{name: "node_es6_esm", spec: "node,es6,esm"},
+		{name: "node_native_promise_false", spec: "node,native_promise=false"},
+		// thrift_package_output_directory is exercised with a path that
+		// exists nowhere but in the episode file it writes; imports= is
+		// left out because every build-file use of it reads an episode
+		// file from a prior generation step that a fresh checkout does
+		// not have.
+		{name: "node_ts_episode", spec: "node,ts,thrift_package_output_directory=first-episode"},
+	},
 }
 
 // undefinedInCpp lists, per language, the corpus files on which the C++
@@ -123,6 +150,14 @@ var undefinedInCpp = map[string]map[string]string{
 	"gv": {
 		"lib/go/test/ConstOptionalField.thrift": "struct field holding an enum identifier",
 		"lib/go/test/StructKeyTest.thrift":      "map constant under a struct default",
+	},
+	"js": {
+		// t_js_generator::render_const_value's TYPE_UUID case writes
+		// `out << "'" << value << "'"` where value is the t_const_value*
+		// itself, not get_escaped_string(value): it prints the pointer's
+		// address, which differs between runs. ConstantsDemo.thrift
+		// declares `const uuid` values, so this path is reachable.
+		"test/ConstantsDemo.thrift": "render_const_value prints a raw t_const_value* pointer for a uuid constant",
 	},
 }
 
