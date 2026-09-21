@@ -36,9 +36,12 @@ re-litigates it mid-implementation.
   a parity test against the C++ compiler.
 - Parity of warning text and error text. Accept and reject decisions must
   match; wording may differ.
-- `gofmt`-clean output. The C++ generator does not produce it today, and
-  changing the output breaks parity. Formatting improvements come after the
-  C++ generator is retired.
+- `gofmt`-clean output. Overridden on 2026-09-21: the C++ generator's
+  output was already `gofmt`-clean for every shipped IDL file (750 of the
+  751 files of the corpus; the exception is a doc-comment edge case), so
+  the Go generator formats every file it writes with `go/format` and the
+  emitters no longer track indentation. The parity test compares against
+  the formatted C++ output.
 - Generators for any language other than Go. Overridden on 2026-09-14: the
   Java generator was ported next, on the same terms; see section 12.
 - Replacing the C++ compiler for the cross-language test suite. Every other

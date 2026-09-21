@@ -121,7 +121,6 @@ type Generator struct {
 	opts        Options
 	programName string
 	serviceName string
-	indentLevel int
 	tmpCounter  int
 
 	fTypes       strings.Builder
@@ -197,13 +196,6 @@ func (g *Generator) Generate() (err error) {
 
 // ---- t_generator helpers ----
 
-func (g *Generator) indentUp()   { g.indentLevel++ }
-func (g *Generator) indentDown() { g.indentLevel-- }
-
-func (g *Generator) indent() string {
-	return strings.Repeat("\t", g.indentLevel)
-}
-
 // tmp is t_generator::tmp: a name with a running number appended.
 func (g *Generator) tmp(name string) string {
 	s := name + strconv.Itoa(g.tmpCounter)
@@ -265,14 +257,6 @@ func underscore(in string) string {
 		}
 	}
 	return string(out)
-}
-
-// spaces returns n spaces; n below zero yields none.
-func spaces(n int) string {
-	if n <= 0 {
-		return ""
-	}
-	return strings.Repeat(" ", n)
 }
 
 // formatDouble mimics `ostream << double` with the default precision of
@@ -751,9 +735,9 @@ func (g *Generator) generateDocstringComment(out *strings.Builder, contents stri
 				}
 			}
 			docLine = strings.ReplaceAll(docLine, "''", "\"\"")
-			out.WriteString(g.indent() + "// " + docLine + "\n")
+			out.WriteString("// " + docLine + "\n")
 		} else if !eof {
-			out.WriteString(g.indent() + "//\n")
+			out.WriteString("//\n")
 		}
 		if truncated {
 			return
@@ -766,7 +750,7 @@ func (g *Generator) generateDeprecationComment(out *strings.Builder, annotations
 	if !ok {
 		return false
 	}
-	out.WriteString(g.indent() + "// Deprecated: ")
+	out.WriteString("// Deprecated: ")
 	first := true
 	for _, v := range values {
 		if v == "1" {
