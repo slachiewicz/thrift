@@ -58,6 +58,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/javame"   // registers javame
 	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js
 	_ "github.com/apache/thrift/compiler/go/generate/json"     // registers json
+	_ "github.com/apache/thrift/compiler/go/generate/kotlin"   // registers kotlin
 	_ "github.com/apache/thrift/compiler/go/generate/lua"      // registers lua
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
