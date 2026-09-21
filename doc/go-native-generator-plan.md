@@ -567,6 +567,7 @@ grew the Go and JSON parity runs.
 | Item | State |
 |---|---|
 | Generator port (`compiler/go/generate/java`) | Done. Output parity green for all 159 corpus files on all 19 rows: 3,021 subtests, of which 19 are the both-reject file and 3,002 are byte-identical trees. Green on the first full run; no compiler difference was found. |
+| JSON generator (`compiler/go/generate/json`) | Done. The renderer the front-end parity test had used as `internal/jsondump`, with the `merge` option and file output, registered as `--gen json`. Parity rows `none`, `none -r` and `merge` green; `merge` under `-r` is not a row because the C++ generator merges by mutating the shared program, so its output depends on generation order. |
 | `thrift-go --gen java` | Done. The command dispatches on the language and accepts several `--gen` arguments. `beans` writes to `gen-javabean` without `-out`. |
 | Unit tests | `ParseOptions` errors and the naming helpers (`constant_name`, `as_camel_case`, `make_valid_java_identifier`). |
 | Behavioural run | Done locally once with the Gradle version CI pins (8.4): `gradle -p lib/java -Pthrift.compiler=<thrift-go> compileTestJava` ran all eight generate tasks with the Go binary and compiled the result. The unit tests themselves were not run through gradle. Gradle 9 cannot run this build at all (`exec {}` was removed), which is unrelated to the port. |
@@ -614,6 +615,7 @@ Churn is the evidence for which emitters are maintained.
 |---|---|---|---|
 | Ported | go | 5,065 | 20 |
 | Ported | java | 5,908 | 4 |
+| Ported | json | 811 | 0 |
 | 2, maintained: port in this order | cpp | 5,188 | 12 |
 | 2 | js | 3,296 | 12 |
 | 2 | rb | 1,469 | 14 |
@@ -625,8 +627,7 @@ Churn is the evidence for which emitters are maintained.
 | 2 | netstd | 4,279 | 7 |
 | 2 | haxe | 3,188 | 7 |
 | 2 | c_glib | 4,596 | 6 |
-| 3a, documentation and IR emitters: cheap, and `json` becomes the front-end parity oracle | json | 811 | 0 |
-| 3a | markdown | 1,269 | 2 |
+| 3a, documentation and IR emitters: cheap | markdown | 1,269 | 2 |
 | 3a | html | 1,088 | 0 |
 | 3a | xml | 704 | 0 |
 | 3a | xsd | 369 | 1 |
