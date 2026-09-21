@@ -567,7 +567,7 @@ grew the Go and JSON parity runs.
 | Item | State |
 |---|---|
 | Generator port (`compiler/go/generate/java`) | Done. Output parity green for all 159 corpus files on all 19 rows: 3,021 subtests, of which 19 are the both-reject file and 3,002 are byte-identical trees. Green on the first full run; no compiler difference was found. |
-| Tier-3a generators (`compiler/go/generate/{markdown,html,xml,xsd,gv,mmd}`) | Done on 2026-09-21, each a function-for-function port with its option rows green against the oracle over the corpus and its golden manifests, through the registry-driven harness in `lang_test.go`. The gv port rejects two corpus files on which the C++ generator's behaviour is undefined (it crashes on most runs); the oracle test skips them and [go-native-generator-quirks.md](go-native-generator-quirks.md) records that and every other quirk the ports had to reproduce. |
+| Tier-3a generators (`compiler/go/generate/{markdown,html,xml,xsd,gv,mmd}`), then tier 2 (`cpp js rb rs erl delphi py php netstd haxe c_glib`) and tier 3b (`javame dart kotlin ocaml perl lua st d cl`) | Done on 2026-09-21, each a function-for-function port with its option rows green against the oracle over the corpus and its golden manifests, through the registry-driven harness in `lang_test.go`. The gv port rejects two corpus files on which the C++ generator's behaviour is undefined (it crashes on most runs); the oracle test skips them and [go-native-generator-quirks.md](go-native-generator-quirks.md) records that and every other quirk the ports had to reproduce. |
 | JSON generator (`compiler/go/generate/json`) | Done. The renderer the front-end parity test had used as `internal/jsondump`, with the `merge` option and file output, registered as `--gen json`. Parity rows `none`, `none -r` and `merge` green; `merge` under `-r` is not a row because the C++ generator merges by mutating the shared program, so its output depends on generation order. |
 | `thrift-go --gen java` | Done. The command dispatches on the language and accepts several `--gen` arguments. `beans` writes to `gen-javabean` without `-out`. |
 | Unit tests | `ParseOptions` errors and the naming helpers (`constant_name`, `as_camel_case`, `make_valid_java_identifier`). |
@@ -609,47 +609,58 @@ its window. That is a criterion, not a date.
 
 ### 13.2 Tiering
 
-Commits to each emitter in the 24 months before 2026-09-21, and its size.
-Churn is the evidence for which emitters are maintained.
+Commits to each emitter in the 24 months before 2026-09-21, its size,
+and the size of its Go port. Churn is the evidence for which emitters
+are maintained and so for the order in which the flips should run. Every
+emitter is ported: tier 1 (go, java, json) by hand, tiers 2, 3a and 3b
+on 2026-09-21 by agents working one emitter each in a worktree against the oracle harness of §7, each port function for
+function and green on its option rows over the corpus before it was
+merged. Tier 3b was ported rather than deprecated because a port cost
+less than a vote, and dropping a language stays possible afterwards.
 
-| Tier | Emitter | C++ lines | Commits / 24 months |
-|---|---|---|---|
-| Ported | go | 5,065 | 20 |
-| Ported | java | 5,908 | 4 |
-| Ported | json | 811 | 0 |
-| Ported | markdown | 1,269 | 2 |
-| Ported | html | 1,088 | 0 |
-| Ported | xml | 704 | 0 |
-| Ported | xsd | 369 | 1 |
-| Ported | gv | 352 | 0 |
-| Ported | mmd | 289 | 1 |
-| 2, maintained: port in this order | cpp | 5,188 | 12 |
-| 2 | js | 3,296 | 12 |
-| 2 | rb | 1,469 | 14 |
-| 2 | rs | 3,421 | 11 |
-| 2 | erl | 1,460 | 11 |
-| 2 | delphi | 4,617 | 11 |
-| 2 | py | 3,064 | 10 |
-| 2 | php | 3,168 | 9 |
-| 2 | netstd | 4,279 | 7 |
-| 2 | haxe | 3,188 | 7 |
-| 2 | c_glib | 4,596 | 6 |
-| 3b, dormant: deprecate-then-remove vote rather than a port | javame | 3,337 | 3 |
-| 3b | dart | 2,584 | 3 |
-| 3b | kotlin | 2,040 | 1 |
-| 3b | ocaml | 1,795 | 3 |
-| 3b | perl | 1,719 | 3 |
-| 3b | lua | 1,207 | 2 |
-| 3b | st | 1,066 | 1 |
-| 3b | d | 782 | 0 |
-| 3b | cl | 564 | 1 |
+| Tier | Emitter | C++ lines | Go lines | Commits / 24 months |
+|---|---|---|---|---|
+| 1 | go | 5,089 | 4,599 | 20 |
+| 1 | java | 5,908 | 4,902 | 4 |
+| 1 | json | 811 | 657 | 0 |
+| 3a | markdown | 1,269 | 1,237 | 2 |
+| 3a | html | 1,088 | 1,207 | 0 |
+| 3a | xml | 704 | 661 | 0 |
+| 3a | xsd | 369 | 484 | 1 |
+| 3a | gv | 371 | 442 | 0 |
+| 3a | mmd | 289 | 308 | 1 |
+| 2 | cpp | 5,188 | 4,597 | 12 |
+| 2 | js | 3,296 | 3,060 | 12 |
+| 2 | rb | 1,469 | 1,521 | 14 |
+| 2 | rs | 3,421 | 3,243 | 11 |
+| 2 | erl | 1,460 | 1,500 | 11 |
+| 2 | delphi | 4,617 | 4,417 | 11 |
+| 2 | py | 3,064 | 2,907 | 10 |
+| 2 | php | 3,168 | 3,108 | 9 |
+| 2 | netstd | 4,279 | 4,146 | 7 |
+| 2 | haxe | 3,188 | 3,094 | 7 |
+| 2 | c_glib | 4,596 | 4,187 | 6 |
+| 3b | javame | 3,337 | 3,002 | 3 |
+| 3b | dart | 2,584 | 2,577 | 3 |
+| 3b | kotlin | 2,040 | 2,152 | 1 |
+| 3b | ocaml | 1,795 | 1,913 | 3 |
+| 3b | perl | 1,719 | 1,643 | 3 |
+| 3b | lua | 1,207 | 1,267 | 2 |
+| 3b | st | 1,105 | 1,076 | 1 |
+| 3b | d | 782 | 896 | 0 |
+| 3b | cl | 564 | 742 | 1 |
 
-Tier 2 is 37,746 lines. The Go and Java ports came out at about 0.85 Go
-lines per C++ line, and the Java port reached parity in under a week once
-the harness existed; the estimate for tier 2 plus 3a is four to six
-months for one engineer, most of it the compile check per language in
-that language's existing CI job. No port starts before its golden
-manifest rows exist, so the oracle build does not multiply in CI.
+The 29 ports are 65,545 Go lines for 68,777 C++ lines, 0.95 Go lines
+per C++ line over the whole set; the small emitters come out longer than
+their C++ (the registration, option parsing and file-writing ceremony
+that `THRIFT_REGISTER_GENERATOR` and `t_generator` hide is spelled out
+per package) and the large ones shorter. The estimate this section used
+to carry, four to six months for one engineer for tiers 2 and 3a, was
+wrong by an order of magnitude once the harness existed and the ports
+ran in parallel: the 26 ports of tiers 2, 3a and 3b landed in one day. What
+remains per language is the compile check in that language's existing
+CI job, which no port has had yet except Go and Java, and the flip
+windows of §13.1.
 
 ### 13.3 The contract between front end and emitters
 
