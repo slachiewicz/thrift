@@ -48,12 +48,16 @@ import (
 	"github.com/apache/thrift/compiler/go/generate"
 	_ "github.com/apache/thrift/compiler/go/generate/golang"   // registers go
 	_ "github.com/apache/thrift/compiler/go/generate/golang"   // registers go
+	_ "github.com/apache/thrift/compiler/go/generate/golang"   // registers go
 	_ "github.com/apache/thrift/compiler/go/generate/java"     // registers java
 	_ "github.com/apache/thrift/compiler/go/generate/java"     // registers java
+	_ "github.com/apache/thrift/compiler/go/generate/java"     // registers java
+	_ "github.com/apache/thrift/compiler/go/generate/json"     // registers json
 	_ "github.com/apache/thrift/compiler/go/generate/json"     // registers json
 	_ "github.com/apache/thrift/compiler/go/generate/json"     // registers json
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
+	_ "github.com/apache/thrift/compiler/go/generate/xml"      // registers xml
 	_ "github.com/apache/thrift/compiler/go/generate/xsd"      // registers xsd
 )
 
