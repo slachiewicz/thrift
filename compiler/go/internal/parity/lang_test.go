@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"github.com/apache/thrift/compiler/go/generate"
+	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
 	_ "github.com/apache/thrift/compiler/go/generate/xml"      // registers xml
@@ -70,6 +71,12 @@ var langRows = map[string][]optionRow{
 		{name: "merge", spec: "merge"},
 		{name: "no_default_ns", spec: "no_default_ns"},
 		{name: "no_namespaces", spec: "no_namespaces"},
+	},
+	"html": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "standalone", spec: "standalone"},
+		{name: "noescape", spec: "noescape"},
 	},
 }
 
