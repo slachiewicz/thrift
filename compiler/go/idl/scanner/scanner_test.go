@@ -369,10 +369,10 @@ func TestPositions(t *testing.T) {
 		}
 	}
 	want := []token.Pos{
-		{1, 1}, {1, 8}, {1, 10}, // struct S {
-		{2, 2}, {2, 3}, {2, 5}, {2, 9}, // 1 : i32 a
-		{3, 3}, {3, 4}, {3, 6}, {3, 21}, // 2 : string b
-		{4, 1}, {4, 2}, // } EOF
+		{Line: 1, Col: 1}, {Line: 1, Col: 8}, {Line: 1, Col: 10}, // struct S {
+		{Line: 2, Col: 2}, {Line: 2, Col: 3}, {Line: 2, Col: 5}, {Line: 2, Col: 9}, // 1 : i32 a
+		{Line: 3, Col: 3}, {Line: 3, Col: 4}, {Line: 3, Col: 6}, {Line: 3, Col: 21}, // 2 : string b
+		{Line: 4, Col: 1}, {Line: 4, Col: 2}, // } EOF
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got %d positions %v, want %d", len(got), got, len(want))
