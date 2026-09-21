@@ -47,6 +47,7 @@ import (
 
 	"github.com/apache/thrift/compiler/go/generate"
 	_ "github.com/apache/thrift/compiler/go/generate/golang"   // registers go
+	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
 	_ "github.com/apache/thrift/compiler/go/generate/java"     // registers java
 	_ "github.com/apache/thrift/compiler/go/generate/json"     // registers json
