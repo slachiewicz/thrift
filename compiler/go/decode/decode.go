@@ -74,14 +74,19 @@ type Options struct {
 // Value is one decoded value. Exactly the fields for its Type are set.
 type Value struct {
 	Type thrift.TType
-	Bool bool
+	// Annotation is what the IDL adds, when one was given.
+	Annotation Annotation
+	Bool       bool
 	// Int holds BYTE, I16, I32 and I64.
 	Int    int64
 	Double float64
 	// Bytes holds a STRING; the wire does not say whether it is text or
 	// binary, so Text reports whether it is valid UTF-8.
 	Bytes []byte
-	UUID  thrift.Tuuid
+	// fromJSON records that Bytes came off the JSON protocol, where a
+	// binary field is base64 text.
+	fromJSON bool
+	UUID     thrift.Tuuid
 	// Fields are the members of a STRUCT in wire order.
 	Fields []Field
 	// Elems are the members of a LIST or SET, and Entries those of a MAP.
@@ -101,6 +106,11 @@ type Field struct {
 // Entry is one map entry.
 type Entry struct {
 	Key, Value *Value
+}
+
+// bytesForBinary is the raw bytes of a string the IDL declares binary.
+func (v *Value) bytesForBinary() []byte {
+	return binaryBytes(v, v.fromJSON)
 }
 
 // Text reports whether a STRING value is printable UTF-8.
@@ -129,6 +139,8 @@ type Message struct {
 type Result struct {
 	Protocol Protocol
 	Framed   bool
+	// Schema is set when the result was annotated from an IDL.
+	Schema bool
 	// Messages or Values holds one entry per frame, or one entry for an
 	// unframed input.
 	Messages []*Message
@@ -391,10 +403,12 @@ func (d *decoder) readValue(typ thrift.TType) (*Value, error) {
 	case thrift.STRING:
 		if d.json {
 			// The JSON protocol base64-encodes binary and quotes text; the
-			// wire does not say which, so read as text.
+			// wire does not say which, so read as text. An IDL that
+			// declares the field binary decodes it later.
 			var s string
 			s, err = d.prot.ReadString(d.ctx)
 			v.Bytes = []byte(s)
+			v.fromJSON = true
 		} else {
 			v.Bytes, err = d.prot.ReadBinary(d.ctx)
 		}
@@ -510,23 +524,36 @@ func typeName(t thrift.TType) string {
 	return strings.ToLower(t.String())
 }
 
+// Format writes the result as an indented tree.
 func writeValue(w io.Writer, v *Value, indent int) {
 	pad := strings.Repeat("  ", indent)
 	switch v.Type {
 	case thrift.STRUCT:
+		kind := "struct"
+		if v.Annotation.Kind != "" {
+			kind = v.Annotation.Kind
+		}
+		if v.Annotation.TypeName != "" && v.Annotation.Kind != "" {
+			kind += " " + v.Annotation.TypeName
+		} else if v.Annotation.Name != "" && v.Annotation.Kind != "" {
+			kind += " " + v.Annotation.Name
+		}
 		if len(v.Fields) == 0 {
-			fmt.Fprint(w, "struct {}")
+			fmt.Fprint(w, kind+" {}")
 			return
 		}
-		fmt.Fprint(w, "struct {\n")
+		fmt.Fprint(w, kind+" {\n")
 		for _, f := range v.Fields {
-			if f.Value.Type == thrift.STRUCT {
-				// The value spells its own type.
-				fmt.Fprintf(w, "%s  %d: ", pad, f.ID)
-			} else {
-				fmt.Fprintf(w, "%s  %d: %s ", pad, f.ID, typeName(f.Value.Type))
+			fmt.Fprintf(w, "%s  %d: ", pad, f.ID)
+			if name := f.Value.Annotation.Name; name != "" {
+				fmt.Fprint(w, name+" ")
+			}
+			if f.Value.Type != thrift.STRUCT || f.Value.Annotation.Mismatch != "" {
+				// A struct value spells its own type.
+				fmt.Fprint(w, typeName(f.Value.Type)+" ")
 			}
 			writeValue(w, f.Value, indent+1)
+			writeMarks(w, f.Value)
 			fmt.Fprintln(w)
 		}
 		fmt.Fprintf(w, "%s}", pad)
@@ -584,6 +611,25 @@ func writeSeq(w io.Writer, elems []*Value, indent int, open, close string) {
 	fmt.Fprintf(w, "%s%s", pad, close)
 }
 
+// writeMarks appends what the IDL had to say that the value itself does
+// not show.
+func writeMarks(w io.Writer, v *Value) {
+	a := v.Annotation
+	switch {
+	case a.Unknown:
+		fmt.Fprint(w, "  (not in the IDL)")
+	case a.Mismatch != "":
+		fmt.Fprintf(w, "  (the IDL says %s)", a.Mismatch)
+	case a.EnumName != "":
+		fmt.Fprintf(w, " (%s %s)", a.TypeName, a.EnumName)
+	case v.Type == thrift.I32 && a.TypeName != "" && a.TypeName != "i32" && a.Mismatch == "":
+		// An enum value the IDL does not declare.
+		if t := a.TypeName; t != "" {
+			fmt.Fprintf(w, " (%s, not a declared member)", t)
+		}
+	}
+}
+
 func scalar(v *Value) string {
 	switch v.Type {
 	case thrift.BOOL:
@@ -593,6 +639,10 @@ func scalar(v *Value) string {
 	case thrift.DOUBLE:
 		return strconv.FormatFloat(v.Double, 'g', -1, 64)
 	case thrift.STRING:
+		if v.Annotation.Binary {
+			b := v.bytesForBinary()
+			return fmt.Sprintf("0x%s (%d bytes)", hex.EncodeToString(b), len(b))
+		}
 		if v.Text() {
 			return strconv.Quote(string(v.Bytes))
 		}
@@ -648,6 +698,9 @@ func valueJSON(v *Value) interface{} {
 	case thrift.DOUBLE:
 		return v.Double
 	case thrift.STRING:
+		if v.Annotation.Binary {
+			return map[string]string{"binary": hex.EncodeToString(v.bytesForBinary())}
+		}
 		if v.Text() {
 			return string(v.Bytes)
 		}
@@ -657,7 +710,27 @@ func valueJSON(v *Value) interface{} {
 	case thrift.STRUCT:
 		obj := map[string]interface{}{}
 		for _, f := range v.Fields {
-			obj[strconv.Itoa(int(f.ID))] = map[string]interface{}{"type": typeName(f.Value.Type), "value": valueJSON(f.Value)}
+			entry := map[string]interface{}{"type": typeName(f.Value.Type), "value": valueJSON(f.Value)}
+			a := f.Value.Annotation
+			if a.Name != "" {
+				entry["name"] = a.Name
+			}
+			if a.TypeName != "" {
+				entry["idl_type"] = a.TypeName
+			}
+			if a.EnumName != "" {
+				entry["enum"] = a.EnumName
+			}
+			if a.Unknown {
+				entry["unknown"] = true
+			}
+			if a.Mismatch != "" {
+				entry["mismatch"] = a.Mismatch
+			}
+			obj[strconv.Itoa(int(f.ID))] = entry
+		}
+		if v.Annotation.Kind != "" {
+			return map[string]interface{}{"kind": v.Annotation.Kind, "name": v.Annotation.Name, "fields": obj}
 		}
 		return obj
 	case thrift.LIST, thrift.SET:

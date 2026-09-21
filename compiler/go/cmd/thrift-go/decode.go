@@ -32,11 +32,19 @@ import (
 // runDecode is the decode subcommand: thrift-go decode [flags] [file].
 // It reads Thrift-encoded bytes and prints them without a schema.
 func runDecode(args []string) int {
+	var lf loaderFlags
 	fs := newFlagSet("decode", "[flags] [file]", func(w io.Writer) {
 		fmt.Fprintln(w, "Decode Thrift-encoded bytes from file, or from standard input when file is - or absent,")
-		fmt.Fprintln(w, "and print them as a tree of field ids, types and values. No IDL is needed; names,")
-		fmt.Fprintln(w, "enums and unions are not recovered.")
+		fmt.Fprintln(w, "and print them as a tree of field ids, types and values. With --idl, the tree also")
+		fmt.Fprintln(w, "carries the field names, IDL types, enum members and union or exception kinds the")
+		fmt.Fprintln(w, "IDL declares; a bare struct needs --type, a message needs the service (--service when")
+		fmt.Fprintln(w, "the IDL declares more than one). A field the IDL does not declare, or whose wire type")
+		fmt.Fprintln(w, "differs, is marked, not rejected.")
 	})
+	idl := fs.String("idl", "", "IDL file to decode against")
+	typeName := fs.String("type", "", "with --idl: the struct a bare value is, as Name or Included.Name")
+	service := fs.String("service", "", "with --idl: the service a message belongs to")
+	lf.register(fs)
 	protocol := fs.String("protocol", "auto", "wire protocol: auto, binary, compact or json")
 	framed := fs.String("framed", "auto", "whether the input is length-prefixed frames: auto, yes or no")
 	message := fs.String("message", "auto", "whether the input starts with a message header: auto, yes or no")
@@ -77,6 +85,22 @@ func runDecode(args []string) int {
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "decode: %v\n", err)
+		return exitError
+	}
+	if *idl != "" {
+		program, err := lf.loader().Load(*idl)
+		if err != nil {
+			report(err)
+			return exitError
+		}
+		schema := &decode.Schema{Program: program, Type: *typeName, Service: *service}
+		if err := schema.Apply(res); err != nil {
+			fmt.Fprintf(os.Stderr, "decode: %v\n", err)
+			return exitError
+		}
+		res.Schema = true
+	} else if *typeName != "" || *service != "" {
+		fmt.Fprintln(os.Stderr, "decode: --type and --service need --idl")
 		return exitError
 	}
 	if *asJSON {
