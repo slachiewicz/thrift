@@ -87,6 +87,9 @@ cfeca8af178dded9	lib/go/test/ConflictNamespaceTestSuperThing.thrift	index.html
 ffd5bb3cbc4c44d8	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.html
 350f48a376f2c024	lib/go/test/ContainerKeyTest.thrift	index.html
 6ebe4a100f63f572	lib/go/test/ContainerKeyTest.thrift	style.css
+6381bbc1d74a1af8	lib/go/test/DocCommentTest.thrift	DocCommentTest.html
+4c45d89f0e32fd86	lib/go/test/DocCommentTest.thrift	index.html
+6ebe4a100f63f572	lib/go/test/DocCommentTest.thrift	style.css
 3f6a99d5d706c33b	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.html
 9a1d82b7178aa838	lib/go/test/DontExportRWTest.thrift	index.html
 6ebe4a100f63f572	lib/go/test/DontExportRWTest.thrift	style.css

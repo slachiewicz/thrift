@@ -29,9 +29,11 @@ a5aeda894e649f75	lib/go/test/ConflictNamespaceTestSuperThing.thrift	ConflictName
 850c6a00eeac1d56	lib/go/test/ConflictNamespaceTestSuperThing.thrift	ConflictNamespaceTestE.gv
 2cb09bd876ab08ce	lib/go/test/ConflictNamespaceTestSuperThing.thrift	ConflictNamespaceTestF.gv
 136ffff67f76f3ef	lib/go/test/ConflictNamespaceTestSuperThing.thrift	ConflictNamespaceTestSuperThing.gv
-reject	lib/go/test/ConstOptionalField.thrift	gv: identifier constant value has no usable declared type here
+2e4b9d90bec76bed	lib/go/test/ConstOptionalField.thrift	ConstOptionalField.gv
+d619d48593cc364f	lib/go/test/ConstOptionalField.thrift	ConstOptionalFieldImport.gv
 d619d48593cc364f	lib/go/test/ConstOptionalFieldImport.thrift	ConstOptionalFieldImport.gv
 c130d4fb6772eff7	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.gv
+2fd4cd7d139b4c0c	lib/go/test/DocCommentTest.thrift	DocCommentTest.gv
 c2001c72b645f7a1	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.gv
 b4e190768ab7f806	lib/go/test/DuplicateImportsTest.thrift	DuplicateImportsTest.gv
 8d96ac1ea028e1c1	lib/go/test/DuplicateImportsTest.thrift	a.gv
@@ -52,7 +54,7 @@ c02900f969bd9177	lib/go/test/NamesTest.thrift	NamesTest.gv
 be80df3f511069d9	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest.gv
 81007c5b8655ccc7	lib/go/test/ServicesTest.thrift	ServicesTest.gv
 f27acaf53e32469c	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest.gv
-reject	lib/go/test/StructKeyTest.thrift	gv: nested map constant value has no usable declared type here
+99844833e563a2c3	lib/go/test/StructKeyTest.thrift	StructKeyTest.gv
 de87d6dea9e3209e	lib/go/test/TypedefFieldTest.thrift	TypedefFieldTest.gv
 4fc2ba6219f25af2	lib/go/test/TypedefIncludeTest.thrift	TypedefIncludeTest.gv
 80c7e210d9b47fb2	lib/go/test/TypedefIncludeTest.thrift	TypedefStructTest.gv
@@ -74,12 +76,12 @@ ef78c246242fca2e	lib/java/src/test/resources/JavaOptionTypeJdk8Test.thrift	JavaO
 3c7ac0cc9da6f2ff	test/AnnotationTest.thrift	AnnotationTest.gv
 reject	test/BrokenConstants.thrift	test/BrokenConstants.thrift:line 21: This integer is too big: "9876543210987654321"
 bb7e0676365ca3fa	test/ConstantsDemo.thrift	ConstantsDemo.gv
-reject	test/DebugProtoTest.thrift	gv: nested map constant value has no usable declared type here
+a2a68f8c4d931361	test/DebugProtoTest.thrift	DebugProtoTest.gv
 36acbf462bdede44	test/DenseLinkingTest.thrift	DenseLinkingTest.gv
 ca211f759a878a08	test/DocTest.thrift	DocTest.gv
 e2857a11a932c90c	test/DoubleConstantsTest.thrift	DoubleConstantsTest.gv
 4c711186af79f5cf	test/EnumContainersTest.thrift	EnumContainersTest.gv
-reject	test/EnumTest.thrift	gv: identifier constant value has no usable declared type here
+8e61e0617282b4e5	test/EnumTest.thrift	EnumTest.gv
 86638c75c0c31446	test/ExceptionStruct.thrift	ExceptionStruct.gv
 5d442f1f48ed3d98	test/FullCamelTest.thrift	FullCamelTest.gv
 9baaf0c2273e71e0	test/FuzzTest.thrift	FuzzTest.gv
@@ -166,7 +168,7 @@ afb09f1f7678e968	test/py/explicit_module/test5.thrift	shared_types.gv
 ff293f78d4993e24	test/py/explicit_module/test5.thrift	test5.gv
 af76346b1ea8ef19	test/threads/ThreadsTest.thrift	ThreadsTest.gv
 a4c9163a9d8dfc01	test/v0.16/ConstantsDemo.thrift	ConstantsDemo.gv
-reject	test/v0.16/DebugProtoTest.thrift	gv: nested map constant value has no usable declared type here
+b43b241365ddd4e1	test/v0.16/DebugProtoTest.thrift	DebugProtoTest.gv
 b97518bae9ea6609	test/v0.16/FuzzTestNoUuid.thrift	FuzzTestNoUuid.gv
 13e2d862a48843e4	test/v0.16/NameConflictTest.thrift	NameConflictTest.gv
 8fdd0a20de9df891	test/v0.16/ThriftTest.thrift	ThriftTest.gv

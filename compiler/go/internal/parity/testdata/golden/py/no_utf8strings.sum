@@ -130,6 +130,12 @@ e3b0c44298fc1c14	lib/go/test/ConstOptionalFieldImport.thrift	__init__.py
 3d908b9a7f2050a5	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest/constants.py
 f2429963bb3d43f3	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest/ttypes.py
 e3b0c44298fc1c14	lib/go/test/ContainerKeyTest.thrift	__init__.py
+6ad1c9e3795291ed	lib/go/test/DocCommentTest.thrift	DocCommentTest/DocCommentService-remote
+4fa8fcd48cdcaefb	lib/go/test/DocCommentTest.thrift	DocCommentTest/DocCommentService.py
+cc0ad2b6437e25d6	lib/go/test/DocCommentTest.thrift	DocCommentTest/__init__.py
+6c45c3704722c27e	lib/go/test/DocCommentTest.thrift	DocCommentTest/constants.py
+c6a9e0d2e76a106f	lib/go/test/DocCommentTest.thrift	DocCommentTest/ttypes.py
+e3b0c44298fc1c14	lib/go/test/DocCommentTest.thrift	__init__.py
 6057194d3f029bee	lib/go/test/DontExportRWTest.thrift	DontExportRWTest/__init__.py
 6c45c3704722c27e	lib/go/test/DontExportRWTest.thrift	DontExportRWTest/constants.py
 d4848728fa2ead3b	lib/go/test/DontExportRWTest.thrift	DontExportRWTest/ttypes.py

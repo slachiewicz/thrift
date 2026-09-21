@@ -67,6 +67,11 @@ bee975863206f870	lib/go/test/ConstOptionalFieldImport.thrift	Foo.cs
 11863c7e7fe698e4	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.Extensions.cs
 02e52223dcca9a41	lib/go/test/ContainerKeyTest.thrift	DefaultStructKeyStruct.cs
 cf1e9386c31bb5b1	lib/go/test/ContainerKeyTest.thrift	PlainKey.cs
+4041c4e4553632ff	lib/go/test/DocCommentTest.thrift	DocCommentService.cs
+757941275d8b5474	lib/go/test/DocCommentTest.thrift	DoubledEmptyLine.cs
+e69263cd5e09f6c7	lib/go/test/DocCommentTest.thrift	EmptyDoc.cs
+0dcd0609de9939ca	lib/go/test/DocCommentTest.thrift	LeadingEmptyLine.cs
+0f2012c8034b01de	lib/go/test/DocCommentTest.thrift	TrailingEmptyLine.cs
 6ec5a73f9f41b9c8	lib/go/test/DontExportRWTest.thrift	InnerStruct.cs
 b2cf39b00ce6a7b7	lib/go/test/DontExportRWTest.thrift	TestStruct.cs
 empty	lib/go/test/DuplicateImportsTest.thrift

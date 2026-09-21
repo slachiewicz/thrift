@@ -45,6 +45,8 @@ ac09c10fa82079b2	lib/go/test/ConstOptionalField.thrift	ConstOptionalFieldImport_
 68fa510294feed1e	lib/go/test/ConstOptionalField.thrift	ConstOptionalField_xsd.php
 ac09c10fa82079b2	lib/go/test/ConstOptionalFieldImport.thrift	ConstOptionalFieldImport_xsd.php
 53355094b58f918f	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest_xsd.php
+d7d27319636c9743	lib/go/test/DocCommentTest.thrift	DocCommentService.xsd
+ac09c10fa82079b2	lib/go/test/DocCommentTest.thrift	DocCommentTest_xsd.php
 ac09c10fa82079b2	lib/go/test/DontExportRWTest.thrift	DontExportRWTest_xsd.php
 ac09c10fa82079b2	lib/go/test/DuplicateImportsTest.thrift	DuplicateImportsTest_xsd.php
 ac09c10fa82079b2	lib/go/test/DuplicateImportsTest.thrift	a_xsd.php

@@ -67,6 +67,11 @@ b12b4bad18748734	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.Constants.
 93ed33e7c43a1de5	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.Extensions.cs
 952112b24fb56a1a	lib/go/test/ContainerKeyTest.thrift	DefaultStructKeyStruct.cs
 d98605e662ea5eea	lib/go/test/ContainerKeyTest.thrift	PlainKey.cs
+f6bd0a68f0e9615d	lib/go/test/DocCommentTest.thrift	DocCommentService.cs
+118f06ea439d45dc	lib/go/test/DocCommentTest.thrift	DoubledEmptyLine.cs
+c9571b9f91934fed	lib/go/test/DocCommentTest.thrift	EmptyDoc.cs
+ef9c4648ad07b4de	lib/go/test/DocCommentTest.thrift	LeadingEmptyLine.cs
+bee5ce6324f92529	lib/go/test/DocCommentTest.thrift	TrailingEmptyLine.cs
 f503f38369bf5315	lib/go/test/DontExportRWTest.thrift	InnerStruct.cs
 949e4b4bb2064132	lib/go/test/DontExportRWTest.thrift	TestStruct.cs
 empty	lib/go/test/DuplicateImportsTest.thrift
