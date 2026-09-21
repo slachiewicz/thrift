@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"github.com/apache/thrift/compiler/go/generate"
+	_ "github.com/apache/thrift/compiler/go/generate/cglib"    // registers c_glib
 	_ "github.com/apache/thrift/compiler/go/generate/cpp"      // registers cpp
 	_ "github.com/apache/thrift/compiler/go/generate/delphi"   // registers delphi
 	_ "github.com/apache/thrift/compiler/go/generate/erl"      // registers erl
@@ -59,6 +60,10 @@ var langRows = map[string][]optionRow{
 		{name: "com_types_rtti", spec: "com_types,rtti"},
 		{name: "register_types", spec: "register_types"},
 		{name: "rtti", spec: "rtti"},
+	},
+	"c_glib": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
 	},
 	"erl": {
 		{name: "none", spec: ""},
