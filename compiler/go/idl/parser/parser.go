@@ -38,7 +38,10 @@ import (
 // Error is a syntax error with the line it was detected on.
 type Error struct {
 	Line int
-	Msg  string
+	// Pos is where the offending token starts, or where the scanner
+	// stopped.
+	Pos token.Pos
+	Msg string
 }
 
 func (e *Error) Error() string {
@@ -68,7 +71,7 @@ func Parse(path string, src []byte, warn func(line, level int, msg string)) (pro
 				return
 			}
 			if e, ok := r.(*scanner.Error); ok {
-				prog, err = nil, &Error{Line: e.Line, Msg: e.Msg}
+				prog, err = nil, &Error{Line: e.Line, Pos: e.Pos, Msg: e.Msg}
 				return
 			}
 			panic(r)
@@ -79,8 +82,8 @@ func Parse(path string, src []byte, warn func(line, level int, msg string)) (pro
 	return prog, nil
 }
 
-func (p *Parser) fail(line int, format string, args ...interface{}) {
-	panic(&Error{Line: line, Msg: fmt.Sprintf(format, args...)})
+func (p *Parser) fail(t token.Token, format string, args ...interface{}) {
+	panic(&Error{Line: t.Line, Pos: t.Pos, Msg: fmt.Sprintf(format, args...)})
 }
 
 // peek returns the lookahead token, reading it if necessary.
@@ -104,7 +107,7 @@ func (p *Parser) next() token.Token {
 func (p *Parser) expect(k token.Kind) token.Token {
 	t := p.peek()
 	if t.Kind != k {
-		p.fail(t.Line, "syntax error: unexpected %s, expecting %q", t, k.String())
+		p.fail(t, "syntax error: unexpected %s, expecting %q", t, k.String())
 	}
 	return p.next()
 }
@@ -141,7 +144,7 @@ func (p *Parser) parseProgram(prog *ast.Program) {
 		prog.Definitions = append(prog.Definitions, def)
 	}
 	if t := p.peek(); t.Kind != token.EOF {
-		p.fail(t.Line, "syntax error: unexpected %s", t)
+		p.fail(t, "syntax error: unexpected %s", t)
 	}
 	if doc, ok := p.doc.programDoc(); ok {
 		prog.Doc, prog.HasDoc = doc, true
@@ -200,7 +203,7 @@ func (p *Parser) parseHeader() ast.Header {
 		p.doc.declareValid()
 		return &ast.Namespace{Scope: scope.Text, Name: name.Text, Annotations: ann, Line: name.Line}
 	}
-	p.fail(t.Line, "syntax error: unexpected %s", t)
+	p.fail(t, "syntax error: unexpected %s", t)
 	return nil
 }
 
@@ -220,7 +223,7 @@ func (p *Parser) parseDefinition() ast.Definition {
 	case token.Service:
 		return p.parseService()
 	}
-	p.fail(t.Line, "syntax error: unexpected %s", t)
+	p.fail(t, "syntax error: unexpected %s", t)
 	return nil
 }
 
@@ -318,7 +321,7 @@ func (p *Parser) parseConstValue() *ast.ConstValue {
 		p.expect(token.RBrace)
 		return v
 	}
-	p.fail(t.Line, "syntax error: unexpected %s", t)
+	p.fail(t, "syntax error: unexpected %s", t)
 	return nil
 }
 
@@ -474,7 +477,7 @@ func (p *Parser) parseFieldName() token.Token {
 		t.Text = t.Kind.String()
 		return t
 	}
-	p.fail(t.Line, "syntax error: unexpected %s, expecting a field name", t)
+	p.fail(t, "syntax error: unexpected %s, expecting a field name", t)
 	return t
 }
 
@@ -534,7 +537,7 @@ func (p *Parser) parseFieldType() ast.TypeRef {
 		l.Annotations = p.parseTypeAnnotations()
 		return l
 	}
-	p.fail(t.Line, "syntax error: unexpected %s, expecting a type", t)
+	p.fail(t, "syntax error: unexpected %s, expecting a type", t)
 	return nil
 }
 
