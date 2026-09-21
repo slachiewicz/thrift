@@ -28,8 +28,9 @@ import (
 	"testing"
 
 	"github.com/apache/thrift/compiler/go/generate"
-	_ "github.com/apache/thrift/compiler/go/generate/mmd" // registers mmd
-	_ "github.com/apache/thrift/compiler/go/generate/xsd" // registers xsd
+	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
+	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
+	_ "github.com/apache/thrift/compiler/go/generate/xsd"      // registers xsd
 	"github.com/apache/thrift/compiler/go/sema"
 )
 
@@ -53,6 +54,12 @@ var langRows = map[string][]optionRow{
 	"xsd": {
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
+	},
+	"markdown": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "suffix", spec: "suffix=markdown"},
+		{name: "noescape", spec: "noescape"},
 	},
 }
 
