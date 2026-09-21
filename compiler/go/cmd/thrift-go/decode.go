@@ -21,7 +21,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -32,36 +31,29 @@ import (
 
 // runDecode is the decode subcommand: thrift-go decode [flags] [file].
 // It reads Thrift-encoded bytes and prints them without a schema.
-func runDecode(args []string) {
-	fs := flag.NewFlagSet("decode", flag.ExitOnError)
-	fs.SetOutput(os.Stderr)
+func runDecode(args []string) int {
+	fs := newFlagSet("decode", "[flags] [file]", func(w io.Writer) {
+		fmt.Fprintln(w, "Decode Thrift-encoded bytes from file, or from standard input when file is - or absent,")
+		fmt.Fprintln(w, "and print them as a tree of field ids, types and values. No IDL is needed; names,")
+		fmt.Fprintln(w, "enums and unions are not recovered.")
+	})
 	protocol := fs.String("protocol", "auto", "wire protocol: auto, binary, compact or json")
 	framed := fs.String("framed", "auto", "whether the input is length-prefixed frames: auto, yes or no")
 	message := fs.String("message", "auto", "whether the input starts with a message header: auto, yes or no")
 	asJSON := fs.Bool("json", false, "print the decoded tree as JSON")
 	maxMessage := fs.Int("max-message-size", thrift.DEFAULT_MAX_MESSAGE_SIZE, "largest message or string accepted, in bytes")
 	maxFrame := fs.Int("max-frame-size", thrift.DEFAULT_MAX_FRAME_SIZE, "largest frame accepted, in bytes")
-	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s decode [flags] [file]\n\n", os.Args[0])
-		fmt.Fprintln(os.Stderr, "Decode Thrift-encoded bytes from file, or from standard input when file is - or absent,")
-		fmt.Fprintln(os.Stderr, "and print them as a tree of field ids, types and values. No IDL is needed; names,")
-		fmt.Fprintln(os.Stderr, "enums and unions are not recovered.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Flags:")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
-		os.Exit(1)
+	if code := parseFlags(fs, args); code >= 0 {
+		return code
 	}
 	if fs.NArg() > 1 {
 		fmt.Fprintln(os.Stderr, "decode: at most one input file")
-		fs.Usage()
-		os.Exit(1)
+		return exitError
 	}
 	for name, value := range map[string]string{"protocol": *protocol, "framed": *framed, "message": *message} {
 		if !validChoice(name, value) {
 			fmt.Fprintf(os.Stderr, "decode: invalid value %q for -%s\n", value, name)
-			os.Exit(1)
+			return exitError
 		}
 	}
 
@@ -74,7 +66,7 @@ func runDecode(args []string) {
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "decode: %v\n", err)
-		os.Exit(1)
+		return exitError
 	}
 
 	res, err := decode.Decode(data, decode.Options{
@@ -85,18 +77,19 @@ func runDecode(args []string) {
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "decode: %v\n", err)
-		os.Exit(1)
+		return exitError
 	}
 	if *asJSON {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(decode.ToJSON(res)); err != nil {
 			fmt.Fprintf(os.Stderr, "decode: %v\n", err)
-			os.Exit(1)
+			return exitError
 		}
-		return
+		return exitOK
 	}
 	decode.Format(os.Stdout, res)
+	return exitOK
 }
 
 func validChoice(name, value string) bool {

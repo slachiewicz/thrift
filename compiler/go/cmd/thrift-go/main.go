@@ -17,280 +17,154 @@
  * under the License.
  */
 
-// Command thrift-go compiles Thrift IDL to Go and to Java.
+// Command thrift-go compiles Thrift IDL, audits two IDL files for
+// compatibility, and decodes Thrift-encoded bytes.
 //
-// It accepts the command line of the C++ thrift compiler, so that the
-// existing build files can point their THRIFT variable at it:
+// It has two command lines. The first word selects a subcommand:
+//
+//	thrift-go generate --lang go --out ./gen -I ./idl file.thrift...
+//	thrift-go audit [flags] old.thrift new.thrift
+//	thrift-go check [flags] file.thrift...
+//	thrift-go decode [flags] [file]
+//	thrift-go languages [--json]
+//	thrift-go version
+//	thrift-go help [command]
+//
+// Anything else is the C++ thrift compiler's command line, accepted
+// unchanged so that the existing build files can point their THRIFT
+// variable at this binary:
 //
 //	thrift-go [options] --gen go[:option,...] file.thrift
-//	thrift-go [options] --gen java[:option,...] file.thrift
 //
-// The generators come from the registry in compiler/go/generate; -help
-// lists the ones this binary was built with.
+// The generators come from the registry in compiler/go/generate.
 package main
 
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
-	"github.com/apache/thrift/compiler/go/audit"
 	"github.com/apache/thrift/compiler/go/generate"
 	_ "github.com/apache/thrift/compiler/go/generate/golang" // registers go
 	_ "github.com/apache/thrift/compiler/go/generate/java"   // registers java
-	"github.com/apache/thrift/compiler/go/internal/version"
-	"github.com/apache/thrift/compiler/go/sema"
 )
 
-func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [options] file\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "       %s decode [flags] [file]\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "Use %s -help for a list of options\n", os.Args[0])
-	os.Exit(1)
+// Exit statuses, shared by both command lines.
+const (
+	exitOK        = 0
+	exitError     = 1 // usage, unreadable input, parse or validation error
+	exitPolicy    = 2 // an audit failure, or a warning under check --strict
+	exitGenerator = 3 // a generator failed on a valid program
+)
+
+// command is one subcommand.
+type command struct {
+	name    string
+	summary string
+	run     func(args []string) int
 }
 
-func help() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [options] file\n\n", os.Args[0])
-	fmt.Fprintln(os.Stderr, "Options:")
-	fmt.Fprintln(os.Stderr, "  -version    Print the compiler version")
-	fmt.Fprintln(os.Stderr, "  -o dir      Set the output directory for gen-* packages")
-	fmt.Fprintln(os.Stderr, "               (default: current directory)")
-	fmt.Fprintln(os.Stderr, "  -out dir    Set the output location for generated files.")
-	fmt.Fprintln(os.Stderr, "               (no gen-* folder will be created)")
-	fmt.Fprintln(os.Stderr, "  -I dir      Add a directory to the list of directories")
-	fmt.Fprintln(os.Stderr, "                searched for include directives")
-	fmt.Fprintln(os.Stderr, "  -nowarn     Suppress all compiler warnings (BAD!)")
-	fmt.Fprintln(os.Stderr, "  -strict     Strict compiler warnings on")
-	fmt.Fprintln(os.Stderr, "  -v[erbose]  Verbose mode")
-	fmt.Fprintln(os.Stderr, "  -r[ecurse]  Also generate included files")
-	fmt.Fprintln(os.Stderr, "  -debug      Parse debug trace to stdout")
-	fmt.Fprintln(os.Stderr, "  --allow-neg-keys  Allow negative field keys (Used to ")
-	fmt.Fprintln(os.Stderr, "                     preserve protocol compatibility with")
-	fmt.Fprintln(os.Stderr, "                     older .thrift files)")
-	fmt.Fprintln(os.Stderr, "  --allow-64bit-consts  Do not print warnings about using 64-bit constants")
-	fmt.Fprintln(os.Stderr, "  --gen STR   Generate code with a dynamically-registered generator.")
-	fmt.Fprintln(os.Stderr, "               STR has the form language[:key1=val1[,key2[,key3=val3]]].")
-	fmt.Fprintln(os.Stderr, "               Keys and values are options passed to the generator.")
-	fmt.Fprintln(os.Stderr, "               Many options will not require values.")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Options related to audit operation")
-	fmt.Fprintln(os.Stderr, "   --audit OldFile   Old Thrift file to be audited with 'file'")
-	fmt.Fprintln(os.Stderr, "   --audit-allow-optional-field-removal")
-	fmt.Fprintln(os.Stderr, "                Allow explicitly optional fields to be removed")
-	fmt.Fprintln(os.Stderr, "   --audit-allow-required-field-to-default")
-	fmt.Fprintln(os.Stderr, "                Allow required fields to use default requiredness")
-	fmt.Fprintln(os.Stderr, "                Binding-dependent; includes service method arguments")
-	fmt.Fprintln(os.Stderr, "  -Iold dir    Add a directory to the list of directories")
-	fmt.Fprintln(os.Stderr, "                searched for include directives for old thrift file")
-	fmt.Fprintln(os.Stderr, "  -Inew dir    Add a directory to the list of directories")
-	fmt.Fprintln(os.Stderr, "                searched for include directives for new thrift file")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Available generators (and options):")
-	for _, info := range generate.All() {
-		fmt.Fprintf(os.Stderr, "  %s (%s):\n", info.Name, info.LongName)
-		fmt.Fprint(os.Stderr, info.Documentation())
+var commands []command
+
+// The table is filled in init because help refers back to it.
+func init() {
+	commands = []command{
+		{"generate", "generate code for one or more languages", runGenerate},
+		{"audit", "compare a new IDL file against an old one for wire compatibility", runAudit},
+		{"check", "parse and validate IDL files without generating", runCheck},
+		{"decode", "print Thrift-encoded bytes as a tree, without an IDL", runDecode},
+		{"languages", "list the generators and their options", runLanguages},
+		{"version", "print the compiler version", runVersion},
+		{"help", "describe a command, or the exit statuses with 'help exit-codes'", runHelp},
 	}
-	os.Exit(0)
 }
 
-func failure(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "[FAILURE] "+format+"\n", args...)
-	os.Exit(1)
+// aliases map short forms to commands.
+var aliases = map[string]string{"gen": "generate"}
+
+func lookupCommand(name string) (command, bool) {
+	if full, ok := aliases[name]; ok {
+		name = full
+	}
+	for _, c := range commands {
+		if c.name == name {
+			return c, true
+		}
+	}
+	return command{}, false
 }
 
 func main() {
 	if len(os.Args) < 2 {
 		usage()
 	}
-	// Subcommands come first; everything else is the C++ compiler's
-	// command line.
-	switch os.Args[1] {
-	case "decode":
-		runDecode(os.Args[2:])
-		return
+	if c, ok := lookupCommand(os.Args[1]); ok {
+		os.Exit(c.run(os.Args[2:]))
 	}
-
-	loader := &sema.Loader{Diag: &sema.Diagnostics{Out: os.Stderr, WarnLevel: 1, Path: "arguments"}}
-	var generatorStrings []string
-	auditMode := false
-	auditFatal := true
-	auditOpts := audit.Options{WarnLevel: 1, Stdout: os.Stdout, Stderr: os.Stderr}
-	oldInputFile, oldIncludePath, newIncludePath := "", "", ""
-	outPath := ""
-	outPathIsAbsolute := false
-	recurse := false
-
-	// The C++ compiler treats every argument but the last as options and
-	// splits each of them on spaces.
-	args := os.Args[1 : len(os.Args)-1]
-	for i := 0; i < len(args); i++ {
-		for _, arg := range strings.Split(args[i], " ") {
-			if arg == "" {
-				continue
-			}
-			if strings.HasPrefix(arg, "--") {
-				arg = arg[1:]
-			}
-			switch arg {
-			case "-help":
-				help()
-			case "-version":
-				fmt.Printf("Thrift version %s\n", version.Version)
-				os.Exit(0)
-			case "-debug":
-			case "-nowarn":
-				loader.Diag.WarnLevel = 0
-				auditOpts.WarnLevel = 0
-			case "-strict":
-				loader.Strict = 255
-				loader.Diag.WarnLevel = 2
-				auditOpts.WarnLevel = 2
-			case "-v", "-verbose":
-			case "-r", "-recurse":
-				recurse = true
-			case "-allow-neg-keys":
-				loader.AllowNegFieldKeys = true
-			case "-allow-64bit-consts":
-				loader.Allow64BitConsts = true
-			case "-gen":
-				i++
-				if i >= len(args) {
-					fmt.Fprintln(os.Stderr, "Missing generator specification")
-					usage()
-				}
-				generatorStrings = append(generatorStrings, args[i])
-			case "-I":
-				i++
-				if i >= len(args) {
-					fmt.Fprintln(os.Stderr, "Missing Include directory")
-					usage()
-				}
-				loader.IncludeDirs = append(loader.IncludeDirs, args[i])
-			case "-o", "-out":
-				outPathIsAbsolute = arg == "-out"
-				i++
-				if i >= len(args) {
-					fmt.Fprintln(os.Stderr, "-o: missing output directory")
-					usage()
-				}
-				outPath = args[i]
-				if st, err := os.Stat(outPath); err != nil || !st.IsDir() {
-					fmt.Fprintf(os.Stderr, "Output directory %s is unusable: does not exist or is not a directory\n", outPath)
-					os.Exit(255)
-				}
-			case "-audit":
-				auditMode = true
-				i++
-				if i >= len(args) {
-					fmt.Fprintln(os.Stderr, "Missing old thrift file name for audit operation")
-					usage()
-				}
-				oldInputFile = args[i]
-			case "-audit-nofatal":
-				auditFatal = false
-			case "-audit-allow-optional-field-removal":
-				auditOpts.AllowOptionalFieldRemoval = true
-			case "-audit-allow-required-field-to-default":
-				auditOpts.AllowRequiredFieldToDefault = true
-			case "-Iold":
-				i++
-				if i >= len(args) {
-					fmt.Fprintln(os.Stderr, "Missing Include directory for old thrift file")
-					usage()
-				}
-				oldIncludePath = args[i]
-			case "-Inew":
-				i++
-				if i >= len(args) {
-					fmt.Fprintln(os.Stderr, "Missing Include directory for new thrift file")
-					usage()
-				}
-				newIncludePath = args[i]
-			default:
-				fmt.Fprintf(os.Stderr, "Unrecognized option: %s\n", arg)
-				usage()
-			}
-		}
+	// A legacy invocation starts with an option; a bare file name with no
+	// options is a usage error in both forms and gets both usages.
+	if !strings.HasPrefix(os.Args[1], "-") && len(os.Args) == 2 {
+		fmt.Fprintf(os.Stderr, "unknown command %q\n", os.Args[1])
+		overview(os.Stderr)
+		os.Exit(exitError)
 	}
-
-	last := os.Args[len(os.Args)-1]
-	switch last {
-	case "-help", "--help":
-		help()
-	case "-version", "--version":
-		fmt.Printf("Thrift version %s\n", version.Version)
-		os.Exit(0)
-	}
-
-	if auditMode {
-		if oldInputFile == "" {
-			fmt.Fprintln(os.Stderr, "Missing file name of old thrift file for audit")
-			usage()
-		}
-		// The old file is parsed first, each file with its own include
-		// directory added to the shared ones, like audit() in main.cc.
-		shared := loader.IncludeDirs
-		if oldIncludePath != "" {
-			loader.IncludeDirs = append(append([]string{}, shared...), oldIncludePath)
-		}
-		oldProgram, err := loader.Load(oldInputFile)
-		if err != nil {
-			failure("%s", err.Error())
-		}
-		loader.IncludeDirs = shared
-		if newIncludePath != "" {
-			loader.IncludeDirs = append(append([]string{}, shared...), newIncludePath)
-		}
-		newProgram, err := loader.Load(last)
-		if err != nil {
-			failure("%s", err.Error())
-		}
-		if audit.Audit(newProgram, oldProgram, auditOpts) && auditFatal {
-			os.Exit(2)
-		}
-		return
-	}
-
-	if len(generatorStrings) == 0 {
-		fmt.Fprintln(os.Stderr, "No output language(s) specified")
-		usage()
-	}
-
-	var generators []generate.Runner
-	for _, spec := range generatorStrings {
-		g, err := generate.New(spec)
-		if err != nil {
-			failure("%s", err.Error())
-		}
-		generators = append(generators, g)
-	}
-
-	program, err := loader.Load(last)
-	if err != nil {
-		failure("%s", err.Error())
-	}
-	if outPath != "" {
-		program.SetOutPath(outPath, outPathIsAbsolute)
-	}
-	loader.Diag.Path = "generation"
-	loader.Diag.Line = 1
-	generateAll(program, generators, recurse)
+	runLegacy()
 }
 
-// generateAll is generate() in main.cc: with -r the included programs come
-// first, each inheriting the output path, and every generator runs on a
-// program before the next program.
-func generateAll(program *sema.Program, generators []generate.Runner, recurse bool) {
-	if recurse {
-		program.SetRecursive(true)
-		for _, inc := range program.Includes() {
-			inc.SetOutPath(program.OutPath(), program.IsOutPathAbsolute())
-			generateAll(inc, generators, recurse)
-		}
+// overview prints the subcommand summary.
+func overview(w *os.File) {
+	fmt.Fprintf(w, "Usage: %s <command> [flags] [arguments]\n", os.Args[0])
+	fmt.Fprintf(w, "       %s [options] --gen <language>[:option,...] file.thrift   (the C++ compiler's form)\n\n", os.Args[0])
+	fmt.Fprintln(w, "Commands:")
+	for _, c := range commands {
+		fmt.Fprintf(w, "  %-10s %s\n", c.name, c.summary)
 	}
-	for _, g := range generators {
-		if err := g.Run(program, false); err != nil {
-			failure("Error: %s", err.Error())
-		}
+	fmt.Fprintf(w, "\nUse %s help <command> for the flags of a command.\n", os.Args[0])
+}
+
+func runHelp(args []string) int {
+	if len(args) == 0 {
+		overview(os.Stdout)
+		return exitOK
 	}
+	switch args[0] {
+	case "exit-codes":
+		fmt.Println("Exit statuses:")
+		fmt.Printf("  %d  success; warnings may have been printed\n", exitOK)
+		fmt.Printf("  %d  usage error, unreadable input, parse or validation error\n", exitError)
+		fmt.Printf("  %d  audit found an incompatible change; check --strict found a warning\n", exitPolicy)
+		fmt.Printf("  %d  a generator failed on a valid program\n", exitGenerator)
+		return exitOK
+	case "legacy":
+		help()
+		return exitOK
+	}
+	c, ok := lookupCommand(args[0])
+	if !ok {
+		fmt.Fprintf(os.Stderr, "unknown command %q\n", args[0])
+		overview(os.Stderr)
+		return exitError
+	}
+	// Each command prints its usage and exits 0 on -h; route through it.
+	return c.run([]string{"-h"})
+}
+
+func runVersion(args []string) int {
+	if len(args) != 0 {
+		fmt.Fprintln(os.Stderr, "version takes no arguments")
+		return exitError
+	}
+	fmt.Println(versionString())
+	return exitOK
+}
+
+// languageNames lists the registered generators.
+func languageNames() []string {
+	var names []string
+	for _, info := range generate.All() {
+		names = append(names, info.Name)
+	}
+	sort.Strings(names)
+	return names
 }

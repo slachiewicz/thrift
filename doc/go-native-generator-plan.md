@@ -324,8 +324,13 @@ tests in [section 6](#6-test-plan) work by pointing the existing Makefiles'
 `THRIFT` variable at the Go binary, which is only possible if every flag they
 use is accepted verbatim.
 
-A second, idiomatic flag set can be added later. It is not part of parity;
-[thrift-go-command-line.md](thrift-go-command-line.md) proposes one.
+A second, idiomatic flag set exists beside it: `generate`, `audit`,
+`check`, `decode`, `languages`, `version` and `help`, selected by the
+first argument and parsed by the standard `flag` package, with each
+generator's options as `--<language>.<option>` flags built from the
+registry. It is not part of parity; [thrift-go-command-line.md](thrift-go-command-line.md)
+describes it. Diagnostics from it read `path:line:col: error: ...` and
+`path:line: warning: ...`; the C++ form keeps the C++ prefixes.
 
 ### 5.6 Version string
 
