@@ -37,6 +37,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
+	_ "github.com/apache/thrift/compiler/go/generate/netstd"   // registers netstd
 	_ "github.com/apache/thrift/compiler/go/generate/php"      // registers php
 	_ "github.com/apache/thrift/compiler/go/generate/py"       // registers py
 	_ "github.com/apache/thrift/compiler/go/generate/rb"       // registers rb
@@ -221,6 +222,23 @@ var langRows = map[string][]optionRow{
 		{name: "oop_nsglobal", spec: "oop,nsglobal="},
 		{name: "validate_nsglobal", spec: "validate,nsglobal="},
 		{name: "validate_oop_nsglobal", spec: "validate,oop,nsglobal="},
+	},
+	"netstd": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "wcf", spec: "wcf"},
+		{name: "serial", spec: "serial"},
+		{name: "union", spec: "union"},
+		{name: "pascal", spec: "pascal"},
+		{name: "net8", spec: "net8"},
+		{name: "net9", spec: "net9"},
+		{name: "net10", spec: "net10"},
+		{name: "no_deepcopy", spec: "no_deepcopy"},
+		{name: "async_postfix", spec: "async_postfix"},
+		{name: "union_serial", spec: "union,serial"},
+		{name: "wcf_union_serial_net8", spec: "wcf,union,serial,net8"},
+		{name: "wcf_union_serial_net9", spec: "wcf,union,serial,net9"},
+		{name: "wcf_union_serial_net10", spec: "wcf,union,serial,net10"},
 	},
 }
 
