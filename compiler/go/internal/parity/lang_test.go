@@ -33,6 +33,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
+	_ "github.com/apache/thrift/compiler/go/generate/rb"       // registers rb
 	_ "github.com/apache/thrift/compiler/go/generate/rs"       // registers rs
 	_ "github.com/apache/thrift/compiler/go/generate/xml"      // registers xml
 	_ "github.com/apache/thrift/compiler/go/generate/xsd"      // registers xsd
@@ -81,6 +82,13 @@ var langRows = map[string][]optionRow{
 		{name: "none-r", spec: "", recurse: true},
 		{name: "suffix", spec: "suffix=markdown"},
 		{name: "noescape", spec: "noescape"},
+	},
+	"rb": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "rubygems", spec: "rubygems"},
+		{name: "namespaced", spec: "namespaced"},
+		{name: "both", spec: "rubygems,namespaced"},
 	},
 	"xml": {
 		{name: "none", spec: ""},

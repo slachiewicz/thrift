@@ -158,7 +158,7 @@ func TestGenerateRejectsBadInvocations(t *testing.T) {
 	}{
 		{"no lang", []string{"generate", "tutorial/tutorial.thrift"}, "no --lang"},
 		{"no files", []string{"generate", "--lang", "go"}, "no input files"},
-		{"unknown lang", []string{"generate", "--lang", "rb", "tutorial/tutorial.thrift"}, `unknown language "rb"`},
+		{"unknown lang", []string{"generate", "--lang", "erl", "tutorial/tutorial.thrift"}, `unknown language "erl"`},
 		{"stray flag", []string{"generate", "--lang", "go", "--java.beans", "tutorial/tutorial.thrift"}, "--java.beans given but its language is not a target"},
 		{"bad value", []string{"generate", "--lang", "java", "--java.option_type", "maybe", "tutorial/tutorial.thrift"}, "option_type must be"},
 		{"unknown flag", []string{"generate", "--lang", "go", "--go.bogus", "tutorial/tutorial.thrift"}, "flag provided but not defined"},
@@ -258,9 +258,9 @@ func TestLegacyFormStillWorks(t *testing.T) {
 	if r.code != exitPolicy {
 		t.Errorf("-audit: exit %d", r.code)
 	}
-	r = run(t, nil, "--gen", "rb", "tutorial/tutorial.thrift")
-	if r.code != exitError || !strings.Contains(r.stderr, `Unable to get a generator for "rb"`) {
-		t.Errorf("--gen rb: exit %d stderr %q", r.code, r.stderr)
+	r = run(t, nil, "--gen", "erl", "tutorial/tutorial.thrift")
+	if r.code != exitError || !strings.Contains(r.stderr, `Unable to get a generator for "erl"`) {
+		t.Errorf("--gen erl: exit %d stderr %q", r.code, r.stderr)
 	}
 }
 
