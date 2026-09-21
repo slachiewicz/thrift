@@ -53,9 +53,9 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, f *sema.Field
 			} else {
 				typeName = g.typeToGoType(f.Type())
 			}
-			out.WriteString(g.indent() + "var " + f.Name() + " " + typeName + "\n")
+			out.WriteString("var " + f.Name() + " " + typeName + "\n")
 		}
-		out.WriteString(g.indent() + "if v, err := iprot.")
+		out.WriteString("if v, err := iprot.")
 		if typ.IsBaseType() {
 			switch typ.(*sema.BaseType).Base() {
 			case sema.TypeVoid:
@@ -87,11 +87,8 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, f *sema.Field
 			out.WriteString("ReadI32(ctx)")
 		}
 		out.WriteString("; err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading field " + itoa(int64(f.Key())) + ": \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "} else {\n")
-		g.indentUp()
+		out.WriteString("return thrift.PrependError(\"error reading field " + itoa(int64(f.Key())) + ": \", err)\n")
+		out.WriteString("} else {\n")
 		wrap := ""
 		if typ.IsEnum() || origType.IsTypedef() {
 			wrap = g.publicize(g.typeName(origType))
@@ -103,13 +100,12 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, f *sema.Field
 			maybeAddress = "&"
 		}
 		if wrap == "" {
-			out.WriteString(g.indent() + name + " = " + maybeAddress + "v\n")
+			out.WriteString(name + " = " + maybeAddress + "v\n")
 		} else {
-			out.WriteString(g.indent() + "temp := " + wrap + "(v)\n")
-			out.WriteString(g.indent() + name + " = " + maybeAddress + "temp\n")
+			out.WriteString("temp := " + wrap + "(v)\n")
+			out.WriteString(name + " = " + maybeAddress + "temp\n")
 		}
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("}\n")
 	default:
 		throw("INVALID TYPE IN generate_deserialize_field '%s' for field '%s'", typ.Name(), f.Name())
 	}
@@ -124,13 +120,11 @@ func (g *Generator) generateDeserializeStruct(out *strings.Builder, s *sema.Stru
 	if pointerField {
 		amp = "&"
 	}
-	out.WriteString(g.indent() + prefix + eq + amp)
+	out.WriteString(prefix + eq + amp)
 	g.generateGoStructInitializer(out, s, false)
-	out.WriteString(g.indent() + "if err := " + prefix + "." + g.readMethodName + "(ctx, iprot); err != nil {\n")
-	g.indentUp()
-	out.WriteString(g.indent() + "return thrift.PrependError(fmt.Sprintf(\"%T error reading struct: \", " + prefix + "), err)\n")
-	g.indentDown()
-	out.WriteString(g.indent() + "}\n")
+	out.WriteString("if err := " + prefix + "." + g.readMethodName + "(ctx, iprot); err != nil {\n")
+	out.WriteString("return thrift.PrependError(fmt.Sprintf(\"%T error reading struct: \", " + prefix + "), err)\n")
+	out.WriteString("}\n")
 }
 
 func (g *Generator) generateDeserializeContainer(out *strings.Builder, origType sema.Type, pointerField, declare bool, prefix string) {
@@ -145,41 +139,34 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, origType 
 	}
 	switch {
 	case ttype.IsMap():
-		out.WriteString(g.indent() + "_, _, size, err := iprot.ReadMapBegin(ctx)\n")
-		out.WriteString(g.indent() + "if err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading map begin: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("_, _, size, err := iprot.ReadMapBegin(ctx)\n")
+		out.WriteString("if err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error reading map begin: \", err)\n")
+		out.WriteString("}\n")
 		if g.isContainerKeyedMap(ttype) {
-			out.WriteString(g.indent() + "tMap := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
+			out.WriteString("tMap := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
 		} else {
-			out.WriteString(g.indent() + "tMap := make(" + g.typeToGoType(origType) + ", thrift.PreallocSize(size))\n")
+			out.WriteString("tMap := make(" + g.typeToGoType(origType) + ", thrift.PreallocSize(size))\n")
 		}
-		out.WriteString(g.indent() + prefix + eq + amp + "tMap\n")
+		out.WriteString(prefix + eq + amp + "tMap\n")
 	case ttype.IsSet():
-		out.WriteString(g.indent() + "_, size, err := iprot.ReadSetBegin(ctx)\n")
-		out.WriteString(g.indent() + "if err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading set begin: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
-		out.WriteString(g.indent() + "tSet := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
-		out.WriteString(g.indent() + prefix + eq + amp + "tSet\n")
+		out.WriteString("_, size, err := iprot.ReadSetBegin(ctx)\n")
+		out.WriteString("if err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error reading set begin: \", err)\n")
+		out.WriteString("}\n")
+		out.WriteString("tSet := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
+		out.WriteString(prefix + eq + amp + "tSet\n")
 	case ttype.IsList():
-		out.WriteString(g.indent() + "_, size, err := iprot.ReadListBegin(ctx)\n")
-		out.WriteString(g.indent() + "if err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading list begin: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
-		out.WriteString(g.indent() + "tSlice := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
-		out.WriteString(g.indent() + prefix + eq + amp + "tSlice\n")
+		out.WriteString("_, size, err := iprot.ReadListBegin(ctx)\n")
+		out.WriteString("if err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error reading list begin: \", err)\n")
+		out.WriteString("}\n")
+		out.WriteString("tSlice := make(" + g.typeToGoType(origType) + ", 0, thrift.PreallocSize(size))\n")
+		out.WriteString(prefix + eq + amp + "tSlice\n")
 	default:
 		throw("INVALID TYPE IN generate_deserialize_container '%s' for prefix '%s'", ttype.Name(), prefix)
 	}
-	out.WriteString(g.indent() + "for i := 0; i < size; i++ {\n")
-	g.indentUp()
+	out.WriteString("for i := 0; i < size; i++ {\n")
 	if pointerField {
 		prefix = "(*" + prefix + ")"
 	}
@@ -191,27 +178,20 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, origType 
 	case ttype.IsList():
 		g.generateDeserializeListElement(out, ttype.(*sema.List), prefix)
 	}
-	g.indentDown()
-	out.WriteString(g.indent() + "}\n")
+	out.WriteString("}\n")
 	switch {
 	case ttype.IsMap():
-		out.WriteString(g.indent() + "if err := iprot.ReadMapEnd(ctx); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading map end: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("if err := iprot.ReadMapEnd(ctx); err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error reading map end: \", err)\n")
+		out.WriteString("}\n")
 	case ttype.IsSet():
-		out.WriteString(g.indent() + "if err := iprot.ReadSetEnd(ctx); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading set end: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("if err := iprot.ReadSetEnd(ctx); err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error reading set end: \", err)\n")
+		out.WriteString("}\n")
 	case ttype.IsList():
-		out.WriteString(g.indent() + "if err := iprot.ReadListEnd(ctx); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error reading list end: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("if err := iprot.ReadListEnd(ctx); err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error reading list end: \", err)\n")
+		out.WriteString("}\n")
 	}
 }
 
@@ -221,38 +201,34 @@ func (g *Generator) generateDeserializeMapElement(out *strings.Builder, m *sema.
 	fkey := tempField(m.KeyType(), key)
 	fval := tempField(m.ValType(), val)
 	if g.isContainerKeyedMap(m) {
-		out.WriteString(g.indent() + "var " + key + " " + g.mapEntryKeyType(m.KeyType()) + "\n")
-		out.WriteString(g.indent() + "var " + val + " " + g.typeToGoType(m.ValType()) + "\n")
-		out.WriteString(g.indent() + "{\n")
-		g.indentUp()
+		out.WriteString("var " + key + " " + g.mapEntryKeyType(m.KeyType()) + "\n")
+		out.WriteString("var " + val + " " + g.typeToGoType(m.ValType()) + "\n")
+		out.WriteString("{\n")
 		g.generateDeserializeField(out, fkey, false, "", true, false)
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
-		out.WriteString(g.indent() + "{\n")
-		g.indentUp()
+		out.WriteString("}\n")
+		out.WriteString("{\n")
 		g.generateDeserializeField(out, fval, false, "", false, true)
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
-		out.WriteString(g.indent() + prefix + " = append(" + prefix + ", " + g.mapEntryType(m) + "{Key: " + key + ", Value: " + val + "})\n")
+		out.WriteString("}\n")
+		out.WriteString(prefix + " = append(" + prefix + ", " + g.mapEntryType(m) + "{Key: " + key + ", Value: " + val + "})\n")
 		return
 	}
 	g.generateDeserializeField(out, fkey, true, "", true, false)
 	g.generateDeserializeField(out, fval, true, "", false, true)
-	out.WriteString(g.indent() + prefix + "[" + key + "] = " + val + "\n")
+	out.WriteString(prefix + "[" + key + "] = " + val + "\n")
 }
 
 func (g *Generator) generateDeserializeSetElement(out *strings.Builder, s *sema.Set, prefix string) {
 	elem := g.tmp("_elem")
 	felem := tempField(s.ElemType(), elem)
 	g.generateDeserializeField(out, felem, true, "", false, true)
-	out.WriteString(g.indent() + prefix + " = append(" + prefix + ", " + elem + ")\n")
+	out.WriteString(prefix + " = append(" + prefix + ", " + elem + ")\n")
 }
 
 func (g *Generator) generateDeserializeListElement(out *strings.Builder, l *sema.List, prefix string) {
 	elem := g.tmp("_elem")
 	felem := tempField(l.ElemType(), elem)
 	g.generateDeserializeField(out, felem, true, "", false, true)
-	out.WriteString(g.indent() + prefix + " = append(" + prefix + ", " + elem + ")\n")
+	out.WriteString(prefix + " = append(" + prefix + ", " + elem + ")\n")
 }
 
 func (g *Generator) generateSerializeField(out *strings.Builder, f *sema.Field, prefix string, inkey bool) {
@@ -267,7 +243,7 @@ func (g *Generator) generateSerializeField(out *strings.Builder, f *sema.Field, 
 	case typ.IsContainer():
 		g.generateSerializeContainer(out, typ, isPointerField(f), name)
 	case typ.IsBaseType() || typ.IsEnum():
-		out.WriteString(g.indent() + "if err := oprot.")
+		out.WriteString("if err := oprot.")
 		if isPointerField(f) {
 			name = "*" + name
 		}
@@ -302,22 +278,18 @@ func (g *Generator) generateSerializeField(out *strings.Builder, f *sema.Field, 
 			out.WriteString("WriteI32(ctx, int32(" + name + "))")
 		}
 		out.WriteString("; err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(fmt.Sprintf(\"%T." + escapeString(f.Name()) +
+		out.WriteString("return thrift.PrependError(fmt.Sprintf(\"%T." + escapeString(f.Name()) +
 			" (" + itoa(int64(f.Key())) + ") field write error: \", p), err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("}\n")
 	default:
 		throw("compiler error: Invalid type in generate_serialize_field '%s' for field '%s'", typ.Name(), name)
 	}
 }
 
 func (g *Generator) generateSerializeStruct(out *strings.Builder, prefix string) {
-	out.WriteString(g.indent() + "if err := " + prefix + "." + g.writeMethodName + "(ctx, oprot); err != nil {\n")
-	g.indentUp()
-	out.WriteString(g.indent() + "return thrift.PrependError(fmt.Sprintf(\"%T error writing struct: \", " + prefix + "), err)\n")
-	g.indentDown()
-	out.WriteString(g.indent() + "}\n")
+	out.WriteString("if err := " + prefix + "." + g.writeMethodName + "(ctx, oprot); err != nil {\n")
+	out.WriteString("return thrift.PrependError(fmt.Sprintf(\"%T error writing struct: \", " + prefix + "), err)\n")
+	out.WriteString("}\n")
 }
 
 func (g *Generator) generateSerializeContainer(out *strings.Builder, ttype sema.Type, pointerField bool, prefix string) {
@@ -327,26 +299,20 @@ func (g *Generator) generateSerializeContainer(out *strings.Builder, ttype sema.
 	switch {
 	case ttype.IsMap():
 		m := ttype.(*sema.Map)
-		out.WriteString(g.indent() + "if err := oprot.WriteMapBegin(ctx, " + g.typeToEnum(m.KeyType()) + ", " +
+		out.WriteString("if err := oprot.WriteMapBegin(ctx, " + g.typeToEnum(m.KeyType()) + ", " +
 			g.typeToEnum(m.ValType()) + ", " + "len(" + prefix + ")); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error writing map begin: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("return thrift.PrependError(\"error writing map begin: \", err)\n")
+		out.WriteString("}\n")
 	case ttype.IsSet():
-		out.WriteString(g.indent() + "if err := oprot.WriteSetBegin(ctx, " + g.typeToEnum(ttype.(*sema.Set).ElemType()) + ", " +
+		out.WriteString("if err := oprot.WriteSetBegin(ctx, " + g.typeToEnum(ttype.(*sema.Set).ElemType()) + ", " +
 			"len(" + prefix + ")); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error writing set begin: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("return thrift.PrependError(\"error writing set begin: \", err)\n")
+		out.WriteString("}\n")
 	case ttype.IsList():
-		out.WriteString(g.indent() + "if err := oprot.WriteListBegin(ctx, " + g.typeToEnum(ttype.(*sema.List).ElemType()) + ", " +
+		out.WriteString("if err := oprot.WriteListBegin(ctx, " + g.typeToEnum(ttype.(*sema.List).ElemType()) + ", " +
 			"len(" + prefix + ")); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error writing list begin: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("return thrift.PrependError(\"error writing list begin: \", err)\n")
+		out.WriteString("}\n")
 	default:
 		throw("compiler error: Invalid type in generate_serialize_container '%s' for prefix '%s'", ttype.Name(), prefix)
 	}
@@ -366,125 +332,86 @@ func (g *Generator) generateSerializeContainer(out *strings.Builder, ttype sema.
 				sawNil := g.tmp("sawNil")
 				entry := g.tmp("e")
 				keyValueType := g.publicize(g.typeName(sema.TrueType(m.KeyType())))
-				out.WriteString(g.indent() + "if len(" + wrappedPrefix + ") > 1 {\n")
-				g.indentUp()
-				out.WriteString(g.indent() + seen + " := make(map[" + keyValueType + "]struct{}, len(" + wrappedPrefix + "))\n")
-				out.WriteString(g.indent() + sawNil + " := false\n")
+				out.WriteString("if len(" + wrappedPrefix + ") > 1 {\n")
+				out.WriteString(seen + " := make(map[" + keyValueType + "]struct{}, len(" + wrappedPrefix + "))\n")
+				out.WriteString(sawNil + " := false\n")
 				// gofmt strips parentheses around a range expression, so a
 				// pointer field ranges over *p.Field rather than (*p.Field).
-				out.WriteString(g.indent() + "for _, " + entry + " := range " + prefix + " {\n")
-				g.indentUp()
-				out.WriteString(g.indent() + "if " + entry + ".Key == nil {\n")
-				g.indentUp()
-				out.WriteString(g.indent() + "if " + sawNil + " {\n")
-				g.indentUp()
-				out.WriteString(g.indent() + notUnique + "\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}\n")
-				out.WriteString(g.indent() + sawNil + " = true\n")
-				out.WriteString(g.indent() + "continue\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}\n")
-				out.WriteString(g.indent() + "if _, ok := " + seen + "[*" + entry + ".Key]; ok {\n")
-				g.indentUp()
-				out.WriteString(g.indent() + notUnique + "\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}\n")
-				out.WriteString(g.indent() + seen + "[*" + entry + ".Key] = struct{}{}\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}\n")
+				out.WriteString("for _, " + entry + " := range " + prefix + " {\n")
+				out.WriteString("if " + entry + ".Key == nil {\n")
+				out.WriteString("if " + sawNil + " {\n")
+				out.WriteString(notUnique + "\n")
+				out.WriteString("}\n")
+				out.WriteString(sawNil + " = true\n")
+				out.WriteString("continue\n")
+				out.WriteString("}\n")
+				out.WriteString("if _, ok := " + seen + "[*" + entry + ".Key]; ok {\n")
+				out.WriteString(notUnique + "\n")
+				out.WriteString("}\n")
+				out.WriteString(seen + "[*" + entry + ".Key] = struct{}{}\n")
+				out.WriteString("}\n")
+				out.WriteString("}\n")
 			} else {
 				keyType := g.mapEntryKeyType(m.KeyType())
-				out.WriteString(g.indent() + "for i := 0; i < len(" + prefix + "); i++ {\n")
-				g.indentUp()
-				out.WriteString(g.indent() + "for j := i + 1; j < len(" + prefix + "); j++ {\n")
-				g.indentUp()
-				out.WriteString(g.indent() + "if func(tgt, src " + keyType + ") bool {\n")
-				g.indentUp()
+				out.WriteString("for i := 0; i < len(" + prefix + "); i++ {\n")
+				out.WriteString("for j := i + 1; j < len(" + prefix + "); j++ {\n")
+				out.WriteString("if func(tgt, src " + keyType + ") bool {\n")
 				g.generateGoEquals(out, m.KeyType(), "tgt", "src")
-				out.WriteString(g.indent() + "return true\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}(" + wrappedPrefix + "[i].Key, " + wrappedPrefix + "[j].Key) {\n")
-				g.indentUp()
-				out.WriteString(g.indent() + notUnique + "\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}\n")
-				g.indentDown()
-				out.WriteString(g.indent() + "}\n")
+				out.WriteString("return true\n")
+				out.WriteString("}(" + wrappedPrefix + "[i].Key, " + wrappedPrefix + "[j].Key) {\n")
+				out.WriteString(notUnique + "\n")
+				out.WriteString("}\n")
+				out.WriteString("}\n")
+				out.WriteString("}\n")
 			}
-			out.WriteString(g.indent() + "for _, e := range " + prefix + " {\n")
-			g.indentUp()
+			out.WriteString("for _, e := range " + prefix + " {\n")
 			g.generateSerializeMapElement(out, m, "e.Key", "e.Value")
 		} else {
-			out.WriteString(g.indent() + "for k, v := range " + prefix + " {\n")
-			g.indentUp()
+			out.WriteString("for k, v := range " + prefix + " {\n")
 			g.generateSerializeMapElement(out, m, "k", "v")
 		}
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("}\n")
 	case ttype.IsSet():
 		s := ttype.(*sema.Set)
-		out.WriteString(g.indent() + "for i := 0; i < len(" + prefix + "); i++ {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "for j := i + 1; j < len(" + prefix + "); j++ {\n")
-		g.indentUp()
+		out.WriteString("for i := 0; i < len(" + prefix + "); i++ {\n")
+		out.WriteString("for j := i + 1; j < len(" + prefix + "); j++ {\n")
 		wrappedPrefix := prefix
 		if pointerField {
 			wrappedPrefix = "(" + prefix + ")"
 		}
 		goType := g.typeToGoType(s.ElemType())
-		out.WriteString(g.indent() + "if func(tgt, src " + goType + ") bool {\n")
-		g.indentUp()
+		out.WriteString("if func(tgt, src " + goType + ") bool {\n")
 		g.generateGoEquals(out, s.ElemType(), "tgt", "src")
-		out.WriteString(g.indent() + "return true\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}(" + wrappedPrefix + "[i], " + wrappedPrefix + "[j]) {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.NewTProtocolExceptionWithType(thrift.INVALID_DATA, " +
+		out.WriteString("return true\n")
+		out.WriteString("}(" + wrappedPrefix + "[i], " + wrappedPrefix + "[j]) {\n")
+		out.WriteString("return thrift.NewTProtocolExceptionWithType(thrift.INVALID_DATA, " +
 			"fmt.Errorf(\"%T error writing set field %q: slice is not unique\", " +
 			wrappedPrefix + ", \"" + escapeString(prefix) + "\"))\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
-		out.WriteString(g.indent() + "for _, v := range " + prefix + " {\n")
-		g.indentUp()
+		out.WriteString("}\n")
+		out.WriteString("}\n")
+		out.WriteString("}\n")
+		out.WriteString("for _, v := range " + prefix + " {\n")
 		g.generateSerializeSetElement(out, s, "v")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("}\n")
 	case ttype.IsList():
 		l := ttype.(*sema.List)
-		out.WriteString(g.indent() + "for _, v := range " + prefix + " {\n")
-		g.indentUp()
+		out.WriteString("for _, v := range " + prefix + " {\n")
 		g.generateSerializeListElement(out, l, "v")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("}\n")
 	}
 	switch {
 	case ttype.IsMap():
-		out.WriteString(g.indent() + "if err := oprot.WriteMapEnd(ctx); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error writing map end: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("if err := oprot.WriteMapEnd(ctx); err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error writing map end: \", err)\n")
+		out.WriteString("}\n")
 	case ttype.IsSet():
-		out.WriteString(g.indent() + "if err := oprot.WriteSetEnd(ctx); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error writing set end: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("if err := oprot.WriteSetEnd(ctx); err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error writing set end: \", err)\n")
+		out.WriteString("}\n")
 	case ttype.IsList():
-		out.WriteString(g.indent() + "if err := oprot.WriteListEnd(ctx); err != nil {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return thrift.PrependError(\"error writing list end: \", err)\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("if err := oprot.WriteListEnd(ctx); err != nil {\n")
+		out.WriteString("return thrift.PrependError(\"error writing list end: \", err)\n")
+		out.WriteString("}\n")
 	}
 }
 
@@ -512,7 +439,7 @@ func (g *Generator) generateGoEquals(out *strings.Builder, oriType sema.Type, tg
 	case ttype.IsContainer():
 		g.generateGoEqualsContainer(out, ttype, tgt, src)
 	case ttype.IsBaseType() || ttype.IsEnum():
-		out.WriteString(g.indent() + "if ")
+		out.WriteString("if ")
 		if ttype.IsBaseType() {
 			switch ttype.(*sema.BaseType).Base() {
 			case sema.TypeVoid:
@@ -532,83 +459,63 @@ func (g *Generator) generateGoEquals(out *strings.Builder, oriType sema.Type, tg
 			out.WriteString(tgt + " != " + src)
 		}
 		out.WriteString(" {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return false\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("return false\n")
+		out.WriteString("}\n")
 	default:
 		throw("compiler error: Invalid type in generate_go_equals '%s' for '%s'", ttype.Name(), tgt)
 	}
 }
 
 func (g *Generator) generateGoEqualsStruct(out *strings.Builder, tgt, src string) {
-	out.WriteString(g.indent() + "if !" + tgt + "." + g.equalsMethodName + "(" + src + ") {\n")
-	g.indentUp()
-	out.WriteString(g.indent() + "return false\n")
-	g.indentDown()
-	out.WriteString(g.indent() + "}\n")
+	out.WriteString("if !" + tgt + "." + g.equalsMethodName + "(" + src + ") {\n")
+	out.WriteString("return false\n")
+	out.WriteString("}\n")
 }
 
 func (g *Generator) generateGoEqualsUnordered(out *strings.Builder, goType, tgt, src string) {
-	out.WriteString(g.indent() + "if !thrift.UnorderedEqual(" + indexableGoExpr(tgt) + ", " +
+	out.WriteString("if !thrift.UnorderedEqual(" + indexableGoExpr(tgt) + ", " +
 		indexableGoExpr(src) + ", func(_tgt, _src " + goType + ") bool {\n")
 }
 
 func (g *Generator) generateGoEqualsContainer(out *strings.Builder, ttype sema.Type, tgt, src string) {
-	out.WriteString(g.indent() + "if len(" + tgt + ") != len(" + src + ") {\n")
-	g.indentUp()
-	out.WriteString(g.indent() + "return false\n")
-	g.indentDown()
-	out.WriteString(g.indent() + "}\n")
+	out.WriteString("if len(" + tgt + ") != len(" + src + ") {\n")
+	out.WriteString("return false\n")
+	out.WriteString("}\n")
 	switch {
 	case g.isContainerKeyedMap(ttype):
 		m := ttype.(*sema.Map)
 		g.generateGoEqualsUnordered(out, g.mapEntryType(m), tgt, src)
-		g.indentUp()
 		g.generateGoEquals(out, m.KeyType(), "_tgt.Key", "_src.Key")
 		g.generateGoEquals(out, m.ValType(), "_tgt.Value", "_src.Value")
-		out.WriteString(g.indent() + "return true\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}) {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return false\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("return true\n")
+		out.WriteString("}) {\n")
+		out.WriteString("return false\n")
+		out.WriteString("}\n")
 	case ttype.IsMap():
 		m := ttype.(*sema.Map)
-		out.WriteString(g.indent() + "for k, _tgt := range " + tgt + " {\n")
-		g.indentUp()
+		out.WriteString("for k, _tgt := range " + tgt + " {\n")
 		elementSource := g.tmp("_src")
-		out.WriteString(g.indent() + elementSource + ", ok := " + indexableGoExpr(src) + "[k]\n")
-		out.WriteString(g.indent() + "if !ok {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return false\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString(elementSource + ", ok := " + indexableGoExpr(src) + "[k]\n")
+		out.WriteString("if !ok {\n")
+		out.WriteString("return false\n")
+		out.WriteString("}\n")
 		g.generateGoEquals(out, m.ValType(), "_tgt", elementSource)
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("}\n")
 	case ttype.IsSet():
 		elem := ttype.(*sema.Set).ElemType()
 		g.generateGoEqualsUnordered(out, g.typeToGoType(elem), tgt, src)
-		g.indentUp()
 		g.generateGoEquals(out, elem, "_tgt", "_src")
-		out.WriteString(g.indent() + "return true\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}) {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return false\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("return true\n")
+		out.WriteString("}) {\n")
+		out.WriteString("return false\n")
+		out.WriteString("}\n")
 	case ttype.IsList():
 		elem := ttype.(*sema.List).ElemType()
-		out.WriteString(g.indent() + "for i, _tgt := range " + tgt + " {\n")
-		g.indentUp()
+		out.WriteString("for i, _tgt := range " + tgt + " {\n")
 		elementSource := g.tmp("_src")
-		out.WriteString(g.indent() + elementSource + " := " + indexableGoExpr(src) + "[i]\n")
+		out.WriteString(elementSource + " := " + indexableGoExpr(src) + "[i]\n")
 		g.generateGoEquals(out, elem, "_tgt", elementSource)
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
+		out.WriteString("}\n")
 	default:
 		throw("INVALID TYPE IN generate_go_equals_container '%s", ttype.Name())
 	}

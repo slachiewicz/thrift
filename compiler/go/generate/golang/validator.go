@@ -482,10 +482,6 @@ func (v *validatorGenerator) genID(id string) string {
 	return id + strconv.Itoa(n)
 }
 
-func (v *validatorGenerator) indent() string { return v.g.indent() }
-func (v *validatorGenerator) indentUp()      { v.g.indentUp() }
-func (v *validatorGenerator) indentDown()    { v.g.indentDown() }
-
 func (v *validatorGenerator) fieldReferenceName(f *sema.Field) string {
 	typ := f.Type()
 	tgt, _ := v.g.publicizedNameAndDefValue(f)
@@ -514,11 +510,9 @@ func (v *validatorGenerator) generateStructValidator(out *strings.Builder, s *se
 }
 
 func (v *validatorGenerator) failure(out *strings.Builder, ctx validatorContext, key string) {
-	v.indentUp()
-	out.WriteString(v.indent() + "return thrift.NewValidationException(thrift.VALIDATION_FAILED, \"" + key + "\", \"" +
+	out.WriteString("return thrift.NewValidationException(thrift.VALIDATION_FAILED, \"" + key + "\", \"" +
 		ctx.fieldSymbol + "\", \"" + ctx.fieldSymbol + " not valid, rule " + key + " check failed\")\n")
-	v.indentDown()
-	out.WriteString(v.indent() + "}\n")
+	out.WriteString("}\n")
 }
 
 func (v *validatorGenerator) generateFieldValidator(out *strings.Builder, ctx validatorContext) {
@@ -530,18 +524,15 @@ func (v *validatorGenerator) generateFieldValidator(out *strings.Builder, ctx va
 	switch {
 	case typ.IsEnum():
 		if deref {
-			out.WriteString(v.indent() + "if " + ctx.tgt[1:] + " != nil {\n")
-			v.indentUp()
+			out.WriteString("if " + ctx.tgt[1:] + " != nil {\n")
 		}
 		v.generateEnumFieldValidator(out, ctx)
 		if deref {
-			v.indentDown()
-			out.WriteString(v.indent() + "}\n")
+			out.WriteString("}\n")
 		}
 	case typ.IsBaseType():
 		if deref {
-			out.WriteString(v.indent() + "if " + ctx.tgt[1:] + " != nil {\n")
-			v.indentUp()
+			out.WriteString("if " + ctx.tgt[1:] + " != nil {\n")
 		}
 		switch typ.(*sema.BaseType).Base() {
 		case sema.TypeI8, sema.TypeI16, sema.TypeI32, sema.TypeI64:
@@ -554,8 +545,7 @@ func (v *validatorGenerator) generateFieldValidator(out *strings.Builder, ctx va
 			v.generateBoolFieldValidator(out, ctx)
 		}
 		if deref {
-			v.indentDown()
-			out.WriteString(v.indent() + "}\n")
+			out.WriteString("}\n")
 		}
 	case typ.IsList() || typ.IsSet():
 		v.generateListFieldValidator(out, ctx, typ)
@@ -586,9 +576,9 @@ func (v *validatorGenerator) generateEnumFieldValidator(out *strings.Builder, ct
 		case "vt.in":
 			if len(values) > 1 {
 				exist := v.genID("_exist")
-				out.WriteString(v.indent() + "var " + exist + " bool\n")
+				out.WriteString("var " + exist + " bool\n")
 				src := v.genID("_src")
-				out.WriteString(v.indent() + src + " := []int64{")
+				out.WriteString(src + " := []int64{")
 				for i, val := range values {
 					if i > 0 {
 						out.WriteString(", ")
@@ -596,29 +586,24 @@ func (v *validatorGenerator) generateEnumFieldValidator(out *strings.Builder, ct
 					out.WriteString("int64(" + v.enumValueText(val) + ")")
 				}
 				out.WriteString("}\n")
-				out.WriteString(v.indent() + "for _, src := range " + src + " {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + "if int64(" + ctx.tgt + ") == src {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + exist + " = true\n")
-				out.WriteString(v.indent() + "break\n")
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
-				out.WriteString(v.indent() + "if " + exist + " == false {\n")
+				out.WriteString("for _, src := range " + src + " {\n")
+				out.WriteString("if int64(" + ctx.tgt + ") == src {\n")
+				out.WriteString(exist + " = true\n")
+				out.WriteString("break\n")
+				out.WriteString("}\n")
+				out.WriteString("}\n")
+				out.WriteString("if " + exist + " == false {\n")
 			} else {
-				out.WriteString(v.indent() + "if int64(" + ctx.tgt + ") != int64(" + v.enumValueText(values[0]) + ") {\n")
+				out.WriteString("if int64(" + ctx.tgt + ") != int64(" + v.enumValueText(values[0]) + ") {\n")
 			}
 			v.failure(out, ctx, "vt.in")
 			if len(values) > 1 {
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
+				out.WriteString("}\n")
 			}
 		case "vt.not_in":
 			if len(values) > 1 {
 				src := v.genID("_src")
-				out.WriteString(v.indent() + src + " := []int64{")
+				out.WriteString(src + " := []int64{")
 				for i, val := range values {
 					if i > 0 {
 						out.WriteString(", ")
@@ -626,22 +611,20 @@ func (v *validatorGenerator) generateEnumFieldValidator(out *strings.Builder, ct
 					out.WriteString("int64(" + v.enumValueText(val) + ")")
 				}
 				out.WriteString("}\n")
-				out.WriteString(v.indent() + "for _, src := range " + src + " {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + "if int64(" + ctx.tgt + ") == src {\n")
+				out.WriteString("for _, src := range " + src + " {\n")
+				out.WriteString("if int64(" + ctx.tgt + ") == src {\n")
 			} else {
-				out.WriteString(v.indent() + "if int64(" + ctx.tgt + ") == int64(" + v.enumValueText(values[0]) + ") {\n")
+				out.WriteString("if int64(" + ctx.tgt + ") == int64(" + v.enumValueText(values[0]) + ") {\n")
 			}
 			v.failure(out, ctx, "vt.not_in")
 			if len(values) > 1 {
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
+				out.WriteString("}\n")
 			}
 		case "vt.defined_only":
 			if !values[0].boolVal {
 				continue
 			}
-			out.WriteString(v.indent() + "if !(" + ctx.tgt + ").IsDefined() {\n")
+			out.WriteString("if !(" + ctx.tgt + ").IsDefined() {\n")
 			v.failure(out, ctx, key)
 		}
 	}
@@ -655,7 +638,7 @@ func (v *validatorGenerator) generateBoolFieldValidator(out *strings.Builder, ct
 		}
 		key := rule.name
 		if key == "vt.const" {
-			out.WriteString(v.indent() + "if " + ctx.tgt + " != ")
+			out.WriteString("if " + ctx.tgt + " != ")
 			if values[0].isFieldReference() {
 				out.WriteString(v.fieldReferenceName(values[0].field))
 			} else if values[0].boolVal {
@@ -686,7 +669,7 @@ func (v *validatorGenerator) generateDoubleFieldValidator(out *strings.Builder, 
 		}
 		key := rule.name
 		if sign, ok := comparisonSigns[key]; ok {
-			out.WriteString(v.indent() + "if " + ctx.tgt + " " + sign + " " + v.doubleValueText(values[0]) + " {\n")
+			out.WriteString("if " + ctx.tgt + " " + sign + " " + v.doubleValueText(values[0]) + " {\n")
 			v.failure(out, ctx, key)
 			continue
 		}
@@ -694,9 +677,9 @@ func (v *validatorGenerator) generateDoubleFieldValidator(out *strings.Builder, 
 		case "vt.in":
 			if len(values) > 1 {
 				exist := v.genID("_exist")
-				out.WriteString(v.indent() + "var " + exist + " bool\n")
+				out.WriteString("var " + exist + " bool\n")
 				src := v.genID("_src")
-				out.WriteString(v.indent() + src + " := []float64{")
+				out.WriteString(src + " := []float64{")
 				for i, val := range values {
 					if i > 0 {
 						out.WriteString(", ")
@@ -704,25 +687,21 @@ func (v *validatorGenerator) generateDoubleFieldValidator(out *strings.Builder, 
 					out.WriteString(v.doubleValueText(val))
 				}
 				out.WriteString("}\n")
-				out.WriteString(v.indent() + "for _, src := range " + src + " {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + "if " + ctx.tgt + " == src {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + exist + " = true\n")
-				out.WriteString(v.indent() + "break\n")
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
-				out.WriteString(v.indent() + "if " + exist + " == false {\n")
+				out.WriteString("for _, src := range " + src + " {\n")
+				out.WriteString("if " + ctx.tgt + " == src {\n")
+				out.WriteString(exist + " = true\n")
+				out.WriteString("break\n")
+				out.WriteString("}\n")
+				out.WriteString("}\n")
+				out.WriteString("if " + exist + " == false {\n")
 			} else {
-				out.WriteString(v.indent() + "if " + ctx.tgt + " != " + v.doubleValueText(values[0]) + " {\n")
+				out.WriteString("if " + ctx.tgt + " != " + v.doubleValueText(values[0]) + " {\n")
 			}
 			v.failure(out, ctx, "vt.in")
 		case "vt.not_in":
 			if len(values) > 1 {
 				src := v.genID("_src")
-				out.WriteString(v.indent() + src + " := []float64{")
+				out.WriteString(src + " := []float64{")
 				for i, val := range values {
 					if i > 0 {
 						out.WriteString(", ")
@@ -730,16 +709,14 @@ func (v *validatorGenerator) generateDoubleFieldValidator(out *strings.Builder, 
 					out.WriteString(v.doubleValueText(val))
 				}
 				out.WriteString("}\n")
-				out.WriteString(v.indent() + "for _, src := range " + src + " {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + "if " + ctx.tgt + " == src {\n")
+				out.WriteString("for _, src := range " + src + " {\n")
+				out.WriteString("if " + ctx.tgt + " == src {\n")
 			} else {
-				out.WriteString(v.indent() + "if " + ctx.tgt + " == " + v.doubleValueText(values[0]) + " {\n")
+				out.WriteString("if " + ctx.tgt + " == " + v.doubleValueText(values[0]) + " {\n")
 			}
 			v.failure(out, ctx, "vt.not_in")
 			if len(values) > 1 {
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
+				out.WriteString("}\n")
 			}
 		}
 	}
@@ -786,7 +763,7 @@ func (v *validatorGenerator) generateIntegerFieldValidator(out *strings.Builder,
 		}
 		key := rule.name
 		if sign, ok := comparisonSigns[key]; ok {
-			out.WriteString(v.indent() + "if " + ctx.tgt + " " + sign + " " + v.integerValueText(values[0], b) + " {\n")
+			out.WriteString("if " + ctx.tgt + " " + sign + " " + v.integerValueText(values[0], b) + " {\n")
 			v.failure(out, ctx, key)
 			continue
 		}
@@ -794,9 +771,9 @@ func (v *validatorGenerator) generateIntegerFieldValidator(out *strings.Builder,
 		case "vt.in":
 			if len(values) > 1 {
 				exist := v.genID("_exist")
-				out.WriteString(v.indent() + "var " + exist + " bool\n")
+				out.WriteString("var " + exist + " bool\n")
 				src := v.genID("_src")
-				out.WriteString(v.indent() + src + " := []" + goIntType(b) + "{")
+				out.WriteString(src + " := []" + goIntType(b) + "{")
 				for i, val := range values {
 					if i > 0 {
 						out.WriteString(", ")
@@ -804,25 +781,21 @@ func (v *validatorGenerator) generateIntegerFieldValidator(out *strings.Builder,
 					out.WriteString(v.integerValueText(val, b))
 				}
 				out.WriteString("}\n")
-				out.WriteString(v.indent() + "for _, src := range " + src + " {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + "if " + ctx.tgt + " == src {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + exist + " = true\n")
-				out.WriteString(v.indent() + "break\n")
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
-				out.WriteString(v.indent() + "if " + exist + " == false {\n")
+				out.WriteString("for _, src := range " + src + " {\n")
+				out.WriteString("if " + ctx.tgt + " == src {\n")
+				out.WriteString(exist + " = true\n")
+				out.WriteString("break\n")
+				out.WriteString("}\n")
+				out.WriteString("}\n")
+				out.WriteString("if " + exist + " == false {\n")
 			} else {
-				out.WriteString(v.indent() + "if " + ctx.tgt + " != " + v.integerValueText(values[0], b) + " {\n")
+				out.WriteString("if " + ctx.tgt + " != " + v.integerValueText(values[0], b) + " {\n")
 			}
 			v.failure(out, ctx, "vt.in")
 		case "vt.not_in":
 			if len(values) > 1 {
 				src := v.genID("_src")
-				out.WriteString(v.indent() + src + " := []" + goIntType(b) + "{")
+				out.WriteString(src + " := []" + goIntType(b) + "{")
 				for i, val := range values {
 					if i > 0 {
 						out.WriteString(", ")
@@ -830,16 +803,14 @@ func (v *validatorGenerator) generateIntegerFieldValidator(out *strings.Builder,
 					out.WriteString(v.integerValueText(val, b))
 				}
 				out.WriteString("}\n")
-				out.WriteString(v.indent() + "for _, src := range " + src + " {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + "if " + ctx.tgt + " == src {\n")
+				out.WriteString("for _, src := range " + src + " {\n")
+				out.WriteString("if " + ctx.tgt + " == src {\n")
 			} else {
-				out.WriteString(v.indent() + "if " + ctx.tgt + " == " + v.integerValueText(values[0], b) + " {\n")
+				out.WriteString("if " + ctx.tgt + " == " + v.integerValueText(values[0], b) + " {\n")
 			}
 			v.failure(out, ctx, "vt.not_in")
 			if len(values) > 1 {
-				v.indentDown()
-				out.WriteString(v.indent() + "}\n")
+				out.WriteString("}\n")
 			}
 		}
 	}
@@ -856,7 +827,7 @@ func (v *validatorGenerator) generateStringFieldValidator(out *strings.Builder, 
 	target := ctx.tgt
 	if typ.IsBinary() {
 		target = v.genID("_tgt")
-		out.WriteString(v.indent() + target + " := string(" + ctx.tgt + ")\n")
+		out.WriteString(target + " := string(" + ctx.tgt + ")\n")
 	}
 	for _, rule := range ctx.rules {
 		values := rule.values
@@ -866,9 +837,9 @@ func (v *validatorGenerator) generateStringFieldValidator(out *strings.Builder, 
 		key := rule.name
 		switch key {
 		case "vt.const":
-			out.WriteString(v.indent() + "if " + target + " != " + v.stringArg(values[0]))
+			out.WriteString("if " + target + " != " + v.stringArg(values[0]))
 		case "vt.min_size", "vt.max_size":
-			out.WriteString(v.indent() + "if len(" + target + ") ")
+			out.WriteString("if len(" + target + ") ")
 			if key == "vt.min_size" {
 				out.WriteString("<")
 			} else {
@@ -898,7 +869,7 @@ func (v *validatorGenerator) generateStringFieldValidator(out *strings.Builder, 
 			out.WriteString(")")
 		case "vt.pattern":
 			if values[0].isFieldReference() {
-				out.WriteString(v.indent() + "if ok, _ := regexp.MatchString(string(" + v.fieldReferenceName(values[0].field) + "), " + target + "); !ok")
+				out.WriteString("if ok, _ := regexp.MatchString(string(" + v.fieldReferenceName(values[0].field) + "), " + target + "); !ok")
 			} else {
 				pattern := values[0].strVal
 				varName := ""
@@ -912,16 +883,16 @@ func (v *validatorGenerator) generateStringFieldValidator(out *strings.Builder, 
 					varName = "vtRe" + v.structName + strconv.Itoa(len(v.patternCache))
 					v.patternCache = append(v.patternCache, struct{ pattern, name string }{pattern, varName})
 				}
-				out.WriteString(v.indent() + "if !" + varName + ".MatchString(" + target + ")")
+				out.WriteString("if !" + varName + ".MatchString(" + target + ")")
 			}
 		case "vt.prefix":
-			out.WriteString(v.indent() + "if !strings.HasPrefix(" + target + ", " + v.stringArg(values[0]) + ")")
+			out.WriteString("if !strings.HasPrefix(" + target + ", " + v.stringArg(values[0]) + ")")
 		case "vt.suffix":
-			out.WriteString(v.indent() + "if !strings.HasSuffix(" + target + ", " + v.stringArg(values[0]) + ")")
+			out.WriteString("if !strings.HasSuffix(" + target + ", " + v.stringArg(values[0]) + ")")
 		case "vt.contains":
-			out.WriteString(v.indent() + "if !strings.Contains(" + target + ", " + v.stringArg(values[0]) + ")")
+			out.WriteString("if !strings.Contains(" + target + ", " + v.stringArg(values[0]) + ")")
 		case "vt.not_contains":
-			out.WriteString(v.indent() + "if strings.Contains(" + target + ", " + v.stringArg(values[0]) + ")")
+			out.WriteString("if strings.Contains(" + target + ", " + v.stringArg(values[0]) + ")")
 		}
 		out.WriteString(" {\n")
 		v.failure(out, ctx, key)
@@ -934,7 +905,7 @@ func (v *validatorGenerator) generateListFieldValidator(out *strings.Builder, ct
 		key := rule.name
 		switch key {
 		case "vt.min_size", "vt.max_size":
-			out.WriteString(v.indent() + "if len(" + ctx.tgt + ")")
+			out.WriteString("if len(" + ctx.tgt + ")")
 			if key == "vt.min_size" {
 				out.WriteString(" < ")
 			} else {
@@ -948,10 +919,9 @@ func (v *validatorGenerator) generateListFieldValidator(out *strings.Builder, ct
 			out.WriteString(" {\n")
 			v.failure(out, ctx, key)
 		case "vt.elem":
-			out.WriteString(v.indent() + "for i := 0; i < len(" + ctx.tgt + "); i++ {\n")
-			v.indentUp()
+			out.WriteString("for i := 0; i < len(" + ctx.tgt + "); i++ {\n")
 			src := v.genID("_elem")
-			out.WriteString(v.indent() + src + " := " + ctx.tgt + "[i]\n")
+			out.WriteString(src + " := " + ctx.tgt + "[i]\n")
 			var elemType sema.Type
 			if typ.IsList() {
 				elemType = typ.(*sema.List).ElemType()
@@ -964,8 +934,7 @@ func (v *validatorGenerator) generateListFieldValidator(out *strings.Builder, ct
 				typ:         elemType,
 				rules:       []*validationRule{rule.inner},
 			})
-			v.indentDown()
-			out.WriteString(v.indent() + "}\n")
+			out.WriteString("}\n")
 		}
 	}
 }
@@ -976,7 +945,7 @@ func (v *validatorGenerator) generateMapFieldValidator(out *strings.Builder, ctx
 		key := rule.name
 		switch key {
 		case "vt.min_size", "vt.max_size":
-			out.WriteString(v.indent() + "if len(" + ctx.tgt + ")")
+			out.WriteString("if len(" + ctx.tgt + ")")
 			if key == "vt.min_size" {
 				out.WriteString(" < ")
 			} else {
@@ -993,42 +962,34 @@ func (v *validatorGenerator) generateMapFieldValidator(out *strings.Builder, ctx
 			src := v.genID("_key")
 			if v.g.isContainerKeyedMap(ctx.typ) {
 				entry := v.genID("_entry")
-				out.WriteString(v.indent() + "for _, " + entry + " := range " + ctx.tgt + " {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + src + " := " + entry + ".Key\n")
-				v.indentDown()
+				out.WriteString("for _, " + entry + " := range " + ctx.tgt + " {\n")
+				out.WriteString(src + " := " + entry + ".Key\n")
 			} else {
-				out.WriteString(v.indent() + "for " + src + " := range " + ctx.tgt + " {\n")
+				out.WriteString("for " + src + " := range " + ctx.tgt + " {\n")
 			}
-			v.indentUp()
 			v.generateFieldValidator(out, validatorContext{
 				fieldSymbol: ctx.fieldSymbol + ".key",
 				tgt:         src,
 				typ:         m.KeyType(),
 				rules:       []*validationRule{rule.inner},
 			})
-			v.indentDown()
-			out.WriteString(v.indent() + "}\n")
+			out.WriteString("}\n")
 		case "vt.value":
 			src := v.genID("_value")
 			if v.g.isContainerKeyedMap(ctx.typ) {
 				entry := v.genID("_entry")
-				out.WriteString(v.indent() + "for _, " + entry + " := range " + ctx.tgt + " {\n")
-				v.indentUp()
-				out.WriteString(v.indent() + src + " := " + entry + ".Value\n")
-				v.indentDown()
+				out.WriteString("for _, " + entry + " := range " + ctx.tgt + " {\n")
+				out.WriteString(src + " := " + entry + ".Value\n")
 			} else {
-				out.WriteString(v.indent() + "for _, " + src + " := range " + ctx.tgt + " {\n")
+				out.WriteString("for _, " + src + " := range " + ctx.tgt + " {\n")
 			}
-			v.indentUp()
 			v.generateFieldValidator(out, validatorContext{
 				fieldSymbol: ctx.fieldSymbol + ".value",
 				tgt:         src,
 				typ:         m.ValType(),
 				rules:       []*validationRule{rule.inner},
 			})
-			v.indentDown()
-			out.WriteString(v.indent() + "}\n")
+			out.WriteString("}\n")
 		}
 	}
 }
@@ -1043,11 +1004,9 @@ func (v *validatorGenerator) generateRegexpVars(out *strings.Builder) {
 		return
 	}
 	out.WriteString("var (\n")
-	v.indentUp()
 	for _, e := range v.patternCache {
-		out.WriteString(v.indent() + e.name + " = regexp.MustCompile(`" + e.pattern + "`)\n")
+		out.WriteString(e.name + " = regexp.MustCompile(`" + e.pattern + "`)\n")
 	}
-	v.indentDown()
 	out.WriteString(")\n\n")
 }
 
@@ -1071,29 +1030,21 @@ func (v *validatorGenerator) generateStructFieldValidator(out *strings.Builder, 
 		return
 	}
 	if lastValidRule == nil {
-		out.WriteString(v.indent() + "if err := " + ctx.tgt + ".Validate(); err != nil {\n")
-		v.indentUp()
-		out.WriteString(v.indent() + "return err\n")
-		v.indentDown()
-		out.WriteString(v.indent() + "}\n")
+		out.WriteString("if err := " + ctx.tgt + ".Validate(); err != nil {\n")
+		out.WriteString("return err\n")
+		out.WriteString("}\n")
 		return
 	}
 	values := lastValidRule.values
 	if !values[0].boolVal {
-		out.WriteString(v.indent() + "if err := " + ctx.tgt + ".Validate(); err != nil {\n")
-		v.indentUp()
-		out.WriteString(v.indent() + "return err\n")
-		v.indentDown()
-		out.WriteString(v.indent() + "}\n")
+		out.WriteString("if err := " + ctx.tgt + ".Validate(); err != nil {\n")
+		out.WriteString("return err\n")
+		out.WriteString("}\n")
 	} else if values[0].isFieldReference() {
-		out.WriteString(v.indent() + "if !" + v.fieldReferenceName(values[0].field) + " {\n")
-		v.indentUp()
-		out.WriteString(v.indent() + "if err := " + ctx.tgt + ".Validate(); err != nil {\n")
-		v.indentUp()
-		out.WriteString(v.indent() + "return err\n")
-		v.indentDown()
-		out.WriteString(v.indent() + "}\n")
-		v.indentDown()
-		out.WriteString(v.indent() + "}\n")
+		out.WriteString("if !" + v.fieldReferenceName(values[0].field) + " {\n")
+		out.WriteString("if err := " + ctx.tgt + ".Validate(); err != nil {\n")
+		out.WriteString("return err\n")
+		out.WriteString("}\n")
+		out.WriteString("}\n")
 	}
 }

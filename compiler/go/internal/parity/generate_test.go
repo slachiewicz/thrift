@@ -78,20 +78,17 @@ func readTree(t *testing.T, root string) map[string]string {
 	return files
 }
 
-// formatGoTree runs gofmt over every .go file of a tree read by readTree.
-func formatGoTree(t *testing.T, files map[string]string) map[string]string {
+// formatGo runs gofmt over one generated Go file.
+func formatGo(t *testing.T, name, content string) string {
 	t.Helper()
-	for name, content := range files {
-		if !strings.HasSuffix(name, ".go") {
-			continue
-		}
-		formatted, err := format.Source([]byte(content))
-		if err != nil {
-			t.Fatalf("C++ output %s is not valid Go: %v", name, err)
-		}
-		files[name] = string(formatted)
+	if !strings.HasSuffix(name, ".go") {
+		return content
 	}
-	return files
+	formatted, err := format.Source([]byte(content))
+	if err != nil {
+		t.Fatalf("C++ output %s is not valid Go: %v", name, err)
+	}
+	return string(formatted)
 }
 
 func sortedKeys(m map[string]string) []string {
@@ -169,18 +166,24 @@ func checkGenerateParity(t *testing.T, thrift, file string, row optionRow) {
 		t.Fatalf("C++ compiler accepted the file but the Go generator rejected it: %v", goErr)
 	}
 
-	// The Go generator formats its output, so the C++ output is compared
-	// after the same formatting. Byte-for-byte, the two differ only where
-	// gofmt rewrites the C++ output: today the empty leading and trailing
-	// doc-comment lines of DocEdgeCases.thrift.
-	want := formatGoTree(t, readTree(t, cppOut))
+	// The Go generator formats its output, so a C++ file that differs is
+	// compared again after the same formatting. Byte-for-byte, the two
+	// differ only where gofmt rewrites the C++ output: today the empty
+	// leading and trailing doc-comment lines of DocEdgeCases.thrift.
+	// Formatting only on a mismatch keeps the test at the cost of one
+	// gofmt pass per file, the one the generator does.
+	want := readTree(t, cppOut)
 	got := readTree(t, goOut)
 	if strings.Join(sortedKeys(want), "\n") != strings.Join(sortedKeys(got), "\n") {
 		t.Fatalf("file sets differ.\ncpp: %v\ngo:  %v", sortedKeys(want), sortedKeys(got))
 	}
 	for _, name := range sortedKeys(want) {
-		if want[name] != got[name] {
-			t.Fatalf("%s differs at %s", name, firstDiff(want[name], got[name]))
+		if want[name] == got[name] {
+			continue
+		}
+		formatted := formatGo(t, name, want[name])
+		if formatted != got[name] {
+			t.Fatalf("%s differs at %s", name, firstDiff(formatted, got[name]))
 		}
 	}
 }
