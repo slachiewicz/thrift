@@ -819,8 +819,12 @@ func (g *Generator) needsIsset(s *sema.Struct) (issetType, string) {
 	return issetBitset, ""
 }
 
+// Now supplies the date of the @Generated annotation. Tests that compare
+// the output against stored files fix it.
+var Now = time.Now
+
 func (g *Generator) generateJavaxGeneratedAnnotation(out *strings.Builder) {
-	now := time.Now()
+	now := Now()
 	if g.opts.JakartaAnnotations {
 		out.WriteString(g.indent() + "@jakarta.annotation.Generated(value = \"" + autogenSummary() + "\"")
 	} else {
