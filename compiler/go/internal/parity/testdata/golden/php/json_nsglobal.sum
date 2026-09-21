@@ -129,6 +129,14 @@ bb5af671f18ff8b3	lib/go/test/ContainerKeyTest.thrift	Constant.php
 e1fdc294ca1ca590	lib/go/test/ContainerKeyTest.thrift	ContainerKeyStruct.php
 4a362cd8bed716e8	lib/go/test/ContainerKeyTest.thrift	DefaultStructKeyStruct.php
 5349ce4afce5a9b3	lib/go/test/ContainerKeyTest.thrift	PlainKey.php
+00f210534434f76d	lib/go/test/DocCommentTest.thrift	DocCommentServiceClient.php
+16f9f1f833c269da	lib/go/test/DocCommentTest.thrift	DocCommentServiceIf.php
+4bd487ac439f2a72	lib/go/test/DocCommentTest.thrift	DocCommentService_echo_args.php
+dd48de00fedd52e9	lib/go/test/DocCommentTest.thrift	DocCommentService_echo_result.php
+82e86e9018d257a0	lib/go/test/DocCommentTest.thrift	DoubledEmptyLine.php
+b7f831362044ae38	lib/go/test/DocCommentTest.thrift	EmptyDoc.php
+ad013c131635ee2c	lib/go/test/DocCommentTest.thrift	LeadingEmptyLine.php
+ef20ab853a2ab7bc	lib/go/test/DocCommentTest.thrift	TrailingEmptyLine.php
 2de0a6375e579290	lib/go/test/DontExportRWTest.thrift	InnerStruct.php
 c6398eb829a763ff	lib/go/test/DontExportRWTest.thrift	TestStruct.php
 empty	lib/go/test/DuplicateImportsTest.thrift

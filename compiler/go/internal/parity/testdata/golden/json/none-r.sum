@@ -33,6 +33,7 @@ aa51cb09baadc23d	lib/go/test/ConstOptionalField.thrift	ConstOptionalField.json
 02b6b4298b3e4413	lib/go/test/ConstOptionalField.thrift	ConstOptionalFieldImport.json
 02b6b4298b3e4413	lib/go/test/ConstOptionalFieldImport.thrift	ConstOptionalFieldImport.json
 9213698c22e8fbef	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.json
+ddcc5967336da73b	lib/go/test/DocCommentTest.thrift	DocCommentTest.json
 8bd46454d8d12e34	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.json
 467ddd091263d8aa	lib/go/test/DuplicateImportsTest.thrift	DuplicateImportsTest.json
 e7156bd5eee25cd9	lib/go/test/DuplicateImportsTest.thrift	a.json

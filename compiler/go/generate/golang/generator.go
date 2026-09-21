@@ -707,6 +707,7 @@ func (g *Generator) generateDocstringComment(out *strings.Builder, contents stri
 	if strings.Trim(contents, " \t\r\n") == "" {
 		return
 	}
+	var lines []string
 	rest := contents
 	for rest != "" {
 		var line string
@@ -735,12 +736,35 @@ func (g *Generator) generateDocstringComment(out *strings.Builder, contents stri
 				}
 			}
 			docLine = strings.ReplaceAll(docLine, "''", "\"\"")
-			out.WriteString("// " + docLine + "\n")
+			lines = append(lines, docLine)
 		} else if !eof {
-			out.WriteString("//\n")
+			lines = append(lines, "")
 		}
 		if truncated {
-			return
+			break
+		}
+	}
+
+	// gofmt drops the empty lines at either end of a doc comment and keeps
+	// one of a run, so write the comment that way and it stays gofmt-clean
+	// (the C++ generator does the same since apache/thrift#3921).
+	begin, end := 0, len(lines)
+	for begin < end && lines[begin] == "" {
+		begin++
+	}
+	for end > begin && lines[end-1] == "" {
+		end--
+	}
+	previousEmpty := false
+	for _, l := range lines[begin:end] {
+		if l == "" {
+			if !previousEmpty {
+				out.WriteString("//\n")
+			}
+			previousEmpty = true
+		} else {
+			out.WriteString("// " + l + "\n")
+			previousEmpty = false
 		}
 	}
 }

@@ -91,6 +91,10 @@ f397ac883f51e507	lib/go/test/ConstOptionalFieldImport.thrift	constoptionalfielda
 e8798ac6300bcab7	lib/go/test/ContainerKeyTest.thrift	containerkeytest/ContainerKeyTest-consts.go
 648ff1f554146ac8	lib/go/test/ContainerKeyTest.thrift	containerkeytest/ContainerKeyTest.go
 8237bc1182423d60	lib/go/test/ContainerKeyTest.thrift	containerkeytest/GoUnusedProtection__.go
+488b6c777182222c	lib/go/test/DocCommentTest.thrift	doccommenttest/DocCommentTest-consts.go
+a244f2362857df45	lib/go/test/DocCommentTest.thrift	doccommenttest/DocCommentTest.go
+52eefa4929f955b2	lib/go/test/DocCommentTest.thrift	doccommenttest/GoUnusedProtection__.go
+aadc3b7443726305	lib/go/test/DocCommentTest.thrift	doccommenttest/doc_comment_service-remote/doc_comment_service-remote.go
 50573bf952a1d885	lib/go/test/DontExportRWTest.thrift	dontexportrwtest/DontExportRWTest-consts.go
 acb68a8d76395b95	lib/go/test/DontExportRWTest.thrift	dontexportrwtest/DontExportRWTest.go
 d36bdd74fef2b8f2	lib/go/test/DontExportRWTest.thrift	dontexportrwtest/GoUnusedProtection__.go

@@ -25,6 +25,7 @@ bcdd4ca4ec506752	lib/go/test/ConflictNamespaceTestF.thrift	ConflictNamespaceTest
 7fb22c7db27b52b2	lib/go/test/ConstOptionalField.thrift	ConstOptionalField.xml
 2d334f85ceca46df	lib/go/test/ConstOptionalFieldImport.thrift	ConstOptionalFieldImport.xml
 4f78c26457a21859	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.xml
+6918dd59d9d7f531	lib/go/test/DocCommentTest.thrift	DocCommentTest.xml
 edca899df2b09a71	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.xml
 ce5663827d857470	lib/go/test/DuplicateImportsTest.thrift	DuplicateImportsTest.xml
 5f422d2982eae27a	lib/go/test/EqualsTest.thrift	EqualsTest.xml

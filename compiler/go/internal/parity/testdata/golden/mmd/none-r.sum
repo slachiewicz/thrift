@@ -33,6 +33,7 @@ dc260067cc25ff13	lib/go/test/ConstOptionalField.thrift	ConstOptionalField.mmd
 9be1a8e0992d6729	lib/go/test/ConstOptionalField.thrift	ConstOptionalFieldImport.mmd
 9be1a8e0992d6729	lib/go/test/ConstOptionalFieldImport.thrift	ConstOptionalFieldImport.mmd
 651259918a86e4e2	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.mmd
+872f2217e33bd5da	lib/go/test/DocCommentTest.thrift	DocCommentTest.mmd
 d78f10e11d21599a	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.mmd
 6038c227b61d7552	lib/go/test/DuplicateImportsTest.thrift	DuplicateImportsTest.mmd
 e81a76a39bd45e85	lib/go/test/DuplicateImportsTest.thrift	a.mmd

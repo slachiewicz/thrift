@@ -80,6 +80,9 @@ e94f88705d2a2c6b	lib/go/test/ConstOptionalField.thrift	const_optional_field_type
 2f32999f70d56bcc	lib/go/test/ConstOptionalFieldImport.thrift	const_optional_field_import_types.rb
 b82c8453970e5bb3	lib/go/test/ContainerKeyTest.thrift	container_key_test_constants.rb
 e6c6e0d07f4144fa	lib/go/test/ContainerKeyTest.thrift	container_key_test_types.rb
+c6ddee39011ced9d	lib/go/test/DocCommentTest.thrift	doc_comment_service.rb
+da69e7d25a8bbcef	lib/go/test/DocCommentTest.thrift	doc_comment_test_constants.rb
+cb43722429557dc4	lib/go/test/DocCommentTest.thrift	doc_comment_test_types.rb
 573d73c02d4473f6	lib/go/test/DontExportRWTest.thrift	dont_export_r_w_test_constants.rb
 967bf0c4b4c6381e	lib/go/test/DontExportRWTest.thrift	dont_export_r_w_test_types.rb
 34e8f3e2bdc92842	lib/go/test/DuplicateImportsTest.thrift	a_constants.rb

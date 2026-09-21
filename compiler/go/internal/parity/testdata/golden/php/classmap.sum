@@ -37,6 +37,8 @@ c93c59ea410269d8	lib/go/test/ConflictNamespaceTestF.thrift	Types.php
 3a20aa2b710a4097	lib/go/test/ConstOptionalField.thrift	Types.php
 f9c1f6a08780aaca	lib/go/test/ConstOptionalFieldImport.thrift	Types.php
 60b51b8ea192694b	lib/go/test/ContainerKeyTest.thrift	Types.php
+9ba910b1c128a115	lib/go/test/DocCommentTest.thrift	DocCommentService.php
+d17efe61f90f3199	lib/go/test/DocCommentTest.thrift	Types.php
 de7e861de032346a	lib/go/test/DontExportRWTest.thrift	Types.php
 d5eef2a2a9905cac	lib/go/test/DuplicateImportsTest.thrift	Types.php
 4d1757b390a71e58	lib/go/test/EqualsTest.thrift	Types.php

@@ -91,6 +91,11 @@ cc0c2ce2f50c754c	lib/go/test/ConstOptionalFieldImport.thrift	ConstOptionalFieldI
 6d8fbff080da062b	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest_constants.h
 11f10555aafd6f8d	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest_types.cpp
 5228c59f1da56b8a	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest_types.h
+94b48a65d7765c6a	lib/go/test/DocCommentTest.thrift	DocCommentService.cpp
+06b4d2695187faf1	lib/go/test/DocCommentTest.thrift	DocCommentService.h
+4643f5d981a15bfb	lib/go/test/DocCommentTest.thrift	DocCommentService_server.skeleton.cpp
+da67e9e4e1c728a5	lib/go/test/DocCommentTest.thrift	DocCommentTest_types.cpp
+ccebdddabeb45b70	lib/go/test/DocCommentTest.thrift	DocCommentTest_types.h
 4d68f9ba6e8845e5	lib/go/test/DontExportRWTest.thrift	DontExportRWTest_types.cpp
 ae9aa4cabd5445f0	lib/go/test/DontExportRWTest.thrift	DontExportRWTest_types.h
 24892ce8a58737a3	lib/go/test/DuplicateImportsTest.thrift	DuplicateImportsTest_types.h

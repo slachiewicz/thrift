@@ -293,41 +293,13 @@ func (g *generator) printType(t sema.Type, structFieldRef string) {
 	}
 }
 
-/**
- * Prints out an string representation of the provided constant value
- *
- * The C++ generator computes a CV_MAP's key/value type, or a CV_LIST's
- * element type, by casting the constant's declared type to t_map or
- * t_list/t_set without checking it actually is one. A struct literal is
- * itself a CV_MAP (the parser has no other way to represent one), so
- * that cast runs on a real but wrongly typed t_struct whenever a
- * struct-valued constant turns up where a container was assumed: one
- * element of a const list<Bar>, a struct-typed map key, or a struct
- * field whose own value is a further container. Reading a member out of
- * a real (if wrongly typed) C++ object this way does not fault, so a
- * leaf value under it -- an integer, a double or a string -- prints
- * exactly as it would with the correct type, and t_gv_generator has
- * emitted exactly this output for every corpus file with such a
- * constant. Only a further identifier needs the type for its name, and
- * only then does the C++ generator dereference the bogus type it
- * derived; checked empirically (lib/go/test/ConstOptionalField.thrift),
- * that is undefined behavior in the C++ binary, which crashes on most
- * runs and reproduces one fixed, semantically wrong output on the rest.
- * typ is nil here for exactly the cases where the C++ generator would be
- * working from such a bogus type. Using it to name an identifier always
- * throws. Using it as the type of a further CV_MAP or CV_LIST also
- * throws: that reads a key/value/element type out of a pointer that was
- * itself only ever a misread of unrelated memory, not a real object,
- * which is unsafe on the C++ side too (checked: lib/go/test/
- * StructKeyTest.thrift's struct-keyed map with a struct-typed default
- * value crashes the C++ binary on most runs without ever reaching an
- * identifier). One level of "real object read as the wrong type" is
- * where the two generators still agree; a second level is where the Go
- * generator rejects the file instead of gambling on which of the C++
- * binary's undefined outcomes to match.
- */
+// printConstValue is t_gv_generator::print_const_value. The value's shape
+// follows the resolved type: a map value is a map constant or a struct
+// literal, whose keys are field names and whose values are typed by the
+// fields (THRIFT-6332). The identifier case keeps the declared name.
 func (g *generator) printConstValue(typ sema.Type, tvalue *sema.ConstValue) {
 	first := true
+	ttype := sema.TrueType(typ)
 	switch tvalue.Kind() {
 	case sema.CVInteger:
 		g.sb.WriteString(strconv.FormatInt(tvalue.Integer(), 10))
@@ -336,48 +308,55 @@ func (g *generator) printConstValue(typ sema.Type, tvalue *sema.ConstValue) {
 	case sema.CVString:
 		g.sb.WriteString(`\"` + gvEscape(tvalue.String()) + `\"`)
 	case sema.CVMap:
-		if typ == nil {
-			emit.Throw("gv: nested map constant value has no usable declared type here")
-		}
 		g.sb.WriteString(`\{ `)
-		var keyType, valType sema.Type
-		if m, ok := sema.TrueType(typ).(*sema.Map); ok {
-			keyType, valType = m.KeyType(), m.ValType()
-		}
 		for _, e := range tvalue.Map() {
 			if !first {
 				g.sb.WriteString(", ")
 			}
 			first = false
-			g.printConstValue(keyType, e.Key)
-			g.sb.WriteString(" = ")
-			g.printConstValue(valType, e.Value)
+			switch tt := ttype.(type) {
+			case *sema.Map:
+				g.printConstValue(tt.KeyType(), e.Key)
+				g.sb.WriteString(" = ")
+				g.printConstValue(tt.ValType(), e.Value)
+			case *sema.Struct:
+				var field *sema.Field
+				for _, f := range tt.Members() {
+					if f.Name() == e.Key.String() {
+						field = f
+						break
+					}
+				}
+				g.printConstValue(sema.GlobalString, e.Key)
+				g.sb.WriteString(" = ")
+				if field != nil {
+					g.printConstValue(field.Type(), e.Value)
+				} else {
+					g.sb.WriteString("UNKNOWN")
+				}
+			default:
+				g.sb.WriteString("UNKNOWN")
+			}
 		}
 		g.sb.WriteString(` \}`)
 	case sema.CVList:
-		if typ == nil {
-			emit.Throw("gv: nested list constant value has no usable declared type here")
-		}
 		g.sb.WriteString(`\{ `)
-		var elemType sema.Type
-		tt := sema.TrueType(typ)
-		if l, ok := tt.(*sema.List); ok {
-			elemType = l.ElemType()
-		} else if s, ok := tt.(*sema.Set); ok {
-			elemType = s.ElemType()
-		}
 		for _, e := range tvalue.List() {
 			if !first {
 				g.sb.WriteString(", ")
 			}
 			first = false
-			g.printConstValue(elemType, e)
+			switch tt := ttype.(type) {
+			case *sema.List:
+				g.printConstValue(tt.ElemType(), e)
+			case *sema.Set:
+				g.printConstValue(tt.ElemType(), e)
+			default:
+				g.sb.WriteString("UNKNOWN")
+			}
 		}
 		g.sb.WriteString(` \}`)
 	case sema.CVIdentifier:
-		if typ == nil {
-			emit.Throw("gv: identifier constant value has no usable declared type here")
-		}
 		g.sb.WriteString(gvEscape(typ.Name()) + "." + gvEscape(tvalue.IdentifierName()))
 	default:
 		g.sb.WriteString("UNKNOWN")

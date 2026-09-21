@@ -33,6 +33,7 @@ a23b229b59f87f40	lib/go/test/ConflictNamespaceTestSuperThing.thrift	ConflictName
 97a574bd604bf72d	lib/go/test/ConstOptionalField.thrift	ConstOptionalFieldImport.xml
 97a574bd604bf72d	lib/go/test/ConstOptionalFieldImport.thrift	ConstOptionalFieldImport.xml
 e82951659adf4a8a	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.xml
+bb0b4f8eca2356ce	lib/go/test/DocCommentTest.thrift	DocCommentTest.xml
 b133ee64f3eeb149	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.xml
 4187eea24a972d39	lib/go/test/DuplicateImportsTest.thrift	DuplicateImportsTest.xml
 a2044643d503384d	lib/go/test/DuplicateImportsTest.thrift	a.xml

@@ -244,16 +244,9 @@ var langRows = map[string][]optionRow{
 
 // undefinedInCpp lists, per language, the corpus files on which the C++
 // generator's behaviour is undefined, so that its output is not an
-// oracle: t_gv_generator::print_const_value casts a constant's declared
-// type to t_map*/t_list* unchecked, and a struct literal is a map value
-// over a t_struct. On these files the C++ compiler crashes on most runs
-// and prints nonsense on the rest; the Go port rejects them. The oracle
-// test skips them, and the golden manifests pin the Go result.
+// oracle. The oracle test skips them, and the golden manifests pin the
+// Go result. (The gv generator's entries left with THRIFT-6332.)
 var undefinedInCpp = map[string]map[string]string{
-	"gv": {
-		"lib/go/test/ConstOptionalField.thrift": "struct field holding an enum identifier",
-		"lib/go/test/StructKeyTest.thrift":      "map constant under a struct default",
-	},
 	"js": {
 		// t_js_generator::render_const_value's TYPE_UUID case writes
 		// `out << "'" << value << "'"` where value is the t_const_value*

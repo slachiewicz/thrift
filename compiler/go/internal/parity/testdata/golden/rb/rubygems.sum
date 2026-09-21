@@ -64,6 +64,9 @@ bfbbaeac19c63709	lib/go/test/ConflictNamespaceTestSuperThing.thrift	conflict_nam
 128855389e740ef5	lib/go/test/ConstOptionalFieldImport.thrift	const_optional_field_import_types.rb
 7db52716e1254215	lib/go/test/ContainerKeyTest.thrift	container_key_test_constants.rb
 27cf61d297a6c777	lib/go/test/ContainerKeyTest.thrift	container_key_test_types.rb
+8801fa4040560bd1	lib/go/test/DocCommentTest.thrift	doc_comment_service.rb
+fea42f664b3444dd	lib/go/test/DocCommentTest.thrift	doc_comment_test_constants.rb
+c6a0273ab0c9822c	lib/go/test/DocCommentTest.thrift	doc_comment_test_types.rb
 e0e396e7e93b51ad	lib/go/test/DontExportRWTest.thrift	dont_export_r_w_test_constants.rb
 572aef3ee6febd7c	lib/go/test/DontExportRWTest.thrift	dont_export_r_w_test_types.rb
 e7f3b0716957208e	lib/go/test/DuplicateImportsTest.thrift	duplicate_imports_test_constants.rb

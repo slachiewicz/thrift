@@ -60,6 +60,8 @@ f8b6ab6e05d70b41	lib/go/test/ConstOptionalFieldImport.thrift	ConstOptionalFieldI
 92353b8f17c0e207	lib/go/test/ConstOptionalFieldImport.thrift	index.md
 65c97af3175452be	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest.md
 e534933d64cd3e47	lib/go/test/ContainerKeyTest.thrift	index.md
+41d793c13f2aa69f	lib/go/test/DocCommentTest.thrift	DocCommentTest.md
+8723849597d632d7	lib/go/test/DocCommentTest.thrift	index.md
 dd46dcd91801e5cc	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.md
 68a14ccac355f2e0	lib/go/test/DontExportRWTest.thrift	index.md
 323b050bec8f6ba0	lib/go/test/DuplicateImportsTest.thrift	DuplicateImportsTest.md
