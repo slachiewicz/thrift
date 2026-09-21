@@ -37,6 +37,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
 	_ "github.com/apache/thrift/compiler/go/generate/javame"   // registers javame
 	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js
+	_ "github.com/apache/thrift/compiler/go/generate/kotlin"   // registers kotlin
 	_ "github.com/apache/thrift/compiler/go/generate/lua"      // registers lua
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
@@ -129,6 +130,13 @@ var langRows = map[string][]optionRow{
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
 		{name: "omit_requires", spec: "omit_requires"},
+	},
+	// t_kotlin_generator registers no options at all (THRIFT_REGISTER_GENERATOR's
+	// doc string is empty), and no build file in the repository passes
+	// --gen kotlin:... with any options either.
+	"kotlin": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
 	},
 	"mmd": {
 		{name: "none", spec: ""},
