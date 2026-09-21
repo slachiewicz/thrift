@@ -86,6 +86,20 @@ var langRows = map[string][]optionRow{
 	},
 }
 
+// undefinedInCpp lists, per language, the corpus files on which the C++
+// generator's behaviour is undefined, so that its output is not an
+// oracle: t_gv_generator::print_const_value casts a constant's declared
+// type to t_map*/t_list* unchecked, and a struct literal is a map value
+// over a t_struct. On these files the C++ compiler crashes on most runs
+// and prints nonsense on the rest; the Go port rejects them. The oracle
+// test skips them, and the golden manifests pin the Go result.
+var undefinedInCpp = map[string]map[string]string{
+	"gv": {
+		"lib/go/test/ConstOptionalField.thrift": "struct field holding an enum identifier",
+		"lib/go/test/StructKeyTest.thrift":      "map constant under a struct default",
+	},
+}
+
 // generateLang runs a registered generator on one corpus file in-process
 // and returns the output tree, or the error the generator reported.
 func generateLang(lang string) func(t *testing.T, file string, row optionRow) (map[string]string, error) {
@@ -127,6 +141,9 @@ func TestGenerateParityLang(t *testing.T) {
 				for _, file := range files {
 					rel, _ := filepath.Rel(root, file)
 					t.Run(rel, func(t *testing.T) {
+						if why, ok := undefinedInCpp[lang][filepath.ToSlash(rel)]; ok {
+							t.Skipf("the C++ generator's behaviour is undefined here (%s); the golden manifest pins the Go result", why)
+						}
 						checkLangParity(t, thrift, lang, file, row)
 					})
 				}
