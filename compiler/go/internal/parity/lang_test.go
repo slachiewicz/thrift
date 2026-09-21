@@ -29,6 +29,7 @@ import (
 
 	"github.com/apache/thrift/compiler/go/generate"
 	_ "github.com/apache/thrift/compiler/go/generate/cglib"    // registers c_glib
+	_ "github.com/apache/thrift/compiler/go/generate/cl"       // registers cl
 	_ "github.com/apache/thrift/compiler/go/generate/cpp"      // registers cpp
 	_ "github.com/apache/thrift/compiler/go/generate/dart"     // registers dart
 	_ "github.com/apache/thrift/compiler/go/generate/delphi"   // registers delphi
@@ -83,6 +84,12 @@ var langRows = map[string][]optionRow{
 		{name: "library_name", spec: "library_name=mylib"},
 		{name: "library_prefix", spec: "library_prefix=my_parent_lib.src.gen"},
 		{name: "pubspec_lib", spec: "pubspec_lib=thrift: 0.22.0"},
+	},
+	"cl": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "no_asd", spec: "no_asd"},
+		{name: "sys_pref", spec: "sys_pref=my-thrift-gen-"},
 	},
 	"erl": {
 		{name: "none", spec: ""},
