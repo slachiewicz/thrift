@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"github.com/apache/thrift/compiler/go/generate"
+	_ "github.com/apache/thrift/compiler/go/generate/mmd" // registers mmd
 	"github.com/apache/thrift/compiler/go/sema"
 )
 
@@ -42,6 +43,11 @@ var langRows = map[string][]optionRow{
 		// merge mutates the C++ program in place, so merge under -r
 		// depends on generation order and is not a parity row.
 		{name: "merge", spec: "merge"},
+	},
+	"mmd": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "exceptions", spec: "exceptions"},
 	},
 }
 
