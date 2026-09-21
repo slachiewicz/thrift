@@ -586,11 +586,6 @@ ac586e6c0863842e	test/delphi/UuidV8Test.thrift	parity/UuidV8Test-consts.go
 cb165da8eb113055	test/delphi/UuidV8Test.thrift	parity/UuidV8Test.go
 b0b95492dd7c9707	test/delphi/UuidV8Test.thrift	parity/base_service-remote/base_service-remote.go
 255ef74482147f47	test/delphi/UuidV8Test.thrift	parity/extended_service-remote/extended_service-remote.go
-422ab52f3a464957	test/go/ThriftTest.thrift	parity/GoUnusedProtection__.go
-e53fc010f0519505	test/go/ThriftTest.thrift	parity/ThriftTest-consts.go
-c28c1d5f69936e66	test/go/ThriftTest.thrift	parity/ThriftTest.go
-cabed1f5bddbe8a5	test/go/ThriftTest.thrift	parity/second_service-remote/second_service-remote.go
-61dd5a87b751f24e	test/go/ThriftTest.thrift	parity/thrift_test-remote/thrift_test-remote.go
 422ab52f3a464957	test/partial/thrift_test_schema.thrift	parity/GoUnusedProtection__.go
 ac586e6c0863842e	test/partial/thrift_test_schema.thrift	parity/thrift_test_schema-consts.go
 05ed5f0a2151a331	test/partial/thrift_test_schema.thrift	parity/thrift_test_schema.go

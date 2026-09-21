@@ -88,6 +88,7 @@ var buildArtifacts = map[string]bool{
 	"lib/go/test/ThriftTest.thrift":     true,
 	"lib/go/test/NamespacedTest.thrift": true,
 	"lib/go/test/IncludesTest.thrift":   true,
+	"test/go/ThriftTest.thrift":         true,
 }
 
 func Corpus(t *testing.T, root string) []string {

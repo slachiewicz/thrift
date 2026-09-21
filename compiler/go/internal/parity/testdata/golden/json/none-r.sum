@@ -155,7 +155,6 @@ c26fa370b415f972	test/audit/required_to_default_new.thrift	required_to_default_n
 407ba66ffb27862f	test/audit/test.thrift	test.json
 8d2eee9416b4badd	test/audit/warning.thrift	warning.json
 578316a37b735737	test/delphi/UuidV8Test.thrift	UuidV8Test.json
-94b977a8ef85d5a6	test/go/ThriftTest.thrift	ThriftTest.json
 756dd0f1ec4ae0e3	test/partial/thrift_test_schema.thrift	thrift_test_schema.json
 5e2eb9ede4cebbf3	test/py/explicit_module/shared_types.thrift	shared_types.json
 c4b4cff889f12127	test/py/explicit_module/test1.thrift	test1.json
