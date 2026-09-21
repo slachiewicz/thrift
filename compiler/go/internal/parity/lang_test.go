@@ -34,6 +34,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
+	_ "github.com/apache/thrift/compiler/go/generate/py"       // registers py
 	_ "github.com/apache/thrift/compiler/go/generate/rb"       // registers rb
 	_ "github.com/apache/thrift/compiler/go/generate/rs"       // registers rs
 	_ "github.com/apache/thrift/compiler/go/generate/xml"      // registers xml
@@ -73,6 +74,28 @@ var langRows = map[string][]optionRow{
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
 		{name: "exceptions", spec: "exceptions"},
+	},
+	"py": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "zope.interface", spec: "zope.interface"},
+		{name: "twisted", spec: "twisted"},
+		{name: "tornado", spec: "tornado"},
+		{name: "no_utf8strings", spec: "no_utf8strings"},
+		{name: "coding", spec: "coding=utf-8"},
+		{name: "slots", spec: "slots"},
+		{name: "dynamic", spec: "dynamic"},
+		{name: "dynamic-slots", spec: "dynamic,slots"},
+		{name: "dynbase", spec: "dynbase=MyBase"},
+		{name: "dynfrozen", spec: "dynfrozen=MyFrozenBase"},
+		{name: "dynexc", spec: "dynexc=MyExc"},
+		{name: "dynfrozenexc", spec: "dynfrozenexc=MyFrozenExc"},
+		{name: "dynimport", spec: "dynimport=from foo.bar import CLS"},
+		{name: "package_prefix", spec: "package_prefix=top.pkg."},
+		{name: "old_style", spec: "old_style"},
+		{name: "enum", spec: "enum"},
+		{name: "enum-slots", spec: "enum,slots"},
+		{name: "type_hints", spec: "type_hints,enum"},
 	},
 	"xsd": {
 		{name: "none", spec: ""},
