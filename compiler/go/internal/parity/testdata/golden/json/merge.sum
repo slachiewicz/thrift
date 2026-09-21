@@ -140,7 +140,6 @@ a7b372d6f26f031c	test/audit/required_to_default_old.thrift	required_to_default_o
 cc660fa46c08807f	test/audit/test.thrift	test.json
 8bd70d7eff435218	test/audit/warning.thrift	warning.json
 f6fe99c042e9888b	test/delphi/UuidV8Test.thrift	UuidV8Test.json
-4b89569d269b0baf	test/go/ThriftTest.thrift	ThriftTest.json
 98ab98f68b84d6e2	test/partial/thrift_test_schema.thrift	thrift_test_schema.json
 6a6242b05f795389	test/py/explicit_module/shared_types.thrift	shared_types.json
 fe91cbebffb7ea02	test/py/explicit_module/test1.thrift	test1.json

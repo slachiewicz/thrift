@@ -422,9 +422,6 @@ aed89bed7fccd58d	test/audit/warning.thrift	warning/warning.go
 7705b48bbc3296d5	test/delphi/UuidV8Test.thrift	uuidv8test/GoUnusedProtection__.go
 73e7b87d36ef36e7	test/delphi/UuidV8Test.thrift	uuidv8test/UuidV8Test-consts.go
 fb51a24b4772eaae	test/delphi/UuidV8Test.thrift	uuidv8test/UuidV8Test.go
-319927ebb9c6385e	test/go/ThriftTest.thrift	thrifttest/GoUnusedProtection__.go
-f17a31bb9bbc7a7b	test/go/ThriftTest.thrift	thrifttest/ThriftTest-consts.go
-08a4a70f980e601d	test/go/ThriftTest.thrift	thrifttest/ThriftTest.go
 23fd1d560623c0d8	test/partial/thrift_test_schema.thrift	thrift_test_schema/GoUnusedProtection__.go
 994316f17d284dc9	test/partial/thrift_test_schema.thrift	thrift_test_schema/thrift_test_schema-consts.go
 524c5978980aaee4	test/partial/thrift_test_schema.thrift	thrift_test_schema/thrift_test_schema.go
