@@ -55,19 +55,20 @@ re-litigates it mid-implementation.
    either a per-language tool outside that model or a re-argument of
    THRIFT-4743. This plan assumes the former: a standalone tool that lives in
    the repository, ships with each release tag, and is optional.
-2. **Where the AST comes from.** Two options survive analysis:
-   - **Own front end in Go.** No runtime dependency on the C++ binary. The
-     risk is semantic drift, addressed in [section 6](#6-test-plan).
-   - **Intermediate emitted by the C++ compiler.** The existing JSON generator
-     (`compiler/cpp/src/thrift/generate/t_json_generator.cc`, 811 lines)
-     already emits namespaces, includes, annotations, docs, defaults,
-     requiredness, `extends` and typedefs. It is not a versioned interchange
-     format and it refers to included types by name, so the Go side still
-     needs scope resolution, and users still need the C++ binary installed.
-
-   This plan assumes the own front end. If the PMC prefers the intermediate,
-   phase 2 shrinks to a JSON reader plus scope resolution and everything else
-   stands.
+2. **Where the AST comes from.** Settled on 2026-09-21: the own front end in
+   Go (`compiler/go/idl`, `compiler/go/sema`), with semantic drift addressed
+   in [section 6](#6-test-plan). The alternative, an intermediate emitted by
+   the C++ compiler's JSON generator, is withdrawn on evidence:
+   `t_json_generator::generate_typedef`
+   (`compiler/cpp/src/thrift/generate/t_json_generator.cc:453-454`) writes a
+   typedef and every field type through `get_true_type()`, so the JSON says
+   `Outer.f` has type `Inner` where the IDL wrote `Alias2`, a typedef of a
+   typedef of `Inner`. THRIFT-6197 made the Go generator emit
+   `type Alias2 = Alias` and `*Alias2` for that field, which needs the chain
+   the JSON has already flattened. Any serialised contract would have to be
+   designed from scratch, and then it would be the AST that THRIFT-2835's
+   `plugin.thrift` described and THRIFT-4743 removed. The contract is the
+   in-process `sema` model instead; see [section 13](#13-from-reference-to-replacement).
 3. **Deprecation window.** The C++ Go generator stays for at least two minor
    releases after the Go tool reaches parity, and is the reference
    implementation during that window. Bug fixes land in C++ first and cross
@@ -458,17 +459,24 @@ filed during phases 2 to 5:
    fix. The port is a separate commit that references the same ticket.
 
 No fix lands in the Go tool alone while the C++ generator is the reference.
+The rule reverses for a language when its Go generator becomes the
+reference; [section 13](#13-from-reference-to-replacement) describes the
+mechanism.
 
 ## 9. Risks
 
 - **Semantic drift in the front end.** The dominant risk. Mitigated by the
   front-end parity layer and the reject corpus, both of which use the C++
   compiler as the oracle rather than hand-written expectations.
-- **Two front ends to maintain.** Every grammar change now needs two
-  implementations until the C++ generator is retired, and the C++ front end
-  outlives the C++ Go generator because every other language uses it. This
-  is a permanent cost, not a migration cost, and it is the strongest argument
-  for the intermediate option in [section 2](#2-decisions-the-pmc-owns).
+- **Two front ends to maintain.** Every grammar change needs two
+  implementations while both compilers exist. Measured, the cost is small:
+  `thrifty.yy` and `thriftl.ll` together have 9 commits since 2022-01-01
+  (uuid, the `cpp_type` syntax, `slist`/`senum` removal, a scanner
+  end-of-input fix, error-text and MSVC fixes), against 20 commits to
+  `t_go_generator.cc` alone in the last 24 months. The emitters are where
+  the double maintenance costs, and each emitter stops costing when its
+  language flips; the front end costs a port of a grammar change every
+  few months until the C++ compiler is retired.
 - **Number formatting.** C++ stream and Go `strconv` disagree on doubles by
   default. Caught by the parity corpus, but it can cost days to match
   precisely.
@@ -563,3 +571,120 @@ grew the Go and JSON parity runs.
 | Unit tests | `ParseOptions` errors and the naming helpers (`constant_name`, `as_camel_case`, `make_valid_java_identifier`). |
 | Behavioural run | Done locally once with the Gradle version CI pins (8.4): `gradle -p lib/java -Pthrift.compiler=<thrift-go> compileTestJava` ran all eight generate tasks with the Go binary and compiled the result. The unit tests themselves were not run through gradle. Gradle 9 cannot run this build at all (`exec {}` was removed), which is unrelated to the port. |
 | CI | No workflow change: the `lib-go` job's `go test ./compiler/go/...` step runs the Java parity test with the same oracle. |
+
+## 13. From reference to replacement
+
+This section is the proposal for the dev@ thread: how the Go compiler
+becomes the reference for a language, and under what condition the C++
+compiler is retired. It follows a review of the branch on 2026-09-21 and
+the measurements below, read from `upstream/master` at `43cd5e041`.
+
+### 13.1 Flip per language, not per compiler
+
+The C++ front end lives as long as any C++ emitter does, so what flips is
+"which emitter is the reference for language X". For Go and Java, which
+are at byte parity today:
+
+- **Release N.** `thrift-go` ships from the release tag; `lib/go` and
+  `lib/java` build with it in CI. The C++ `--gen go` and `--gen java` print
+  a one-line deprecation notice. The parity test inverts: it keeps running,
+  but a per-ticket allowlist records fixes that landed in the Go generator
+  and were not ported back to C++; unlisted divergence in either direction
+  stays red. The rule of [section 8](#8-open-bugs-during-the-migration)
+  reverses for that language.
+- **Release N+2.** `t_go_generator.cc`, `go_validator_generator.cc`,
+  `validator_parser.cc`, `t_java_generator.cc` and the allowlist are deleted.
+  Thrift ships about twice a year, so the window is about a year.
+
+Every other language: a byte-parity port while its C++ emitter exists,
+then the same two-release flip. A language nobody ports and nobody owns
+goes through the deprecate-then-remove path the project used for as3,
+cocoa, csharp and netcore: a `CHANGES.md` notice and a warning for one
+release, removal the next, on a dev@ vote.
+
+The C++ binary is retired when the last tier-2 emitter below has completed
+its window. That is a criterion, not a date.
+
+### 13.2 Tiering
+
+Commits to each emitter in the 24 months before 2026-09-21, and its size.
+Churn is the evidence for which emitters are maintained.
+
+| Tier | Emitter | C++ lines | Commits / 24 months |
+|---|---|---|---|
+| Ported | go | 5,065 | 20 |
+| Ported | java | 5,908 | 4 |
+| 2, maintained: port in this order | cpp | 5,188 | 12 |
+| 2 | js | 3,296 | 12 |
+| 2 | rb | 1,469 | 14 |
+| 2 | rs | 3,421 | 11 |
+| 2 | erl | 1,460 | 11 |
+| 2 | delphi | 4,617 | 11 |
+| 2 | py | 3,064 | 10 |
+| 2 | php | 3,168 | 9 |
+| 2 | netstd | 4,279 | 7 |
+| 2 | haxe | 3,188 | 7 |
+| 2 | c_glib | 4,596 | 6 |
+| 3a, documentation and IR emitters: cheap, and `json` becomes the front-end parity oracle | json | 811 | 0 |
+| 3a | markdown | 1,269 | 2 |
+| 3a | html | 1,088 | 0 |
+| 3a | xml | 704 | 0 |
+| 3a | xsd | 369 | 1 |
+| 3a | gv | 352 | 0 |
+| 3a | mmd | 289 | 1 |
+| 3b, dormant: deprecate-then-remove vote rather than a port | javame | 3,337 | 3 |
+| 3b | dart | 2,584 | 3 |
+| 3b | kotlin | 2,040 | 1 |
+| 3b | ocaml | 1,795 | 3 |
+| 3b | perl | 1,719 | 3 |
+| 3b | lua | 1,207 | 2 |
+| 3b | st | 1,066 | 1 |
+| 3b | d | 782 | 0 |
+| 3b | cl | 564 | 1 |
+
+Tier 2 is 37,746 lines. The Go and Java ports came out at about 0.85 Go
+lines per C++ line, and the Java port reached parity in under a week once
+the harness existed; the estimate for tier 2 plus 3a is four to six
+months for one engineer, most of it the compile check per language in
+that language's existing CI job. No port starts before its golden
+manifest rows exist, so the oracle build does not multiply in CI.
+
+### 13.3 The contract between front end and emitters
+
+`compiler/go/sema` is the contract, in process: its `Program`, `Type` and
+the predicates on them reproduce the ~30 getters and 14 predicates the C++
+emitters use ([section 3](#3-what-exists-today)). A third-party generator is
+a Go package that imports `sema`, registers itself with
+`compiler/go/generate` and ships its own `main`, the way generators for
+protobuf import `protogen`. No exec, `plugin` or WASM protocol: THRIFT-4743
+removed one (2,474 lines across 31 files) for lack of users, and a library gives the same
+extensibility with none of the protocol. `sema` is unstable until the
+first flip and additive-only within a minor release after it.
+
+### 13.4 What the PMC decides
+
+1. `thrift-go` is the reference for Go and Java from release N, with the
+   removal at N+2.
+2. The tiering above, a named owner per tier-2 language, and the freeze
+   rule for unowned ones.
+3. `sema` as public API with the stability statement in 13.3.
+4. The binary is `thrift` once the C++ compiler is retired; `thrift-go` is
+   its name during the window.
+5. The Windows packaging that landed in 0.26 (THRIFT-6310, THRIFT-6311,
+   THRIFT-6313, THRIFT-6314, THRIFT-2208) carries the Go binary at the
+   flip: a `go build` replaces the MSVC build in those workflows.
+
+### 13.5 What this plan does not propose
+
+- A rewrite of the emitters on a template engine. Measured on the branch,
+  about 10 % of the emitter lines are literal text; templates move those
+  and lose compile-time checking of the other 90 %, and they break the
+  method-for-method mapping to the C++ source that makes a port reviewable.
+- A serialised intermediate representation, for the reason in
+  [section 2](#2-decisions-the-pmc-owns).
+- A parser generator in place of the hand-written scanner and parser: 57
+  rules, conflict-free, and the doc-comment lookahead timing that no
+  generator reproduces.
+- Any third-party module in the root `go.mod`, or a separate module for the
+  compiler.
+
