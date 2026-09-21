@@ -1,12 +1,13 @@
 # thrift-go command line
 
-Proposal, 2026-09-21. Companion to
+Design note, 2026-09-21; implemented the same day. Companion to
 [go-native-generator-plan.md](go-native-generator-plan.md).
 
-Give `thrift-go` a subcommand-based command line in the style of `go`,
-`gofmt` and `buf`, keep the C++ compiler's form working unchanged behind it,
-and make each generator's options real, documented flags instead of a
-mini-language inside `--gen`.
+`thrift-go` has a subcommand-based command line in the style of `go`,
+`gofmt` and `buf`, keeps the C++ compiler's form working unchanged behind
+it, and makes each generator's options real, documented flags instead of a
+mini-language inside `--gen`. The sections below are the design; the
+"Open questions" section records how each was settled.
 
 ## Today: the C++ form
 
@@ -69,18 +70,19 @@ help.
   `go vet` take everything from the command line; `buf` reads `buf.gen.yaml`
   because it drives many plugins, which is not this tool's job.
 
-## Proposed command line
+## The command line
 
-Five subcommands. The first word decides the mode; everything after it is
-standard `flag` parsing followed by one or more input files.
+The first word decides the mode; everything after it is standard `flag`
+parsing followed by the positional arguments.
 
 ```
 thrift generate [flags] file.thrift...      generate code (alias: gen)
 thrift audit    [flags] old.thrift new.thrift
 thrift check    [flags] file.thrift...      parse and validate, generate nothing
+thrift decode   [flags] [file]              print Thrift-encoded bytes as a tree
 thrift languages [--json]                   list generators and their options
 thrift version
-thrift help [command]
+thrift help [command|exit-codes|legacy]
 ```
 
 ### generate
@@ -135,7 +137,7 @@ thrift check -I ./idl idl/*.thrift
 
 Parses and validates without generating, which is what CI wants for an IDL
 repository and what `-strict` with a throwaway `--gen` is used for today.
-Exit 1 on any error or, with `--strict`, on any warning.
+Exit 1 on any error or, with `--strict`, 2 when a warning was printed.
 
 ### languages
 
@@ -269,16 +271,20 @@ today.
 - **Renaming the binary to `thrift`.** That is the PMC's decision at the
   flip; the proposal works under either name.
 
-## Open questions
+## Open questions, as settled
 
-1. `--L.option` versus `--opt L:key=value`: the namespaced flag is proposed
-   because it is validated and documented per flag; the generic form is one
-   flag and no registry metadata.
-2. Should `generate` default `--out` to `.` (the `-out` rule) or to `./gen-L`
-   (the `-o` rule)? The proposal says `.`, matching every Go generator
-   (`protoc-gen-go`, `sqlc`, `oapi-codegen`), and leaves `gen-L/` to legacy
-   mode.
-3. Should `check --strict` exit 2 like `audit`, or 1? The proposal says 2 so
-   that "the input is fine but violates a policy" is one code across modes.
-4. Whether `languages --json` is worth shipping before an editor integration
-   asks for it.
+1. `--L.option` versus `--opt L:key=value`: the namespaced flag, because it
+   is validated and documented per flag. Both spellings of an option name
+   are flags (`--go.thrift_import`, `--go.thrift-import`); a flag for a
+   language that is not a `--lang` target is an error.
+2. `generate` defaults `--out` to `.` (the `-out` rule), matching every Go
+   generator (`protoc-gen-go`, `sqlc`, `oapi-codegen`); `gen-L/` stays with
+   the legacy `-o`.
+3. `check --strict` exits 2 like `audit`, so that "the input is fine but
+   violates a policy" is one status across modes.
+4. `languages --json` ships; it is forty lines and the registry already
+   holds the data.
+
+Also implemented beyond the design: `decode`, which prints Thrift-encoded
+bytes as a tree without an IDL, and `help legacy`, which prints the C++
+compiler's help text.

@@ -24,12 +24,22 @@ import (
 	"io"
 	"sort"
 	"strings"
+
+	"github.com/apache/thrift/compiler/go/idl/token"
 )
 
 // Error is a fatal semantic error. The C++ compiler exits on these; the Go
 // loader returns them.
 type Error struct {
+	// Msg is the message in the C++ compiler's wording, with the path and
+	// line where the C++ compiler prints them.
 	Msg string
+	// Path, Pos and Text are set for a syntax error: the file, where the
+	// offending token starts, and the message alone, for a diagnostic of
+	// the form path:line:col: text.
+	Path string
+	Pos  token.Pos
+	Text string
 }
 
 func (e *Error) Error() string { return e.Msg }
@@ -49,10 +59,20 @@ type Diagnostics struct {
 	// Path and Line name the position the next warning refers to.
 	Path string
 	Line int
+	// Plain selects the path:line: warning: message form over the C++
+	// compiler's [WARNING:path:line] message.
+	Plain bool
+	// Count is the number of warnings written.
+	Count int
 }
 
 func (d *Diagnostics) warn(level int, msg string) {
 	if d == nil || d.Out == nil || d.WarnLevel < level {
+		return
+	}
+	d.Count++
+	if d.Plain {
+		fmt.Fprintf(d.Out, "%s:%d: warning: %s\n", d.Path, d.Line, msg)
 		return
 	}
 	fmt.Fprintf(d.Out, "[WARNING:%s:%d] %s\n", d.Path, d.Line, msg)
