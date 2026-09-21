@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"github.com/apache/thrift/compiler/go/generate"
+	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
@@ -41,6 +42,11 @@ import (
 // A new generator adds its rows here and nothing else in this package.
 // Go and Java keep their own tests, which predate the registry.
 var langRows = map[string][]optionRow{
+	"gv": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "exceptions", spec: "exceptions"},
+	},
 	"json": {
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
