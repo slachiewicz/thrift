@@ -122,9 +122,13 @@ func checkGenerateParity(t *testing.T, thrift, file string, row optionRow) {
 	}
 	args = append(args, "--gen", "go:"+row.spec, file)
 	cmd := exec.Command(thrift, args...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
+	// The C++ compiler prints warnings and some failures to stdout, so keep
+	// both streams.
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = &output
 	cppErr := cmd.Run()
+	cppMsg := strings.TrimSpace(output.String())
 
 	opts, err := golang.ParseOptions(row.spec)
 	if err != nil {
@@ -139,9 +143,9 @@ func checkGenerateParity(t *testing.T, thrift, file string, row optionRow) {
 
 	if cppErr != nil {
 		if goErr == nil {
-			t.Fatalf("C++ compiler rejected the file but the Go generator accepted it.\ncpp: %s", stderr.String())
+			t.Fatalf("C++ compiler rejected the file but the Go generator accepted it.\ncpp: %s", cppMsg)
 		}
-		t.Logf("both reject: cpp=%q go=%q", strings.TrimSpace(stderr.String()), goErr)
+		t.Logf("both reject: cpp=%q go=%q", cppMsg, goErr)
 		return
 	}
 	if goErr != nil {

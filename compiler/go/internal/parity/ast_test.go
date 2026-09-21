@@ -63,23 +63,37 @@ func TestASTParity(t *testing.T) {
 		t.Run(rel, func(t *testing.T) {
 			out := t.TempDir()
 			cmd := exec.Command(thrift, "-out", out, "--gen", "json", file)
-			var stderr bytes.Buffer
-			cmd.Stderr = &stderr
+			// The C++ compiler prints warnings and some failures to
+			// stdout, so keep both streams.
+			var output bytes.Buffer
+			cmd.Stdout = &output
+			cmd.Stderr = &output
 			cppErr := cmd.Run()
+			cppOut := strings.TrimSpace(output.String())
 
 			loader := &sema.Loader{}
 			prog, goErr := loader.Load(file)
 
 			if cppErr != nil {
-				if strings.Contains(stderr.String(), "[FAILURE:generation:") {
+				if strings.Contains(cppOut, "[FAILURE:generation:") {
 					// The JSON generator failed on a program the front end
 					// accepted; the output parity test covers such files.
-					t.Skipf("the JSON generator cannot render this program: %s", strings.TrimSpace(stderr.String()))
+					t.Skipf("the JSON generator cannot render this program: %s", cppOut)
+				}
+				if strings.Contains(cppOut, "\" not defined") {
+					// A typedef the front end could not resolve, which the
+					// C++ compiler reports only once a generator asks for
+					// the type. The Go loader is as lazy, so the output
+					// parity test covers such files. lib/go/test's
+					// NamespacedTest.thrift takes this path in a clean
+					// checkout: its ThriftTest.thrift include is made by
+					// `make -C lib/go/test`.
+					t.Skipf("the C++ compiler failed past the front end: %s", cppOut)
 				}
 				if goErr == nil {
-					t.Fatalf("C++ compiler rejected the file but the Go loader accepted it.\ncpp: %s", stderr.String())
+					t.Fatalf("C++ compiler rejected the file but the Go loader accepted it.\ncpp: %s", cppOut)
 				}
-				t.Logf("both reject: cpp=%q go=%q", strings.TrimSpace(stderr.String()), goErr)
+				t.Logf("both reject: cpp=%q go=%q", cppOut, goErr)
 				return
 			}
 			if goErr != nil {

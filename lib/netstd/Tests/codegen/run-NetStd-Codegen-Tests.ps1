@@ -34,6 +34,10 @@ $FAIL_THRIFT = @(
 	"MaintenanceFacility.thrift",    # subdir includes don't work here
 	"Transporters.thrift")           # subdir includes don't work here
 
+# directories whose IDL files are all expected to fail at the Thrift Compiler
+$SKIP_DIRS = @(
+	"compiler/go/testdata/reject")   # the Go compiler's negative corpus
+
 # expected to fail at net Compiler
 $FAIL_DOTNET = @(
 )
@@ -99,6 +103,17 @@ function InitializeFolder([string] $folder, [string] $pattern) {
 }
 
 
+function IsSkippedDir([string] $path) {
+	$full = [System.IO.Path]::GetFullPath($path)
+	foreach ($dir in $SKIP_DIRS) {
+		$skip = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($ROOTDIR, $dir))
+		if( $full -eq $skip) {
+			return $true
+		}
+	}
+	return $false
+}
+
 function CopyFilesFrom([string] $source, $text) {
 	#write-host "$source"
 	$counter = 0
@@ -109,7 +124,7 @@ function CopyFilesFrom([string] $source, $text) {
 
 		pushd $source
 		# recurse dirs
-		gci . -directory | foreach {
+		gci . -directory | where { -not (IsSkippedDir $_.FullName) } | foreach {
 			$counter += CopyFilesFrom "$_"
 		}
 		# files within
