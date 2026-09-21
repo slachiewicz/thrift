@@ -47,6 +47,9 @@ type Loader struct {
 
 	known      map[string]bool
 	byteWarned bool
+	// sources holds the text of files given to LoadSource, read instead
+	// of the file system.
+	sources map[string][]byte
 }
 
 // Load parses the file named on the command line and its includes, and
@@ -75,6 +78,40 @@ func (l *Loader) Load(inputPath string) (prog *Program, err error) {
 	prog.SetIncludePrefix(prefix)
 	// The byte warning is once per process in the C++ compiler, so it is
 	// once per Loader here: the audit mode loads two files through one.
+	l.known = map[string]bool{}
+	l.parse(prog, nil)
+	return prog, nil
+}
+
+// LoadSource is Load for a file held in memory: path names it, for
+// messages and for resolving its includes, and need not exist. Tests and
+// the fuzz target use it.
+func (l *Loader) LoadSource(path string, src []byte) (prog *Program, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(*Error); ok {
+				prog, err = nil, e
+				return
+			}
+			panic(r)
+		}
+	}()
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		fail("Could not open input file with realpath: %s", path)
+	}
+	abs = filepath.ToSlash(abs)
+	if l.sources == nil {
+		l.sources = map[string][]byte{}
+	}
+	l.sources[abs] = src
+	defer delete(l.sources, abs)
+	prog = NewProgram(abs, l.Diag)
+	prefix := ""
+	if slash := strings.LastIndexByte(path, '/'); slash >= 0 {
+		prefix = path[:slash]
+	}
+	prog.SetIncludePrefix(prefix)
 	l.known = map[string]bool{}
 	l.parse(prog, nil)
 	return prog, nil
@@ -135,9 +172,12 @@ func (l *Loader) parse(prog *Program, parent *Program) {
 	}
 	l.known[path] = true
 
-	src, err := os.ReadFile(path)
-	if err != nil {
-		fail("Could not open input file: \"%s\"", path)
+	src, ok := l.sources[path]
+	if !ok {
+		var err error
+		if src, err = os.ReadFile(path); err != nil {
+			fail("Could not open input file: \"%s\"", path)
+		}
 	}
 	if l.Diag != nil {
 		l.Diag.Path = path

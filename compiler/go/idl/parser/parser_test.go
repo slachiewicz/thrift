@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/apache/thrift/compiler/go/idl/ast"
+	"github.com/apache/thrift/compiler/go/idl/token"
 )
 
 func parse(t *testing.T, src string) *ast.Program {
@@ -424,5 +425,16 @@ func TestEmptyProgram(t *testing.T) {
 		if len(prog.Headers) != 0 || len(prog.Definitions) != 0 || prog.Doc != "" {
 			t.Errorf("%q: %+v", src, prog)
 		}
+	}
+}
+
+func TestSyntaxErrorPosition(t *testing.T) {
+	_, err := Parse("t.thrift", []byte("struct S {\n  1: i32 a\n  2 i32 b\n}"), nil)
+	e, ok := err.(*Error)
+	if !ok {
+		t.Fatalf("got %v, want *Error", err)
+	}
+	if want := (token.Pos{Line: 3, Col: 5}); e.Pos != want {
+		t.Errorf("error at %v (%s), want %v: the i32 after the missing colon", e.Pos, e.Msg, want)
 	}
 }

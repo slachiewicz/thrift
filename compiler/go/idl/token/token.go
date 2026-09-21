@@ -217,12 +217,20 @@ func (k Kind) IsKeyword() bool {
 	return k >= Include && k <= Union
 }
 
+// Pos is a position in the source: 1-based line and byte column.
+type Pos struct {
+	Line, Col int
+}
+
 // Token is one lexical unit with its position.
 type Token struct {
 	Kind Kind
 	// Line is the 1-based line on which the token ends, which is what the
-	// C++ compiler's yylineno reports when the token is returned.
+	// C++ compiler's yylineno reports when the token is returned, and
+	// what its messages name.
 	Line int
+	// Pos is where the token starts, for file:line:col diagnostics.
+	Pos Pos
 	// Text is the identifier or the decoded string literal.
 	Text string
 	// Int is the value of an IntConstant.
