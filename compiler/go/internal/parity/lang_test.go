@@ -31,6 +31,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/cglib"    // registers c_glib
 	_ "github.com/apache/thrift/compiler/go/generate/cpp"      // registers cpp
 	_ "github.com/apache/thrift/compiler/go/generate/delphi"   // registers delphi
+	_ "github.com/apache/thrift/compiler/go/generate/dlang"    // registers d
 	_ "github.com/apache/thrift/compiler/go/generate/erl"      // registers erl
 	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
 	_ "github.com/apache/thrift/compiler/go/generate/haxe"     // registers haxe
@@ -70,7 +71,8 @@ var langRows = map[string][]optionRow{
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
 	},
-	"perl": {
+	"perl": {},
+	"d": {
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
 	},
