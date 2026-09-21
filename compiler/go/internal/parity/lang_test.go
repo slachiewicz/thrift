@@ -39,6 +39,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
 	_ "github.com/apache/thrift/compiler/go/generate/netstd"   // registers netstd
+	_ "github.com/apache/thrift/compiler/go/generate/perl"     // registers perl
 	_ "github.com/apache/thrift/compiler/go/generate/php"      // registers php
 	_ "github.com/apache/thrift/compiler/go/generate/py"       // registers py
 	_ "github.com/apache/thrift/compiler/go/generate/rb"       // registers rb
@@ -62,6 +63,10 @@ var langRows = map[string][]optionRow{
 		{name: "rtti", spec: "rtti"},
 	},
 	"c_glib": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+	},
+	"perl": {
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
 	},
