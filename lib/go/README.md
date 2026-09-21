@@ -322,6 +322,21 @@ Makefiles list it as a prerequisite:
 
     $ make -C lib/go check THRIFT="$PWD/compiler/go/thrift-go"
 
+The binary also decodes Thrift-encoded bytes without an IDL, as a tree of
+field ids, types and values, for a message or a bare struct in the binary,
+compact or JSON protocol, framed or not, all detected unless told:
+
+    $ compiler/go/thrift-go decode capture.bin
+    message CALL "ping" seqid=42
+    struct {
+      1: bool true
+      2: i32 -7
+      3: string "hello"
+    }
+
+`--json` prints the same as JSON for tools. Names, enums and unions are
+not on the wire and are not recovered.
+
 The parity tests under `compiler/go/internal/parity` run when a C++
 compiler is available, either through the `THRIFT_COMPILER` environment
 variable or at `compiler/cpp/thrift`, and skip otherwise:
