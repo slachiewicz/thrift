@@ -29,6 +29,7 @@ import (
 
 	"github.com/apache/thrift/compiler/go/generate"
 	_ "github.com/apache/thrift/compiler/go/generate/cpp"      // registers cpp
+	_ "github.com/apache/thrift/compiler/go/generate/delphi"   // registers delphi
 	_ "github.com/apache/thrift/compiler/go/generate/erl"      // registers erl
 	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
 	_ "github.com/apache/thrift/compiler/go/generate/haxe"     // registers haxe
@@ -50,6 +51,14 @@ import (
 // A new generator adds its rows here and nothing else in this package.
 // Go and Java keep their own tests, which predate the registry.
 var langRows = map[string][]optionRow{
+	"delphi": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "com_types", spec: "com_types"},
+		{name: "com_types_rtti", spec: "com_types,rtti"},
+		{name: "register_types", spec: "register_types"},
+		{name: "rtti", spec: "rtti"},
+	},
 	"erl": {
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
