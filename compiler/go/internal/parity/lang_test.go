@@ -30,6 +30,7 @@ import (
 	"github.com/apache/thrift/compiler/go/generate"
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
+	_ "github.com/apache/thrift/compiler/go/generate/xml"      // registers xml
 	_ "github.com/apache/thrift/compiler/go/generate/xsd"      // registers xsd
 	"github.com/apache/thrift/compiler/go/sema"
 )
@@ -60,6 +61,15 @@ var langRows = map[string][]optionRow{
 		{name: "none-r", spec: "", recurse: true},
 		{name: "suffix", spec: "suffix=markdown"},
 		{name: "noescape", spec: "noescape"},
+	},
+	"xml": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		// merge mutates the C++ program in place, so merge under -r
+		// depends on generation order and is not a parity row.
+		{name: "merge", spec: "merge"},
+		{name: "no_default_ns", spec: "no_default_ns"},
+		{name: "no_namespaces", spec: "no_namespaces"},
 	},
 }
 
