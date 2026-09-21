@@ -113,13 +113,6 @@ ac586e6c0863842e	lib/go/test/GoTagTest.thrift	parity/GoTagTest-consts.go
 422ab52f3a464957	lib/go/test/IgnoreInitialismsTest.thrift	parity/GoUnusedProtection__.go
 ac586e6c0863842e	lib/go/test/IgnoreInitialismsTest.thrift	parity/IgnoreInitialismsTest-consts.go
 cd8e42e07a59a279	lib/go/test/IgnoreInitialismsTest.thrift	parity/IgnoreInitialismsTest.go
-422ab52f3a464957	lib/go/test/IncludesTest.thrift	parity/GoUnusedProtection__.go
-db7bccf1aefc5f1d	lib/go/test/IncludesTest.thrift	parity/IncludesTest-consts.go
-5765de0f1a3d9d0b	lib/go/test/IncludesTest.thrift	parity/IncludesTest.go
-ff881f763d564c2b	lib/go/test/IncludesTest.thrift	parity/complex_map_service-remote/complex_map_service-remote.go
-856f68483fd36ddb	lib/go/test/IncludesTest.thrift	parity/extended2_service-remote/extended2_service-remote.go
-a3ac79726cea6861	lib/go/test/IncludesTest.thrift	parity/extended_service-remote/extended_service-remote.go
-076361a6614d6067	lib/go/test/IncludesTest.thrift	parity/test_service-remote/test_service-remote.go
 422ab52f3a464957	lib/go/test/InitialismsTest.thrift	parity/GoUnusedProtection__.go
 ac586e6c0863842e	lib/go/test/InitialismsTest.thrift	parity/InitialismsTest-consts.go
 e0fc61fdadacaac2	lib/go/test/InitialismsTest.thrift	parity/InitialismsTest.go
@@ -137,10 +130,6 @@ a624d2286971b807	lib/go/test/NamesTest.thrift	parity/NamesTest.go
 ac586e6c0863842e	lib/go/test/NamespacedBaseTest.thrift	parity/NamespacedBaseTest-consts.go
 541b98f60fe71fb5	lib/go/test/NamespacedBaseTest.thrift	parity/NamespacedBaseTest.go
 7e49791d410928d9	lib/go/test/NamespacedBaseTest.thrift	parity/namespaced_base_service-remote/namespaced_base_service-remote.go
-422ab52f3a464957	lib/go/test/NamespacedTest.thrift	parity/GoUnusedProtection__.go
-ef974e696b72c041	lib/go/test/NamespacedTest.thrift	parity/NamespacedTest-consts.go
-9c3082d77b9c6095	lib/go/test/NamespacedTest.thrift	parity/NamespacedTest.go
-53e22c7a32ff3453	lib/go/test/NamespacedTest.thrift	parity/namespaced_service-remote/namespaced_service-remote.go
 422ab52f3a464957	lib/go/test/OnewayTest.thrift	parity/GoUnusedProtection__.go
 ac586e6c0863842e	lib/go/test/OnewayTest.thrift	parity/OnewayTest-consts.go
 47e1fae4636683ab	lib/go/test/OnewayTest.thrift	parity/OnewayTest.go
@@ -170,11 +159,6 @@ ea7142adb12df199	lib/go/test/StringParseAllocationTest.thrift	parity/StringParse
 422ab52f3a464957	lib/go/test/StructKeyTest.thrift	parity/GoUnusedProtection__.go
 1b345c39c05d6408	lib/go/test/StructKeyTest.thrift	parity/StructKeyTest-consts.go
 ca2860f8f27bda6e	lib/go/test/StructKeyTest.thrift	parity/StructKeyTest.go
-422ab52f3a464957	lib/go/test/ThriftTest.thrift	parity/GoUnusedProtection__.go
-e53fc010f0519505	lib/go/test/ThriftTest.thrift	parity/ThriftTest-consts.go
-455e1062e55030f5	lib/go/test/ThriftTest.thrift	parity/ThriftTest.go
-cabed1f5bddbe8a5	lib/go/test/ThriftTest.thrift	parity/second_service-remote/second_service-remote.go
-3aabcf304f80ed9f	lib/go/test/ThriftTest.thrift	parity/thrift_test-remote/thrift_test-remote.go
 422ab52f3a464957	lib/go/test/TypedefFieldTest.thrift	parity/GoUnusedProtection__.go
 ac586e6c0863842e	lib/go/test/TypedefFieldTest.thrift	parity/TypedefFieldTest-consts.go
 73553604f2f4aef8	lib/go/test/TypedefFieldTest.thrift	parity/TypedefFieldTest.go

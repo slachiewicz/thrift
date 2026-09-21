@@ -79,6 +79,17 @@ var corpusDirs = []string{
 }
 
 // Corpus returns every .thrift file of the positive corpus, sorted.
+// buildArtifacts are files under the corpus directories that a build
+// writes and git ignores, and the files that include them. Their result
+// depends on whether `make -C lib/go/test` has run, so they are not
+// corpus: ThriftTest.thrift there is a filtered copy of test/ThriftTest.thrift,
+// which is.
+var buildArtifacts = map[string]bool{
+	"lib/go/test/ThriftTest.thrift":     true,
+	"lib/go/test/NamespacedTest.thrift": true,
+	"lib/go/test/IncludesTest.thrift":   true,
+}
+
 func Corpus(t *testing.T, root string) []string {
 	t.Helper()
 	var files []string
@@ -96,6 +107,10 @@ func Corpus(t *testing.T, root string) []string {
 				return nil
 			}
 			if strings.HasSuffix(entry.Name(), ".thrift") {
+				rel, _ := filepath.Rel(root, path)
+				if buildArtifacts[filepath.ToSlash(rel)] {
+					return nil
+				}
 				files = append(files, path)
 			}
 			return nil

@@ -113,13 +113,6 @@ fdcace3dcf26c3c7	lib/go/test/ForwardType.thrift	forwardtypetest/GoUnusedProtecti
 039909650ac0ad0d	lib/go/test/IgnoreInitialismsTest.thrift	ignoreinitialismstest/GoUnusedProtection__.go
 1771ad0fe209bc18	lib/go/test/IgnoreInitialismsTest.thrift	ignoreinitialismstest/IgnoreInitialismsTest-consts.go
 599e305d4be159ed	lib/go/test/IgnoreInitialismsTest.thrift	ignoreinitialismstest/IgnoreInitialismsTest.go
-ef5c978e3b7e8b4b	lib/go/test/IncludesTest.thrift	includestest/GoUnusedProtection__.go
-1d557526b7f11fad	lib/go/test/IncludesTest.thrift	includestest/IncludesTest-consts.go
-04b2b0f395e68623	lib/go/test/IncludesTest.thrift	includestest/IncludesTest.go
-aa49328f038af97f	lib/go/test/IncludesTest.thrift	includestest/complex_map_service-remote/complex_map_service-remote.go
-87c121fd68f64bcf	lib/go/test/IncludesTest.thrift	includestest/extended2_service-remote/extended2_service-remote.go
-bafa834763dce3be	lib/go/test/IncludesTest.thrift	includestest/extended_service-remote/extended_service-remote.go
-21a67a46580e9618	lib/go/test/IncludesTest.thrift	includestest/test_service-remote/test_service-remote.go
 5fd1d11b0dfac0bd	lib/go/test/InitialismsTest.thrift	initialismstest/GoUnusedProtection__.go
 77fd918f8146fe5c	lib/go/test/InitialismsTest.thrift	initialismstest/InitialismsTest-consts.go
 e9df3bc022ec8f56	lib/go/test/InitialismsTest.thrift	initialismstest/InitialismsTest.go
@@ -137,10 +130,6 @@ d562995f80c2f91b	lib/go/test/NamesTest.thrift	namestest/name_collision_two-remot
 7a06d087bc9e9a46	lib/go/test/NamespacedBaseTest.thrift	lib/go/test/namespacedbasetest/NamespacedBaseTest-consts.go
 b35224736356b8bb	lib/go/test/NamespacedBaseTest.thrift	lib/go/test/namespacedbasetest/NamespacedBaseTest.go
 4a6c491144817123	lib/go/test/NamespacedBaseTest.thrift	lib/go/test/namespacedbasetest/namespaced_base_service-remote/namespaced_base_service-remote.go
-cc965b2ea6bec8d1	lib/go/test/NamespacedTest.thrift	lib/go/test/namespacedtest/GoUnusedProtection__.go
-1f90027a8983a185	lib/go/test/NamespacedTest.thrift	lib/go/test/namespacedtest/NamespacedTest-consts.go
-1fa2fea5562d716a	lib/go/test/NamespacedTest.thrift	lib/go/test/namespacedtest/NamespacedTest.go
-f662732a2f1909bb	lib/go/test/NamespacedTest.thrift	lib/go/test/namespacedtest/namespaced_service-remote/namespaced_service-remote.go
 26afac2ba1977cc6	lib/go/test/OnewayTest.thrift	onewaytest/GoUnusedProtection__.go
 55e093fe51d44c4b	lib/go/test/OnewayTest.thrift	onewaytest/OnewayTest-consts.go
 1975ab976a2d3e7b	lib/go/test/OnewayTest.thrift	onewaytest/OnewayTest.go
@@ -170,11 +159,6 @@ dd2218b3ab8f4753	lib/go/test/StringParseAllocationTest.thrift	stringparseallocat
 8d6b953cea811e29	lib/go/test/StructKeyTest.thrift	structkeytest/GoUnusedProtection__.go
 627ecbf3355f0937	lib/go/test/StructKeyTest.thrift	structkeytest/StructKeyTest-consts.go
 04ef81c2af32f982	lib/go/test/StructKeyTest.thrift	structkeytest/StructKeyTest.go
-319927ebb9c6385e	lib/go/test/ThriftTest.thrift	thrifttest/GoUnusedProtection__.go
-f17a31bb9bbc7a7b	lib/go/test/ThriftTest.thrift	thrifttest/ThriftTest-consts.go
-992cbfbbc778d8ad	lib/go/test/ThriftTest.thrift	thrifttest/ThriftTest.go
-1c28a07931c14853	lib/go/test/ThriftTest.thrift	thrifttest/second_service-remote/second_service-remote.go
-49dbd9ae03c9c822	lib/go/test/ThriftTest.thrift	thrifttest/thrift_test-remote/thrift_test-remote.go
 68db1b18972af43e	lib/go/test/TypedefFieldTest.thrift	typedeffieldtest/GoUnusedProtection__.go
 2b388408f4c32747	lib/go/test/TypedefFieldTest.thrift	typedeffieldtest/TypedefFieldTest-consts.go
 778d27fab3ea0f72	lib/go/test/TypedefFieldTest.thrift	typedeffieldtest/TypedefFieldTest.go
