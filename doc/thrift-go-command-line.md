@@ -286,5 +286,5 @@ today.
    holds the data.
 
 Also implemented beyond the design: `decode`, which prints Thrift-encoded
-bytes as a tree without an IDL, and `help legacy`, which prints the C++
-compiler's help text.
+bytes as a tree, without an IDL or annotated from one with `--idl`, and
+`help legacy`, which prints the C++ compiler's help text.

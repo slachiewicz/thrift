@@ -345,7 +345,22 @@ compact or JSON protocol, framed or not, all detected unless told:
     }
 
 `--json` prints the same as JSON for tools. Names, enums and unions are
-not on the wire and are not recovered.
+not on the wire; give the IDL and they come from it:
+
+    $ compiler/go/thrift-go decode --idl tutorial/tutorial.thrift capture.bin
+    message CALL "calculate" seqid=7
+    struct calculate_args {
+      1: logid i32 1
+      2: w struct Work {
+        1: num1 i32 15
+        2: num2 i32 10
+        3: op i32 4 (Operation DIVIDE)
+      }
+    }
+
+A bare struct needs `--type Name`; a message finds its method in the
+IDL's service (`--service` when there are several). A field the IDL does
+not declare, or whose wire type differs, is marked rather than rejected.
 
 The parity tests under `compiler/go/internal/parity` run when a C++
 compiler is available, either through the `THRIFT_COMPILER` environment

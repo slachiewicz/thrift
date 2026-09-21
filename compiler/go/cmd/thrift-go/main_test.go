@@ -279,4 +279,15 @@ func TestDecodeCommand(t *testing.T) {
 	if r := run(t, nil, "decode", "--protocol", "xml"); r.code != exitError {
 		t.Errorf("bad protocol: exit %d", r.code)
 	}
+	// With the tutorial IDL the same bytes are a Work struct, named.
+	r = run(t, data, "decode", "--idl", "tutorial/tutorial.thrift", "--type", "Work")
+	if r.code != 0 || !strings.Contains(r.stdout, "struct Work {\n  1: num1 i32 7\n  2: num2 string \"hi\"  (the IDL says i32)\n}") {
+		t.Errorf("--idl: exit %d stdout %q stderr %q", r.code, r.stdout, r.stderr)
+	}
+	if r := run(t, data, "decode", "--type", "Work"); r.code != exitError {
+		t.Errorf("--type without --idl: exit %d", r.code)
+	}
+	if r := run(t, data, "decode", "--idl", "tutorial/tutorial.thrift"); r.code != exitError || !strings.Contains(r.stderr, "--type") {
+		t.Errorf("--idl without --type on a bare struct: exit %d stderr %q", r.code, r.stderr)
+	}
 }

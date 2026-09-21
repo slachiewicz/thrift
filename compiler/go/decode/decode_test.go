@@ -23,9 +23,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/apache/thrift/compiler/go/sema"
 	"github.com/apache/thrift/lib/go/thrift"
 )
 
@@ -244,5 +246,231 @@ func TestDecodeBoundsNesting(t *testing.T) {
 	}
 	if _, err := Decode(data, Options{Protocol: Binary, Framed: No}); err == nil || !strings.Contains(err.Error(), "nesting deeper") {
 		t.Errorf("got %v, want a nesting error", err)
+	}
+}
+
+const schemaIDL = `
+enum Status { ACTIVE = 1, RETIRED = 2 }
+typedef Status Level
+struct Inner { 1: list<Level> levels, 2: binary blob }
+union Choice { 1: i32 number, 2: string text }
+exception Oops { 1: string why }
+struct Request {
+  1: i64 id,
+  2: Status status,
+  3: Inner inner,
+  4: Choice choice,
+  5: string name,
+  6: i32 count,
+}
+service Svc {
+  Request echo(1: Request req, 2: Status status) throws (1: Oops oops),
+  oneway void fire(1: string what),
+}
+`
+
+func loadSchema(t *testing.T) *sema.Program {
+	t.Helper()
+	loader := &sema.Loader{}
+	prog, err := loader.LoadSource(filepath.Join(t.TempDir(), "schema.thrift"), []byte(schemaIDL))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return prog
+}
+
+// writeRequest writes a Request with an unknown field 9, a mismatched
+// field 6 (string where the IDL says i32) and an undeclared enum value.
+func writeRequest(t *testing.T, p thrift.TProtocol) {
+	t.Helper()
+	ctx := context.Background()
+	must := func(err error) {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(p.WriteStructBegin(ctx, "Request"))
+	must(p.WriteFieldBegin(ctx, "id", thrift.I64, 1))
+	must(p.WriteI64(ctx, 42))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldBegin(ctx, "status", thrift.I32, 2))
+	must(p.WriteI32(ctx, 2))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldBegin(ctx, "inner", thrift.STRUCT, 3))
+	must(p.WriteStructBegin(ctx, "Inner"))
+	must(p.WriteFieldBegin(ctx, "levels", thrift.LIST, 1))
+	must(p.WriteListBegin(ctx, thrift.I32, 2))
+	must(p.WriteI32(ctx, 1))
+	must(p.WriteI32(ctx, 7))
+	must(p.WriteListEnd(ctx))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldBegin(ctx, "blob", thrift.STRING, 2))
+	must(p.WriteBinary(ctx, []byte("ok")))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldStop(ctx))
+	must(p.WriteStructEnd(ctx))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldBegin(ctx, "choice", thrift.STRUCT, 4))
+	must(p.WriteStructBegin(ctx, "Choice"))
+	must(p.WriteFieldBegin(ctx, "text", thrift.STRING, 2))
+	must(p.WriteString(ctx, "b"))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldStop(ctx))
+	must(p.WriteStructEnd(ctx))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldBegin(ctx, "count", thrift.STRING, 6))
+	must(p.WriteString(ctx, "three"))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldBegin(ctx, "extra", thrift.STRING, 9))
+	must(p.WriteString(ctx, "?"))
+	must(p.WriteFieldEnd(ctx))
+	must(p.WriteFieldStop(ctx))
+	must(p.WriteStructEnd(ctx))
+	must(p.Flush(ctx))
+}
+
+const wantRequest = `struct Request {
+  1: id i64 42
+  2: status i32 2 (Status RETIRED)
+  3: inner struct Inner {
+    1: levels list <i32> [1, 7]
+    2: blob string 0x6f6b (2 bytes)
+  }
+  4: choice union Choice {
+    2: text string "b"
+  }
+  6: count string "three"  (the IDL says i32)
+  9: string "?"  (not in the IDL)
+}
+`
+
+func TestSchemaAnnotatesStruct(t *testing.T) {
+	prog := loadSchema(t)
+	for _, protocol := range []Protocol{Binary, Compact, JSON} {
+		t.Run(string(protocol), func(t *testing.T) {
+			buf := thrift.NewTMemoryBuffer()
+			var p thrift.TProtocol
+			switch protocol {
+			case Binary:
+				p = thrift.NewTBinaryProtocolConf(buf, nil)
+			case Compact:
+				p = thrift.NewTCompactProtocolConf(buf, nil)
+			case JSON:
+				p = thrift.NewTJSONProtocol(buf)
+			}
+			writeRequest(t, p)
+			res, err := Decode(buf.Bytes(), Options{Protocol: protocol})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := (&Schema{Program: prog, Type: "Request"}).Apply(res); err != nil {
+				t.Fatal(err)
+			}
+			var out bytes.Buffer
+			Format(&out, res)
+			if out.String() != wantRequest {
+				t.Errorf("output:\n%s\nwant:\n%s", out.String(), wantRequest)
+			}
+			// The list elements are enum-typed through a typedef.
+			levels := res.Values[0].Fields[2].Value.Fields[0].Value
+			if levels.Elems[0].Annotation.EnumName != "ACTIVE" || levels.Elems[1].Annotation.EnumName != "" {
+				t.Errorf("levels annotated as %+v / %+v", levels.Elems[0].Annotation, levels.Elems[1].Annotation)
+			}
+		})
+	}
+}
+
+func TestSchemaAnnotatesMessages(t *testing.T) {
+	prog := loadSchema(t)
+	ctx := context.Background()
+	must := func(err error) {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	write := func(name string, typ thrift.TMessageType, body func(p thrift.TProtocol)) []byte {
+		buf := thrift.NewTMemoryBuffer()
+		p := thrift.NewTCompactProtocolConf(buf, nil)
+		must(p.WriteMessageBegin(ctx, name, typ, 1))
+		body(p)
+		must(p.WriteMessageEnd(ctx))
+		must(p.Flush(ctx))
+		return buf.Bytes()
+	}
+	call := write("echo", thrift.CALL, func(p thrift.TProtocol) {
+		must(p.WriteStructBegin(ctx, "echo_args"))
+		must(p.WriteFieldBegin(ctx, "status", thrift.I32, 2))
+		must(p.WriteI32(ctx, 1))
+		must(p.WriteFieldEnd(ctx))
+		must(p.WriteFieldStop(ctx))
+		must(p.WriteStructEnd(ctx))
+	})
+	reply := write("echo", thrift.REPLY, func(p thrift.TProtocol) {
+		must(p.WriteStructBegin(ctx, "echo_result"))
+		must(p.WriteFieldBegin(ctx, "oops", thrift.STRUCT, 1))
+		must(p.WriteStructBegin(ctx, "Oops"))
+		must(p.WriteFieldBegin(ctx, "why", thrift.STRING, 1))
+		must(p.WriteString(ctx, "no"))
+		must(p.WriteFieldEnd(ctx))
+		must(p.WriteFieldStop(ctx))
+		must(p.WriteStructEnd(ctx))
+		must(p.WriteFieldEnd(ctx))
+		must(p.WriteFieldStop(ctx))
+		must(p.WriteStructEnd(ctx))
+	})
+	exc := write("echo", thrift.EXCEPTION, func(p thrift.TProtocol) {
+		must(thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "nope").Write(ctx, p))
+	})
+	res, err := Decode(frame(call, reply, exc), Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := (&Schema{Program: prog}).Apply(res); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	Format(&out, res)
+	want := `message CALL "echo" seqid=1
+struct echo_args {
+  2: status i32 1 (Status ACTIVE)
+}
+
+message REPLY "echo" seqid=1
+struct echo_result {
+  1: oops exception Oops {
+    1: why string "no"
+  }
+}
+
+message EXCEPTION "echo" seqid=1
+exception TApplicationException {
+  1: message string "nope"
+  2: type i32 1 (i32 UNKNOWN_METHOD)
+}
+`
+	if out.String() != want {
+		t.Errorf("output:\n%s\nwant:\n%s", out.String(), want)
+	}
+
+	// Lookups that cannot be satisfied are errors, not marks.
+	bad := write("nosuch", thrift.CALL, func(p thrift.TProtocol) {
+		must(p.WriteStructBegin(ctx, "x"))
+		must(p.WriteFieldStop(ctx))
+		must(p.WriteStructEnd(ctx))
+	})
+	res, _ = Decode(bad, Options{})
+	if err := (&Schema{Program: prog}).Apply(res); err == nil || !strings.Contains(err.Error(), `no method "nosuch"`) {
+		t.Errorf("unknown method: %v", err)
+	}
+	res, _ = Decode(call, Options{})
+	if err := (&Schema{Program: prog, Service: "Other"}).Apply(res); err == nil {
+		t.Error("unknown service accepted")
+	}
+	res, _ = Decode(encode(t, Binary, false), Options{})
+	if err := (&Schema{Program: prog}).Apply(res); err == nil || !strings.Contains(err.Error(), "--type") {
+		t.Errorf("bare struct without --type: %v", err)
+	}
+	if err := (&Schema{Program: prog, Type: "Status"}).Apply(res); err == nil || !strings.Contains(err.Error(), "not a struct") {
+		t.Errorf("enum as --type: %v", err)
 	}
 }
