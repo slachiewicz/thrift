@@ -130,6 +130,12 @@ c0411e5fba7f6fdd	lib/go/test/ConstOptionalFieldImport.thrift	const_optional_fiel
 b75a16e117ae5644	lib/go/test/ContainerKeyTest.thrift	container_key_test_constants.hrl
 de6bc00191a99a2e	lib/go/test/ContainerKeyTest.thrift	container_key_test_types.erl
 80dca05c565eb624	lib/go/test/ContainerKeyTest.thrift	container_key_test_types.hrl
+8f549d193f300ffe	lib/go/test/DocCommentTest.thrift	doc_comment_service_thrift.erl
+7d80e9514deba70d	lib/go/test/DocCommentTest.thrift	doc_comment_service_thrift.hrl
+d46a31c554b3afef	lib/go/test/DocCommentTest.thrift	doc_comment_test_constants.erl
+329fc7505871f762	lib/go/test/DocCommentTest.thrift	doc_comment_test_constants.hrl
+842af52948620df5	lib/go/test/DocCommentTest.thrift	doc_comment_test_types.erl
+cf70ca75745d562a	lib/go/test/DocCommentTest.thrift	doc_comment_test_types.hrl
 313f28a789182a9d	lib/go/test/DontExportRWTest.thrift	dont_export_r_w_test_constants.erl
 4d1ffa683db69e1f	lib/go/test/DontExportRWTest.thrift	dont_export_r_w_test_constants.hrl
 77bb06ea1e5a02e5	lib/go/test/DontExportRWTest.thrift	dont_export_r_w_test_types.erl

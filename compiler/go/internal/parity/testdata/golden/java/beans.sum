@@ -59,6 +59,11 @@ a6ae6a216ed96a13	lib/go/test/ConflictNamespaceTestF.thrift	ThingF.java
 104ecd9d8c5d4252	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTestConstants.java
 e6bdd82cdbed12c6	lib/go/test/ContainerKeyTest.thrift	DefaultStructKeyStruct.java
 0183fdcba726a352	lib/go/test/ContainerKeyTest.thrift	PlainKey.java
+f5cb5334fb2cec78	lib/go/test/DocCommentTest.thrift	DocCommentService.java
+7399bae99c7678c9	lib/go/test/DocCommentTest.thrift	DoubledEmptyLine.java
+6f353a4f66521543	lib/go/test/DocCommentTest.thrift	EmptyDoc.java
+932caa342cd17872	lib/go/test/DocCommentTest.thrift	LeadingEmptyLine.java
+d937cf8cb8147aca	lib/go/test/DocCommentTest.thrift	TrailingEmptyLine.java
 04a48655384fcb21	lib/go/test/DontExportRWTest.thrift	InnerStruct.java
 603002c77a2f2ae4	lib/go/test/DontExportRWTest.thrift	TestStruct.java
 empty	lib/go/test/DuplicateImportsTest.thrift

@@ -153,6 +153,16 @@ a2eb764ae2ebac85	lib/go/test/ConstOptionalField.thrift	ConstOptionalFieldConstan
 c915a11174c70a60	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTestConstants.hx
 145d73ca1206a4de	lib/go/test/ContainerKeyTest.thrift	DefaultStructKeyStruct.hx
 8b90a951bbff7d94	lib/go/test/ContainerKeyTest.thrift	PlainKey.hx
+4abbbaea0c4a2eb7	lib/go/test/DocCommentTest.thrift	DocCommentService.hx
+91434112d7f3a035	lib/go/test/DocCommentTest.thrift	DocCommentServiceImpl.hx
+61991edd590812dc	lib/go/test/DocCommentTest.thrift	DocCommentServiceProcessor.hx
+bb22cbbb36a999ad	lib/go/test/DocCommentTest.thrift	DocCommentService_service.hx
+3955bc1612d1934d	lib/go/test/DocCommentTest.thrift	DoubledEmptyLine.hx
+212ac5f7d8cf70bf	lib/go/test/DocCommentTest.thrift	Echo_args.hx
+c4f85cebde7a1a4d	lib/go/test/DocCommentTest.thrift	Echo_result.hx
+8eeb4a81a25ff6be	lib/go/test/DocCommentTest.thrift	EmptyDoc.hx
+b4464e1fdcc73e7a	lib/go/test/DocCommentTest.thrift	LeadingEmptyLine.hx
+e73e49ed9135e10a	lib/go/test/DocCommentTest.thrift	TrailingEmptyLine.hx
 21e529329097fece	lib/go/test/DontExportRWTest.thrift	InnerStruct.hx
 0041f1b5529e9dfc	lib/go/test/DontExportRWTest.thrift	TestStruct.hx
 empty	lib/go/test/DuplicateImportsTest.thrift

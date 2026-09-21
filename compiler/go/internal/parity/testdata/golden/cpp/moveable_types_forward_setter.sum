@@ -118,6 +118,12 @@ e6afd1f414d20c5e	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest_constants.
 18db8597855f02c0	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest_types.cpp
 74feeee8526703c5	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest_types.h
 6b56f9f5699f9554	lib/go/test/ContainerKeyTest.thrift	ContainerKeyTest_types.tcc
+2e6a5b46663e2db6	lib/go/test/DocCommentTest.thrift	DocCommentService.cpp
+44fda1b634c30005	lib/go/test/DocCommentTest.thrift	DocCommentService.h
+4643f5d981a15bfb	lib/go/test/DocCommentTest.thrift	DocCommentService_server.skeleton.cpp
+550ccecd1c36860e	lib/go/test/DocCommentTest.thrift	DocCommentTest_types.cpp
+026ef2b6b113cae3	lib/go/test/DocCommentTest.thrift	DocCommentTest_types.h
+4d69a262764732f3	lib/go/test/DocCommentTest.thrift	DocCommentTest_types.tcc
 a3b8367ab54cc505	lib/go/test/DontExportRWTest.thrift	DontExportRWTest_types.cpp
 735f9a47834688cc	lib/go/test/DontExportRWTest.thrift	DontExportRWTest_types.h
 3e800951b870519a	lib/go/test/DontExportRWTest.thrift	DontExportRWTest_types.tcc

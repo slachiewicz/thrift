@@ -91,6 +91,10 @@ ac586e6c0863842e	lib/go/test/ConstOptionalFieldImport.thrift	parity/ConstOptiona
 2a670bc6628db72e	lib/go/test/ContainerKeyTest.thrift	parity/ContainerKeyTest-consts.go
 a09326079bf9f2f1	lib/go/test/ContainerKeyTest.thrift	parity/ContainerKeyTest.go
 422ab52f3a464957	lib/go/test/ContainerKeyTest.thrift	parity/GoUnusedProtection__.go
+ac586e6c0863842e	lib/go/test/DocCommentTest.thrift	parity/DocCommentTest-consts.go
+92da410086234034	lib/go/test/DocCommentTest.thrift	parity/DocCommentTest.go
+422ab52f3a464957	lib/go/test/DocCommentTest.thrift	parity/GoUnusedProtection__.go
+a24071742e3c0a4f	lib/go/test/DocCommentTest.thrift	parity/doc_comment_service-remote/doc_comment_service-remote.go
 ac586e6c0863842e	lib/go/test/DontExportRWTest.thrift	parity/DontExportRWTest-consts.go
 47a921e03e6d2a3c	lib/go/test/DontExportRWTest.thrift	parity/DontExportRWTest.go
 422ab52f3a464957	lib/go/test/DontExportRWTest.thrift	parity/GoUnusedProtection__.go
