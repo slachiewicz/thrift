@@ -31,10 +31,29 @@ func (g *Generator) generateTypedef(td *sema.Typedef) {
 	if baseType == newTypeName {
 		return
 	}
+	// A struct is used through a pointer and carries its Read, Write and Equals
+	// methods on that pointer, so a typedef of one has to be a Go alias: a
+	// defined type would be a distinct type with no methods, and one whose
+	// underlying type is already a pointer, so every use of it would need a
+	// second pointer to reach the struct.
+	resolved := sema.TrueType(td.Type())
+	aliasOfStruct := resolved.IsStruct() || resolved.IsXception()
+	aliasTarget := strings.TrimPrefix(baseType, "*")
+	if !aliasOfStruct {
+		aliasTarget = baseType
+	}
+
 	g.beginTypesDeclaration()
 	out := &g.fTypes
 	g.generateDocstring(out, td)
 	g.generateDeprecationComment(out, td.Annotations())
+	if aliasOfStruct {
+		out.WriteString("type " + newTypeName + " = " + aliasTarget + "\n")
+		// The alias is the struct, used through a pointer like the struct itself,
+		// and structs get no Ptr helper; one here would only copy a value that
+		// nobody holds by value.
+		return
+	}
 	out.WriteString("type " + newTypeName + " " + baseType + "\n")
 	out.WriteString("\n")
 	if g.generateDeprecationComment(out, td.Annotations()) {
