@@ -198,7 +198,11 @@ func (l *Loader) parse(prog *Program, parent *Program) {
 	}
 	tree, perr := parser.Parse(path, src, warn)
 	if perr != nil {
-		fail("%s:%s", path, perr.Error())
+		e := &Error{Msg: path + ":" + perr.Error(), Path: path, Text: perr.Error()}
+		if pe, ok := perr.(*parser.Error); ok {
+			e.Pos, e.Text = pe.Pos, pe.Msg
+		}
+		panic(e)
 	}
 
 	// Includes pass: register every include, then parse each one.
