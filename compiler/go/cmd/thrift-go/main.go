@@ -47,6 +47,7 @@ import (
 
 	"github.com/apache/thrift/compiler/go/generate"
 	_ "github.com/apache/thrift/compiler/go/generate/cglib"    // registers c_glib
+	_ "github.com/apache/thrift/compiler/go/generate/cl"       // registers cl
 	_ "github.com/apache/thrift/compiler/go/generate/cpp"      // registers cpp
 	_ "github.com/apache/thrift/compiler/go/generate/dart"     // registers dart
 	_ "github.com/apache/thrift/compiler/go/generate/delphi"   // registers delphi
