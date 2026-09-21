@@ -46,6 +46,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/py"       // registers py
 	_ "github.com/apache/thrift/compiler/go/generate/rb"       // registers rb
 	_ "github.com/apache/thrift/compiler/go/generate/rs"       // registers rs
+	_ "github.com/apache/thrift/compiler/go/generate/st"       // registers st
 	_ "github.com/apache/thrift/compiler/go/generate/xml"      // registers xml
 	_ "github.com/apache/thrift/compiler/go/generate/xsd"      // registers xsd
 	"github.com/apache/thrift/compiler/go/sema"
@@ -193,7 +194,8 @@ var langRows = map[string][]optionRow{
 		{name: "none-r", spec: "", recurse: true},
 		{name: "crate_prefix", spec: "crate_prefix=super"},
 	},
-	"javame": {
+	"javame": {},
+	"st": {
 		{name: "none", spec: ""},
 		{name: "none-r", spec: "", recurse: true},
 	},

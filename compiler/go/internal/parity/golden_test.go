@@ -32,6 +32,7 @@ import (
 
 	"github.com/apache/thrift/compiler/go/generate/golang"
 	"github.com/apache/thrift/compiler/go/generate/java"
+	"github.com/apache/thrift/compiler/go/generate/st"
 	"github.com/apache/thrift/compiler/go/sema"
 )
 
@@ -262,8 +263,15 @@ func short(v string) string {
 	return v
 }
 
-// runGolden is the body of the golden tests for one language.
+// runGolden is the body of the golden tests for one language. st is the
+// only registry language whose generator reads the clock, so its stamp
+// is pinned here the way java.Now is pinned around the java-specific
+// calls below.
 func runGolden(t *testing.T, lang string, rows []optionRow, generate func(*testing.T, string, optionRow) (map[string]string, error)) {
+	if lang == "st" {
+		st.Now = func() time.Time { return goldenDate }
+		defer func() { st.Now = time.Now }()
+	}
 	root := RepoRoot(t)
 	files := Corpus(t, root)
 	for _, row := range rows {
