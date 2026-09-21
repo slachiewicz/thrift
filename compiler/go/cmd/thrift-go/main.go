@@ -66,6 +66,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
 	_ "github.com/apache/thrift/compiler/go/generate/netstd"   // registers netstd
+	_ "github.com/apache/thrift/compiler/go/generate/ocaml"    // registers ocaml
 	_ "github.com/apache/thrift/compiler/go/generate/perl"     // registers perl
 	_ "github.com/apache/thrift/compiler/go/generate/php"      // registers php
 	_ "github.com/apache/thrift/compiler/go/generate/py"       // registers py
