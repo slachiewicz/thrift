@@ -37,6 +37,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
 	_ "github.com/apache/thrift/compiler/go/generate/javame"   // registers javame
 	_ "github.com/apache/thrift/compiler/go/generate/js"       // registers js
+	_ "github.com/apache/thrift/compiler/go/generate/lua"      // registers lua
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
 	_ "github.com/apache/thrift/compiler/go/generate/netstd"   // registers netstd
@@ -122,6 +123,11 @@ var langRows = map[string][]optionRow{
 		// merge mutates the C++ program in place, so merge under -r
 		// depends on generation order and is not a parity row.
 		{name: "merge", spec: "merge"},
+	},
+	"lua": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "omit_requires", spec: "omit_requires"},
 	},
 	"mmd": {
 		{name: "none", spec: ""},
