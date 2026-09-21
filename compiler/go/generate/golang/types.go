@@ -244,8 +244,16 @@ func (g *Generator) typeToGoTypeWithOpt(t sema.Type, optionalField bool) string 
 	if optionalField {
 		maybePointer = "*"
 	}
-	if td, ok := t.(*sema.Typedef); ok && td.IsForwardTypedef() {
-		t = sema.TrueType(t)
+	// A type used before it is declared arrives here wrapped in a forward
+	// typedef standing in for it. Unwrap the placeholders, but stop at the
+	// first declared type: when that is a typedef the IDL wrote, rendering it
+	// as its underlying type would drop the name the field asked for.
+	for {
+		td, ok := t.(*sema.Typedef)
+		if !ok || !td.IsForwardTypedef() {
+			break
+		}
+		t = td.Type()
 	}
 	switch {
 	case t.IsBaseType():
@@ -289,6 +297,12 @@ func (g *Generator) typeToGoTypeWithOpt(t sema.Type, optionalField bool) string 
 	case t.IsList():
 		return maybePointer + "[]" + g.typeToGoType(t.(*sema.List).ElemType())
 	case t.IsTypedef():
+		resolved := sema.TrueType(t)
+		if resolved.IsStruct() || resolved.IsXception() {
+			// Generated as a Go alias for the struct, so it is used through a
+			// pointer exactly like the struct itself.
+			return "*" + g.publicize(g.typeName(t))
+		}
 		return maybePointer + g.publicize(g.typeName(t))
 	}
 	throw("INVALID TYPE IN type_to_go_type: %s", t.Name())

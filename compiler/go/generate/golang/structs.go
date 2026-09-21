@@ -541,7 +541,11 @@ func (g *Generator) generateGoStructWriter(out *strings.Builder, s *sema.Struct,
 		out.WriteString(g.indent() + "func (p *" + structName + ") " + fieldMethodName("writeField", fieldID) +
 			"(ctx context.Context, oprot thrift.TProtocol) (err error) {\n")
 		g.indentUp()
-		if fieldRequired == sema.Optional {
+		// Default requiredness means "write if set" (doc/specs/idl.md), and a
+		// pointer field is unset exactly when it is nil.
+		checkIfSet := fieldRequired == sema.Optional ||
+			(fieldRequired == sema.OptInReqOut && isPointerField(f))
+		if checkIfSet {
 			out.WriteString(g.indent() + "if p.IsSet" + g.publicize(fieldName) + "() {\n")
 			g.indentUp()
 		}
@@ -559,7 +563,7 @@ func (g *Generator) generateGoStructWriter(out *strings.Builder, s *sema.Struct,
 			itoa(int64(fieldID)) + ":" + escapeFieldName + ": \", p), err)\n")
 		g.indentDown()
 		out.WriteString(g.indent() + "}\n")
-		if fieldRequired == sema.Optional {
+		if checkIfSet {
 			g.indentDown()
 			out.WriteString(g.indent() + "}\n")
 		}

@@ -372,8 +372,10 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 				factory := g.tmp("factory")
 				jsProt := g.tmp("jsProt")
 				err2 := g.tmp("err")
-				structName := g.publicize(theType.Name())
-				structModule := g.moduleName(theType)
+				// A typedef of a struct is an alias for it, so the constructor to
+				// call is the struct's own, in the struct's package.
+				structName := g.publicize(theType2.Name())
+				structModule := g.moduleName(theType2)
 				if structModule == "" {
 					structModule = packageNameAliased
 				}
@@ -429,7 +431,9 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 			default:
 				throw("Invalid argument type in generate_service_remote")
 			}
-			if theType.IsTypedef() {
+			if theType.IsTypedef() && !theType2.IsStruct() {
+				// A typedef of a struct needs no conversion: it is generated as a Go
+				// alias, so the value already has the right type.
 				typedefModule := g.moduleName(theType)
 				if typedefModule == "" {
 					typedefModule = packageNameAliased
