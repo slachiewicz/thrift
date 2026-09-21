@@ -73,8 +73,9 @@ func (l *Loader) Load(inputPath string) (prog *Program, err error) {
 		prefix = inputPath[:slash]
 	}
 	prog.SetIncludePrefix(prefix)
+	// The byte warning is once per process in the C++ compiler, so it is
+	// once per Loader here: the audit mode loads two files through one.
 	l.known = map[string]bool{}
-	l.byteWarned = false
 	l.parse(prog, nil)
 	return prog, nil
 }
