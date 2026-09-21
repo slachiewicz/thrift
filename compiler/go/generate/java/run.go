@@ -19,7 +19,50 @@
 
 package java
 
-import "github.com/apache/thrift/compiler/go/sema"
+import (
+	"github.com/apache/thrift/compiler/go/generate"
+	"github.com/apache/thrift/compiler/go/sema"
+)
+
+// The option table of THRIFT_REGISTER_GENERATOR(java, ...).
+func init() {
+	generate.Register(generate.Info{
+		Name:     "java",
+		LongName: "Java",
+		Options: []generate.Option{
+			{Name: "beans", Help: "Members will be private, and setter methods will return void."},
+			{Name: "private_members", Deprecated: []string{"private-members"}, Help: "Members will be private, but setter methods will return 'this' like usual."},
+			{Name: "nocamel", Help: "Do not use CamelCase field accessors with beans."},
+			{Name: "fullcamel", Help: "Convert underscored_accessor_or_service_names to camelCase."},
+			{Name: "android", Help: "Generated structures are Parcelable."},
+			{Name: "android_legacy", Help: "Do not use java.io.IOException(throwable) (available for Android 2.3 and above)."},
+			{Name: "option_type", Value: "[thrift|jdk8]", Help: "thrift: wrap optional fields in thrift Option type.\njdk8: Wrap optional fields in JDK8+ Option type.\nIf the Option type is not specified, 'thrift' is used."},
+			{Name: "rethrow_unhandled_exceptions", Help: "Enable rethrow of unhandled exceptions and let them propagate further. (Default behavior is to catch and log it.)"},
+			{Name: "java5", Help: "Generate Java 1.5 compliant code (includes android_legacy flag)."},
+			{Name: "future_iface", Help: "Generate CompletableFuture based iface based on async client."},
+			{Name: "reuse_objects", Deprecated: []string{"reuse-objects"}, Help: "Data objects will not be allocated, but existing instances will be used (read and write)."},
+			{Name: "sorted_containers", Help: "Use TreeSet/TreeMap instead of HashSet/HashMap as a implementation of set/map."},
+			{Name: "generated_annotations", Value: "[undated|suppress]", Help: "undated: suppress the date at @Generated annotations\nsuppress: suppress @Generated annotations entirely"},
+			{Name: "unsafe_binaries", Help: "Do not copy ByteBuffers in constructors, getters, and setters."},
+			{Name: "jakarta_annotations", Help: "generate jakarta annotations (javax by default)"},
+			{Name: "annotations_as_metadata", Help: "Include Thrift field annotations as metadata in the generated code."},
+		},
+		Parse: func(spec string) (generate.Runner, error) {
+			opts, err := ParseOptions(spec)
+			if err != nil {
+				return nil, err
+			}
+			return runner{opts}, nil
+		},
+	})
+}
+
+// runner is the registry's view of one parsed --gen java argument.
+type runner struct{ opts Options }
+
+func (r runner) Run(program *sema.Program, recurse bool) error {
+	return Run(program, r.opts, recurse)
+}
 
 // Run generates the program and, when recurse is set, every program it
 // includes first, each inheriting the output path. It is generate() in

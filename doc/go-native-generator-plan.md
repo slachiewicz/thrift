@@ -311,15 +311,21 @@ Rules the port must follow:
 
 `cmd/thrift-go` accepts the C++ syntax unchanged: `-I dir`, `-o dir`,
 `-out dir`, `-r` and `-recurse`, `-strict`, `-nowarn`, `-v` and `-verbose`,
-`-version`, and `--gen go:opt,opt=value`. Any other generator name after
-`--gen` is an error naming the C++ compiler.
+`-version`, `--gen go:opt,opt=value` and `-audit` with its options. The
+language after `--gen` is looked up in `compiler/go/generate`, the
+registry that is `t_generator_registry.h`: each generator package
+registers its name, long name, option table and constructor from
+`init()`, the command blank-imports the packages it ships with, and
+`-help` lists the generators and their options from the tables. Any other
+generator name is the C++ compiler's "Unable to get a generator" error.
 
 Drop-in syntax is a hard requirement, not a convenience. The behavioural
 tests in [section 6](#6-test-plan) work by pointing the existing Makefiles'
 `THRIFT` variable at the Go binary, which is only possible if every flag they
 use is accepted verbatim.
 
-A second, idiomatic flag set can be added later. It is not part of parity.
+A second, idiomatic flag set can be added later. It is not part of parity;
+[thrift-go-command-line.md](thrift-go-command-line.md) proposes one.
 
 ### 5.6 Version string
 
