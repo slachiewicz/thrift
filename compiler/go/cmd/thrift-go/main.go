@@ -46,6 +46,7 @@ import (
 	"strings"
 
 	"github.com/apache/thrift/compiler/go/generate"
+	_ "github.com/apache/thrift/compiler/go/generate/cpp"      // registers cpp
 	_ "github.com/apache/thrift/compiler/go/generate/erl"      // registers erl
 	_ "github.com/apache/thrift/compiler/go/generate/golang"   // registers go
 	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
