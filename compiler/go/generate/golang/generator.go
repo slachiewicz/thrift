@@ -29,6 +29,7 @@ package golang
 
 import (
 	"fmt"
+	"go/format"
 	"os"
 	"sort"
 	"strconv"
@@ -450,9 +451,18 @@ func (g *Generator) outDir() string {
 	return g.program.OutPath() + "gen-go" + "/"
 }
 
-// writeFile stores the content unless the file already holds it, like
-// ofstream_with_content_based_conditional_update.
+// writeFile formats a Go source file and stores it unless the file already
+// holds it, like ofstream_with_content_based_conditional_update. Formatting
+// lets the emitters write at column zero, and a file gofmt cannot parse is a
+// generator bug, reported as one.
 func writeFile(path, content string) {
+	if strings.HasSuffix(path, ".go") {
+		formatted, err := format.Source([]byte(content))
+		if err != nil {
+			throw("generated %s is not valid Go: %s", path, err.Error())
+		}
+		content = string(formatted)
+	}
 	if old, err := os.ReadFile(path); err == nil && string(old) == content {
 		return
 	}

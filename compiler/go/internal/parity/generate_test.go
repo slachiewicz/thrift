@@ -21,6 +21,7 @@ package parity
 
 import (
 	"bytes"
+	"go/format"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -73,6 +74,22 @@ func readTree(t *testing.T, root string) map[string]string {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	return files
+}
+
+// formatGoTree runs gofmt over every .go file of a tree read by readTree.
+func formatGoTree(t *testing.T, files map[string]string) map[string]string {
+	t.Helper()
+	for name, content := range files {
+		if !strings.HasSuffix(name, ".go") {
+			continue
+		}
+		formatted, err := format.Source([]byte(content))
+		if err != nil {
+			t.Fatalf("C++ output %s is not valid Go: %v", name, err)
+		}
+		files[name] = string(formatted)
 	}
 	return files
 }
@@ -152,7 +169,11 @@ func checkGenerateParity(t *testing.T, thrift, file string, row optionRow) {
 		t.Fatalf("C++ compiler accepted the file but the Go generator rejected it: %v", goErr)
 	}
 
-	want := readTree(t, cppOut)
+	// The Go generator formats its output, so the C++ output is compared
+	// after the same formatting. Byte-for-byte, the two differ only where
+	// gofmt rewrites the C++ output: today the empty leading and trailing
+	// doc-comment lines of DocEdgeCases.thrift.
+	want := formatGoTree(t, readTree(t, cppOut))
 	got := readTree(t, goOut)
 	if strings.Join(sortedKeys(want), "\n") != strings.Join(sortedKeys(got), "\n") {
 		t.Fatalf("file sets differ.\ncpp: %v\ngo:  %v", sortedKeys(want), sortedKeys(got))
