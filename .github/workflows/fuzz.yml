@@ -1,0 +1,60 @@
+name: "Fuzz"
+
+# The fuzz targets of the Go-native compiler run their seed corpus under
+# `go test` in the Build workflow; this runs them for real, nightly and on
+# demand. A crash reproducer lands in the job's artifact under
+# testdata/fuzz/<Target>/ and can be added to the repository as a
+# regression seed.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      fuzztime:
+        description: "How long to fuzz each target, as a Go duration"
+        default: "30m"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: "fuzz ${{ matrix.target.name }}"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { package: "./compiler/go/idl/parser", name: "FuzzParse" }
+          - { package: "./compiler/go/sema", name: "FuzzLoad" }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27"
+
+      - name: Fuzz ${{ matrix.target.name }}
+        env:
+          FUZZTIME: ${{ github.event.inputs.fuzztime || '30m' }}
+          PACKAGE: ${{ matrix.target.package }}
+          TARGET: ${{ matrix.target.name }}
+        run: go test -run '^$' -fuzz="^${TARGET}\$" -fuzztime="${FUZZTIME}" "${PACKAGE}"
+
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-${{ matrix.target.name }}
+          path: ${{ matrix.target.package }}/testdata/fuzz
+          if-no-files-found: ignore
+          retention-days: 14

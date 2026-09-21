@@ -36,9 +36,11 @@ import (
 	"github.com/apache/thrift/compiler/go/idl/token"
 )
 
-// Error is a lexical error with the line it was detected on.
+// Error is a lexical error with the line it was detected on, and the
+// position the scanner had reached.
 type Error struct {
 	Line int
+	Pos  token.Pos
 	Msg  string
 }
 
@@ -57,6 +59,8 @@ type Scanner struct {
 	src  []byte
 	off  int
 	line int
+	// lineStart is the offset of the first byte of the current line.
+	lineStart int
 
 	// OnDoc, when set, receives the raw text of every doc comment
 	// ("/** ... */") together with the line on which the comment ends. The
@@ -82,7 +86,12 @@ func New(src []byte) *Scanner {
 func (s *Scanner) Line() int { return s.line }
 
 func (s *Scanner) errorf(format string, args ...interface{}) error {
-	return &Error{Line: s.line, Msg: fmt.Sprintf(format, args...)}
+	return &Error{Line: s.line, Pos: s.pos(), Msg: fmt.Sprintf(format, args...)}
+}
+
+// pos is the position of the next byte.
+func (s *Scanner) pos() token.Pos {
+	return token.Pos{Line: s.line, Col: s.off - s.lineStart + 1}
 }
 
 func (s *Scanner) peekByte(n int) (byte, bool) {
@@ -97,6 +106,7 @@ func (s *Scanner) advance(n int) {
 	for i := 0; i < n && s.off < len(s.src); i++ {
 		if s.src[s.off] == '\n' {
 			s.line++
+			s.lineStart = s.off + 1
 		}
 		s.off++
 	}
@@ -264,10 +274,24 @@ func (s *Scanner) dubLen() int {
 // Next returns the next token. At end of input it returns a token of kind
 // token.EOF and no error, repeatedly.
 func (s *Scanner) Next() (token.Token, error) {
+	if err := s.skipTrivia(); err != nil {
+		return token.Token{}, err
+	}
+	start := s.pos()
+	tok, err := s.scanToken()
+	if err != nil {
+		return token.Token{}, err
+	}
+	tok.Pos = start
+	return tok, nil
+}
+
+// skipTrivia consumes whitespace and comments.
+func (s *Scanner) skipTrivia() error {
 	for {
 		c, ok := s.peekByte(0)
 		if !ok {
-			return token.Token{Kind: token.EOF, Line: s.line}, nil
+			return nil
 		}
 		switch {
 		case c == ' ' || c == '\t' || c == '\r' || c == '\n':
@@ -281,7 +305,7 @@ func (s *Scanner) Next() (token.Token, error) {
 			}
 			if d == '*' {
 				if err := s.blockComment(); err != nil {
-					return token.Token{}, err
+					return err
 				}
 				continue
 			}
@@ -289,10 +313,16 @@ func (s *Scanner) Next() (token.Token, error) {
 			s.skipLine()
 			continue
 		}
-		break
+		return nil
 	}
+}
 
-	c, _ := s.peekByte(0)
+// scanToken scans one token starting at the current byte.
+func (s *Scanner) scanToken() (token.Token, error) {
+	c, ok := s.peekByte(0)
+	if !ok {
+		return token.Token{Kind: token.EOF, Line: s.line}, nil
+	}
 	line := s.line
 
 	if k, ok := symbolKinds[c]; ok {

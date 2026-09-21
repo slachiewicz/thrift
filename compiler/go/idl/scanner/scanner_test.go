@@ -353,3 +353,44 @@ func TestLineNumbers(t *testing.T) {
 		t.Fatalf("lines = %d %d %d", ts[0].line, ts[1].line, ts[2].line)
 	}
 }
+
+func TestPositions(t *testing.T) {
+	src := "struct S {\n\t1: i32 a // c\n  2: string /* x */ b\n}"
+	s := New([]byte(src))
+	var got []token.Pos
+	for {
+		tok, err := s.Next()
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, tok.Pos)
+		if tok.Kind == token.EOF {
+			break
+		}
+	}
+	want := []token.Pos{
+		{1, 1}, {1, 8}, {1, 10}, // struct S {
+		{2, 2}, {2, 3}, {2, 5}, {2, 9}, // 1 : i32 a
+		{3, 3}, {3, 4}, {3, 6}, {3, 21}, // 2 : string b
+		{4, 1}, {4, 2}, // } EOF
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d positions %v, want %d", len(got), got, len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("token %d at %v, want %v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestErrorPosition(t *testing.T) {
+	_, err := scanAll("struct S {\n  1: i32 a = \"unterminated")
+	e, ok := err.(*Error)
+	if !ok {
+		t.Fatalf("got %v, want *Error", err)
+	}
+	if e.Line != 2 || e.Pos.Line != 2 || e.Pos.Col < 14 {
+		t.Errorf("error at line %d pos %v, want line 2 and a column past the quote", e.Line, e.Pos)
+	}
+}
