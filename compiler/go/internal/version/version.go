@@ -23,4 +23,4 @@
 package version
 
 // Version is the Thrift release this compiler belongs to.
-const Version = "0.25.0"
+const Version = "0.26.0"
