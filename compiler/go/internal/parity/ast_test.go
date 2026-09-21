@@ -28,7 +28,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/apache/thrift/compiler/go/internal/jsondump"
+	"github.com/apache/thrift/compiler/go/generate/json"
 	"github.com/apache/thrift/compiler/go/sema"
 )
 
@@ -104,7 +104,7 @@ func TestASTParity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got := jsondump.Dump(prog)
+			got := json.Dump(prog)
 			if string(want) != got {
 				t.Fatalf("JSON differs at %s", firstDiff(string(want), got))
 			}

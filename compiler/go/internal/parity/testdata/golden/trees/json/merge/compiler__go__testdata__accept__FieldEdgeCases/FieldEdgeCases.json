@@ -1,0 +1,281 @@
+{
+  "name": "FieldEdgeCases",
+  "enums": [
+  ],
+  "typedefs": [
+    {
+      "name": "T",
+      "typeId": "struct",
+      "type": {
+        "typeId": "struct",
+        "class": "Later"
+      }
+    }
+  ],
+  "structs": [
+    {
+      "name": "Implicit",
+      "isException": false,
+      "isUnion": false,
+      "fields": [
+        {
+          "key": -1,
+          "name": "a",
+          "typeId": "i32",
+          "required": "req_out"
+        },
+        {
+          "key": 5,
+          "name": "b",
+          "typeId": "i32",
+          "required": "req_out"
+        },
+        {
+          "key": -2,
+          "name": "c",
+          "typeId": "i32",
+          "required": "req_out"
+        },
+        {
+          "key": -3,
+          "name": "d",
+          "typeId": "i32",
+          "required": "req_out"
+        },
+        {
+          "key": -4,
+          "name": "e",
+          "typeId": "i32",
+          "required": "req_out"
+        }
+      ]
+    },
+    {
+      "name": "Err",
+      "isException": true,
+      "isUnion": false,
+      "fields": [
+        {
+          "key": 1,
+          "name": "code",
+          "typeId": "i32",
+          "required": "req_out"
+        }
+      ]
+    },
+    {
+      "name": "Keywords",
+      "isException": false,
+      "isUnion": false,
+      "fields": [
+        {
+          "key": 1,
+          "name": "string",
+          "typeId": "i32",
+          "required": "req_out"
+        },
+        {
+          "key": 2,
+          "name": "list",
+          "typeId": "i32",
+          "required": "req_out"
+        },
+        {
+          "key": 3,
+          "name": "service",
+          "typeId": "i32",
+          "required": "req_out"
+        },
+        {
+          "key": 4,
+          "name": "include",
+          "typeId": "i32",
+          "required": "req_out"
+        },
+        {
+          "key": 5,
+          "name": "minus",
+          "typeId": "double",
+          "required": "req_out",
+          "default": 0
+        },
+        {
+          "key": 6,
+          "name": "plus",
+          "typeId": "double",
+          "required": "req_out",
+          "default": 0
+        },
+        {
+          "key": 7,
+          "name": "hex",
+          "typeId": "i32",
+          "required": "req_out",
+          "default": -16
+        },
+        {
+          "key": 8,
+          "name": "quoted",
+          "typeId": "string",
+          "required": "req_out",
+          "default": "single"
+        }
+      ]
+    },
+    {
+      "name": "Later",
+      "isException": false,
+      "isUnion": false,
+      "fields": [
+        {
+          "key": 1,
+          "name": "x",
+          "typeId": "i32",
+          "required": "req_out"
+        }
+      ]
+    },
+    {
+      "name": "UsesT",
+      "isException": false,
+      "isUnion": false,
+      "fields": [
+        {
+          "key": 1,
+          "name": "t",
+          "typeId": "struct",
+          "type": {
+            "typeId": "struct",
+            "class": "Later"
+          },
+          "required": "req_out"
+        },
+        {
+          "key": 2,
+          "name": "ts",
+          "typeId": "list",
+          "type": {
+            "typeId": "list",
+            "elemTypeId": "struct",
+            "elemType": {
+              "typeId": "struct",
+              "class": "Later"
+            }
+          },
+          "required": "req_out"
+        }
+      ]
+    },
+    {
+      "name": "Cpp",
+      "isException": false,
+      "isUnion": false,
+      "fields": [
+        {
+          "key": 1,
+          "name": "a",
+          "typeId": "list",
+          "type": {
+            "typeId": "list",
+            "elemTypeId": "i32"
+          },
+          "required": "req_out"
+        },
+        {
+          "key": 2,
+          "name": "b",
+          "typeId": "map",
+          "type": {
+            "typeId": "map",
+            "keyTypeId": "string",
+            "valueTypeId": "i32"
+          },
+          "annotations":           {
+            "c": "1"
+          },
+          "required": "req_out"
+        },
+        {
+          "key": 3,
+          "name": "c",
+          "typeId": "set",
+          "type": {
+            "typeId": "set",
+            "annotations":             {
+              "d": "2"
+            },
+            "elemTypeId": "i32"
+          },
+          "required": "req_out"
+        }
+      ]
+    }
+  ],
+  "constants": [
+  ],
+  "services": [
+    {
+      "name": "Args",
+      "functions": [
+        {
+          "name": "f",
+          "returnTypeId": "void",
+          "oneway": false,
+          "arguments": [
+            {
+              "key": -1,
+              "name": "a",
+              "typeId": "i32",
+              "required": "req_out"
+            },
+            {
+              "key": -2,
+              "name": "b",
+              "typeId": "i32",
+              "required": "req_out"
+            },
+            {
+              "key": 1,
+              "name": "c",
+              "typeId": "i32",
+              "required": "req_out"
+            },
+            {
+              "key": -3,
+              "name": "d",
+              "typeId": "i32",
+              "required": "req_out"
+            }
+          ],
+          "exceptions": [
+          ]
+        },
+        {
+          "name": "g",
+          "returnTypeId": "void",
+          "oneway": false,
+          "arguments": [
+            {
+              "key": 1,
+              "name": "a",
+              "typeId": "i32",
+              "required": "req_out"
+            }
+          ],
+          "exceptions": [
+            {
+              "key": -1,
+              "name": "e",
+              "typeId": "exception",
+              "type": {
+                "typeId": "exception",
+                "class": "Err"
+              },
+              "required": "req_out"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -17,31 +17,174 @@
  * under the License.
  */
 
-// Package jsondump renders a resolved program in the exact format of the
-// C++ compiler's JSON generator (--gen json). It exists so that the Go
-// front end can be compared with the C++ front end byte for byte, without
-// involving any code generator.
-package jsondump
+// Package json is t_json_generator.cc: it renders a resolved program as
+// the JSON document the C++ compiler's --gen json writes, byte for byte.
+// The front-end parity test also uses it, through Dump, to compare the
+// Go front end with the C++ front end without any other generator.
+package json
 
 import (
 	"strconv"
 	"strings"
 
+	"github.com/apache/thrift/compiler/go/generate"
+	"github.com/apache/thrift/compiler/go/generate/internal/emit"
 	"github.com/apache/thrift/compiler/go/sema"
 )
+
+// Options are the json:... generator options.
+type Options struct {
+	// Merge is "merge": the included programs' declarations are written
+	// into the program's own sections and the namespaces and includes
+	// sections are left out.
+	Merge bool
+}
+
+// ParseOptions parses the part after "json:" of a --gen argument.
+func ParseOptions(spec string) (Options, error) {
+	var o Options
+	for _, option := range strings.Split(spec, ",") {
+		key := option
+		if i := strings.IndexByte(option, '='); i >= 0 {
+			key = option[:i]
+		}
+		switch key {
+		case "":
+		case "merge":
+			o.Merge = true
+		default:
+			return o, &emit.Error{Msg: "unknown option json:" + key}
+		}
+	}
+	return o, nil
+}
+
+func init() {
+	generate.Register(generate.Info{
+		Name:     "json",
+		LongName: "JSON",
+		Options: []generate.Option{
+			{Name: "merge", Help: "Generate output with included files merged"},
+		},
+		Parse: func(spec string) (generate.Runner, error) {
+			opts, err := ParseOptions(spec)
+			if err != nil {
+				return nil, err
+			}
+			return runner{opts}, nil
+		},
+	})
+}
+
+type runner struct{ opts Options }
+
+func (r runner) Run(program *sema.Program, recurse bool) error {
+	return Run(program, r.opts, recurse)
+}
+
+// Run generates the program and, when recurse is set, every program it
+// includes first, each inheriting the output path.
+func Run(program *sema.Program, opts Options, recurse bool) error {
+	if recurse {
+		program.SetRecursive(true)
+		for _, inc := range program.Includes() {
+			inc.SetOutPath(program.OutPath(), program.IsOutPathAbsolute())
+			if err := Run(inc, opts, recurse); err != nil {
+				return err
+			}
+		}
+	}
+	return generateOne(program, opts)
+}
+
+func generateOne(program *sema.Program, opts Options) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(*sema.Error); ok {
+				err = e
+				return
+			}
+			if e, ok := r.(*emit.Error); ok {
+				err = e
+				return
+			}
+			panic(r)
+		}
+	}()
+	program.Scope.ResolveAllConsts()
+	sema.ValidateInput(program)
+	outDir := program.OutPath() + "gen-json/"
+	if program.IsOutPathAbsolute() {
+		outDir = program.OutPath() + "/"
+	}
+	emit.Mkdir(outDir)
+	emit.WriteFile(outDir+program.Name()+".json", Render(program, opts))
+	return nil
+}
 
 type writer struct {
 	sb          strings.Builder
 	indentLevel int
 	commaNeeded []bool
 	program     *sema.Program
+	merge       bool
 }
 
-// Dump renders the program.
+// Dump renders the program without merging, as the front-end parity
+// test compares it.
 func Dump(p *sema.Program) string {
-	w := &writer{program: p}
+	return Render(p, Options{})
+}
+
+// Render renders the program as the JSON document, with a trailing
+// newline like the file the C++ compiler writes.
+func Render(p *sema.Program, opts Options) string {
+	w := &writer{program: p, merge: opts.Merge}
 	w.generateProgram()
 	return w.sb.String()
+}
+
+// merged returns the program's declarations of one kind followed by
+// those of its includes, depth first, as merge_includes appends them; an
+// include reached twice is appended twice, as in C++.
+func mergedEnums(p *sema.Program) []*sema.Enum {
+	out := append([]*sema.Enum{}, p.Enums()...)
+	for _, inc := range p.Includes() {
+		out = append(out, mergedEnums(inc)...)
+	}
+	return out
+}
+
+func mergedTypedefs(p *sema.Program) []*sema.Typedef {
+	out := append([]*sema.Typedef{}, p.Typedefs()...)
+	for _, inc := range p.Includes() {
+		out = append(out, mergedTypedefs(inc)...)
+	}
+	return out
+}
+
+func mergedObjects(p *sema.Program) []*sema.Struct {
+	out := append([]*sema.Struct{}, p.Objects()...)
+	for _, inc := range p.Includes() {
+		out = append(out, mergedObjects(inc)...)
+	}
+	return out
+}
+
+func mergedConsts(p *sema.Program) []*sema.Const {
+	out := append([]*sema.Const{}, p.Consts()...)
+	for _, inc := range p.Includes() {
+		out = append(out, mergedConsts(inc)...)
+	}
+	return out
+}
+
+func mergedServices(p *sema.Program) []*sema.Service {
+	out := append([]*sema.Service{}, p.Services()...)
+	for _, inc := range p.Includes() {
+		out = append(out, mergedServices(inc)...)
+	}
+	return out
 }
 
 func (w *writer) indent() string {
@@ -216,27 +359,34 @@ func (w *writer) generateProgram() {
 		w.writeKeyAndString("doc", p.Doc())
 	}
 
-	w.writeKeyAnd("namespaces")
-	w.startObject(false)
-	for _, k := range p.NamespaceKeys() {
-		w.writeKeyAndString(k, p.Namespaces()[k])
-		w.indicateCommaNeeded()
-	}
-	w.endObject()
+	// When merging includes, the namespaces and includes sections become
+	// ambiguous, so they are left out.
+	enums, typedefs, objects, consts, services := p.Enums(), p.Typedefs(), p.Objects(), p.Consts(), p.Services()
+	if w.merge {
+		enums, typedefs, objects, consts, services = mergedEnums(p), mergedTypedefs(p), mergedObjects(p), mergedConsts(p), mergedServices(p)
+	} else {
+		w.writeKeyAnd("namespaces")
+		w.startObject(false)
+		for _, k := range p.NamespaceKeys() {
+			w.writeKeyAndString(k, p.Namespaces()[k])
+			w.indicateCommaNeeded()
+		}
+		w.endObject()
 
-	w.writeKeyAnd("includes")
-	w.startArray()
-	for _, inc := range p.Includes() {
-		w.writeCommaIfNeeded()
-		w.sb.WriteString(w.indent())
-		w.writeString(inc.Name())
-		w.indicateCommaNeeded()
+		w.writeKeyAnd("includes")
+		w.startArray()
+		for _, inc := range p.Includes() {
+			w.writeCommaIfNeeded()
+			w.sb.WriteString(w.indent())
+			w.writeString(inc.Name())
+			w.indicateCommaNeeded()
+		}
+		w.endArray()
 	}
-	w.endArray()
 
 	w.writeKeyAnd("enums")
 	w.startArray()
-	for _, e := range p.Enums() {
+	for _, e := range enums {
 		w.writeCommaIfNeeded()
 		w.generateEnum(e)
 		w.indicateCommaNeeded()
@@ -245,7 +395,7 @@ func (w *writer) generateProgram() {
 
 	w.writeKeyAnd("typedefs")
 	w.startArray()
-	for _, t := range p.Typedefs() {
+	for _, t := range typedefs {
 		w.writeCommaIfNeeded()
 		w.generateTypedef(t)
 		w.indicateCommaNeeded()
@@ -254,7 +404,7 @@ func (w *writer) generateProgram() {
 
 	w.writeKeyAnd("structs")
 	w.startArray()
-	for _, s := range p.Objects() {
+	for _, s := range objects {
 		w.writeCommaIfNeeded()
 		w.generateStruct(s)
 		w.indicateCommaNeeded()
@@ -263,7 +413,7 @@ func (w *writer) generateProgram() {
 
 	w.writeKeyAnd("constants")
 	w.startArray()
-	for _, c := range p.Consts() {
+	for _, c := range consts {
 		w.writeCommaIfNeeded()
 		w.generateConstant(c)
 		w.indicateCommaNeeded()
@@ -272,7 +422,7 @@ func (w *writer) generateProgram() {
 
 	w.writeKeyAnd("services")
 	w.startArray()
-	for _, s := range p.Services() {
+	for _, s := range services {
 		w.writeCommaIfNeeded()
 		w.generateService(s)
 		w.indicateCommaNeeded()
@@ -500,7 +650,7 @@ func (w *writer) typeName(t sema.Type) string {
 }
 
 func (w *writer) qualifiedName(t sema.Type) string {
-	if t.Program() == w.program {
+	if w.merge || t.Program() == w.program {
 		return t.Name()
 	}
 	return t.Program().Name() + "." + t.Name()

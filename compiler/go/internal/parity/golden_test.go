@@ -70,10 +70,14 @@ var treeFiles = map[string][]string{
 		"compiler/go/testdata/accept/FieldEdgeCases.thrift",
 		"compiler/go/testdata/accept/DocEdgeCases.thrift",
 	},
+	"json": {
+		"tutorial/tutorial.thrift",
+		"compiler/go/testdata/accept/FieldEdgeCases.thrift",
+	},
 }
 
 // treeRows are the rows whose trees are stored, one per language.
-var treeRows = map[string]string{"go": "base-r", "java": "jakarta"}
+var treeRows = map[string]string{"go": "base-r", "java": "jakarta", "json": "merge"}
 
 func goldenDir(root string) string {
 	return filepath.Join(root, "compiler", "go", "internal", "parity", "testdata", "golden")
@@ -321,7 +325,9 @@ func TestGoldenTrees(t *testing.T) {
 	root := RepoRoot(t)
 	java.Now = func() time.Time { return goldenDate }
 	defer func() { java.Now = time.Now }()
-	for _, lang := range []string{"go", "java"} {
+	langs := []string{"go", "java"}
+	langs = append(langs, sortedLangs()...)
+	for _, lang := range langs {
 		var row optionRow
 		var generate func(*testing.T, string, optionRow) (map[string]string, error)
 		switch lang {
@@ -329,6 +335,11 @@ func TestGoldenTrees(t *testing.T) {
 			row, generate = findRow(optionRows, treeRows[lang]), generateGo
 		case "java":
 			row, generate = findRow(javaRows, treeRows[lang]), generateJava
+		default:
+			if _, ok := treeRows[lang]; !ok {
+				continue
+			}
+			row, generate = findRow(langRows[lang], treeRows[lang]), generateLang(lang)
 		}
 		for _, rel := range treeFiles[lang] {
 			t.Run(lang+"/"+rel, func(t *testing.T) {
