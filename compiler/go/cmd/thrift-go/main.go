@@ -53,6 +53,7 @@ import (
 	_ "github.com/apache/thrift/compiler/go/generate/json"     // registers json
 	_ "github.com/apache/thrift/compiler/go/generate/markdown" // registers markdown
 	_ "github.com/apache/thrift/compiler/go/generate/mmd"      // registers mmd
+	_ "github.com/apache/thrift/compiler/go/generate/rs"       // registers rs
 	_ "github.com/apache/thrift/compiler/go/generate/xml"      // registers xml
 	_ "github.com/apache/thrift/compiler/go/generate/xsd"      // registers xsd
 )
