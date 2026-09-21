@@ -567,6 +567,7 @@ grew the Go and JSON parity runs.
 | Item | State |
 |---|---|
 | Generator port (`compiler/go/generate/java`) | Done. Output parity green for all 159 corpus files on all 19 rows: 3,021 subtests, of which 19 are the both-reject file and 3,002 are byte-identical trees. Green on the first full run; no compiler difference was found. |
+| Tier-3a generators (`compiler/go/generate/{markdown,html,xml,xsd,gv,mmd}`) | Done on 2026-09-21, each a function-for-function port with its option rows green against the oracle over the corpus and its golden manifests, through the registry-driven harness in `lang_test.go`. The gv port rejects two corpus files on which the C++ generator's behaviour is undefined (it crashes on most runs); the oracle test skips them and [go-native-generator-quirks.md](go-native-generator-quirks.md) records that and every other quirk the ports had to reproduce. |
 | JSON generator (`compiler/go/generate/json`) | Done. The renderer the front-end parity test had used as `internal/jsondump`, with the `merge` option and file output, registered as `--gen json`. Parity rows `none`, `none -r` and `merge` green; `merge` under `-r` is not a row because the C++ generator merges by mutating the shared program, so its output depends on generation order. |
 | `thrift-go --gen java` | Done. The command dispatches on the language and accepts several `--gen` arguments. `beans` writes to `gen-javabean` without `-out`. |
 | Unit tests | `ParseOptions` errors and the naming helpers (`constant_name`, `as_camel_case`, `make_valid_java_identifier`). |
@@ -616,6 +617,12 @@ Churn is the evidence for which emitters are maintained.
 | Ported | go | 5,065 | 20 |
 | Ported | java | 5,908 | 4 |
 | Ported | json | 811 | 0 |
+| Ported | markdown | 1,269 | 2 |
+| Ported | html | 1,088 | 0 |
+| Ported | xml | 704 | 0 |
+| Ported | xsd | 369 | 1 |
+| Ported | gv | 352 | 0 |
+| Ported | mmd | 289 | 1 |
 | 2, maintained: port in this order | cpp | 5,188 | 12 |
 | 2 | js | 3,296 | 12 |
 | 2 | rb | 1,469 | 14 |
@@ -627,12 +634,6 @@ Churn is the evidence for which emitters are maintained.
 | 2 | netstd | 4,279 | 7 |
 | 2 | haxe | 3,188 | 7 |
 | 2 | c_glib | 4,596 | 6 |
-| 3a, documentation and IR emitters: cheap | markdown | 1,269 | 2 |
-| 3a | html | 1,088 | 0 |
-| 3a | xml | 704 | 0 |
-| 3a | xsd | 369 | 1 |
-| 3a | gv | 352 | 0 |
-| 3a | mmd | 289 | 1 |
 | 3b, dormant: deprecate-then-remove vote rather than a port | javame | 3,337 | 3 |
 | 3b | dart | 2,584 | 3 |
 | 3b | kotlin | 2,040 | 1 |
