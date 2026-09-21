@@ -44,6 +44,7 @@ import (
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage: %s [options] file\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "       %s decode [flags] [file]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "Use %s -help for a list of options\n", os.Args[0])
 	os.Exit(1)
 }
@@ -100,6 +101,13 @@ func failure(format string, args ...interface{}) {
 func main() {
 	if len(os.Args) < 2 {
 		usage()
+	}
+	// Subcommands come first; everything else is the C++ compiler's
+	// command line.
+	switch os.Args[1] {
+	case "decode":
+		runDecode(os.Args[2:])
+		return
 	}
 
 	loader := &sema.Loader{Diag: &sema.Diagnostics{Out: os.Stderr, WarnLevel: 1, Path: "arguments"}}
