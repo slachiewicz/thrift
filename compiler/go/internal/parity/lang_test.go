@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"github.com/apache/thrift/compiler/go/generate"
+	_ "github.com/apache/thrift/compiler/go/generate/cpp"      // registers cpp
 	_ "github.com/apache/thrift/compiler/go/generate/erl"      // registers erl
 	_ "github.com/apache/thrift/compiler/go/generate/gv"       // registers gv
 	_ "github.com/apache/thrift/compiler/go/generate/html"     // registers html
@@ -57,6 +58,28 @@ var langRows = map[string][]optionRow{
 		{name: "string", spec: "string=binary"},
 		{name: "set", spec: "set=v2"},
 		{name: "type", spec: "type=nominal"},
+	},
+	"cpp": {
+		{name: "none", spec: ""},
+		{name: "none-r", spec: "", recurse: true},
+		{name: "cob_style", spec: "cob_style"},
+		{name: "no_client_completion", spec: "no_client_completion"},
+		{name: "no_default_operators", spec: "no_default_operators"},
+		{name: "templates", spec: "templates"},
+		{name: "pure_enums", spec: "pure_enums"},
+		{name: "pure_enums_enum_class", spec: "pure_enums=enum_class"},
+		{name: "include_prefix", spec: "include_prefix"},
+		{name: "moveable_types", spec: "moveable_types"},
+		{name: "moveable_types_forward_setter", spec: "moveable_types=forward_setter"},
+		{name: "no_ostream_operators", spec: "no_ostream_operators"},
+		{name: "no_skeleton", spec: "no_skeleton"},
+		{name: "template_streamop", spec: "template_streamop"},
+		{name: "no_constructors", spec: "no_constructors"},
+		{name: "private_optional", spec: "private_optional"},
+		// Every distinct "--gen cpp:..." spec the repository's own build
+		// files use.
+		{name: "private_optional_template_streamop", spec: "private_optional,template_streamop"},
+		{name: "templates_cob_style", spec: "templates,cob_style"},
 	},
 	"gv": {
 		{name: "none", spec: ""},
