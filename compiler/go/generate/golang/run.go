@@ -19,7 +19,41 @@
 
 package golang
 
-import "github.com/apache/thrift/compiler/go/sema"
+import (
+	"github.com/apache/thrift/compiler/go/generate"
+	"github.com/apache/thrift/compiler/go/sema"
+)
+
+// The option table of THRIFT_REGISTER_GENERATOR(go, ...).
+func init() {
+	generate.Register(generate.Info{
+		Name:     "go",
+		LongName: "Go",
+		Options: []generate.Option{
+			{Name: "package_prefix", Value: "prefix", Help: "Package prefix for generated files."},
+			{Name: "thrift_import", Value: "path", Help: "Override thrift package import path (default:" + DefaultThriftImport + ")"},
+			{Name: "package", Value: "name", Help: "Package name (default: inferred from thrift file name)"},
+			{Name: "ignore_initialisms", Help: "Disable automatic spelling correction of initialisms (e.g. \"URL\")"},
+			{Name: "read_write_private", Help: "Make read/write methods private, default is public Read/Write"},
+			{Name: "skip_remote", Help: "Skip the generating of -remote folders for the client binaries for services"},
+			{Name: "struct_key_entries", Help: "Generate maps keyed by a struct, union or exception as []thrift.MapEntry[*K, V] instead of map[*K]V"},
+		},
+		Parse: func(spec string) (generate.Runner, error) {
+			opts, err := ParseOptions(spec)
+			if err != nil {
+				return nil, err
+			}
+			return runner{opts}, nil
+		},
+	})
+}
+
+// runner is the registry's view of one parsed --gen go argument.
+type runner struct{ opts Options }
+
+func (r runner) Run(program *sema.Program, recurse bool) error {
+	return Run(program, r.opts, recurse)
+}
 
 // Run generates the program and, when recurse is set, every program it
 // includes first, each inheriting the output path. It is generate() in

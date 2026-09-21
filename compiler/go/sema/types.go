@@ -25,6 +25,13 @@
 // mirrors the C++ parse tree class for class, so that a generator ported
 // from C++ can call the same accessors: Type.IsStruct corresponds to
 // t_type::is_struct, TrueType to get_true_type, and so on.
+//
+// The model is the contract between the front end and the generators:
+// every generator, and the audit, sees the IDL only through Program and
+// the types below, and nothing in this package depends on a generator.
+// Until the Go compiler is the reference for a language the surface may
+// still change with the C++ parse tree it mirrors; after that it changes
+// only by addition within a minor release.
 package sema
 
 import (
