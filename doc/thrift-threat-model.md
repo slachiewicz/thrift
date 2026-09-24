@@ -1,4 +1,4 @@
-# Apache Thrift — Threat Model (v2 draft)
+# Apache Thrift — Threat Model (v2)
 
 ## §1 Header
 
@@ -365,6 +365,13 @@ Each property below states: (1) the property and conditions; (2) the violation s
 - *Severity:* **critical** — these are CVE-worthy when reachable from the wire.
 - *Provenance:* *(maintainer — Q55)*; the historical record (THRIFT-3821, THRIFT-5221, THRIFT-5255, THRIFT-5716, THRIFT-5931) shows the maintainers *do* treat these as security bugs *(documented — CHANGES.md)*.
 
+**P2a. Per-connection fault containment.**
+- *Condition:* server accepts and processes messages across multiple connections concurrently or sequentially.
+- *Guarantee:* an invalid wire payload, protocol decoding error, malformed framing, oversized container allocation attempt, or transient accept/socket error (`EAGAIN`, `EMFILE`, `ECONNRESET`) on an individual connection must only terminate or reset that specific connection. It must not terminate the shared server process or kill the accept loop.
+- *Violation symptom:* an unhandled exception or panic escapes the connection worker, terminating the shared server process or causing the listener thread to exit.
+- *Severity:* **high** (process availability / remote denial of service against other clients).
+- *Provenance:* *(maintainer consensus & audit findings)*; historical and ongoing hardening (THRIFT-6244, C++ `TServerFramework`, Go `TSimpleServer`, PHP `TForkingServer`, OCaml `TServerSocket`).
+
 ### Wire-format properties
 
 **P3. Round-trip fidelity across protocols.**
@@ -384,6 +391,13 @@ Each property below states: (1) the property and conditions; (2) the violation s
 - *Violation symptom:* deserializer aborts or mis-attributes the skipped field's payload to a subsequent field.
 - *Severity:* DoS or correctness, depending on call site.
 - *Provenance:* *(documented — `doc/specs/thrift-binary-protocol.md` §Struct: "possible to handle unknown fields while decoding; these are simply ignored".)* Note: this property is the source of the THRIFT-5469-class stack-overflow bug — recursive `skip` of a deeply nested unknown structure consumed stack.
+
+**P5a. Framing transport boundary reconstitution.**
+- *Condition:* layered framing transports (`TFramedTransport`, `THeaderTransport`) wrapping underlying stream transports (plain TCP, TLS, FD/pipes).
+- *Guarantee:* framed transports must loop until exactly the 4-byte frame header and the full declared frame payload bytes arrive before exposing the frame to protocol decoders. An underlying short read (from record-oriented TLS or non-blocking FDs) must never be accepted as a premature frame boundary.
+- *Violation symptom:* frame desynchronization, where payload bytes past an underlying read boundary are parsed as subsequent frame headers.
+- *Severity:* **medium** to **high** (protocol desynchronization / message boundary breach).
+- *Provenance:* enforced in C++ (`readAll`) and Go; identified as a vulnerability when omitted in `c_glib` (`thrift_framed_transport.c`).
 
 ### Concurrency properties
 
@@ -407,20 +421,20 @@ Each property below states: (1) the property and conditions; (2) the violation s
 - *Severity:* critical.
 - *Provenance:* *(maintainer — Q58)* — implied by the AccessManager design *(documented — `lib/cpp/README.md`)*; not stated as a guarantee anywhere.
 
-**P9. Server host-name verification — ONLY when `AccessManager` is registered.**
-- *Condition:* C++ — only with explicit `AccessManager`. Other bindings — varies; THRIFT-5343 documents that Java's `TTlsSocketTransport` did not validate hostnames correctly historically.
+**P9. Server host-name verification.**
+- *Condition:* varies by binding. In C++, client sockets created via `TSSLSocketFactory` automatically install `DefaultClientAccessManager` verifying hostnames against SANs and CN; however, client sockets constructed directly without a factory receive no `AccessManager` and perform no hostname check unless one is explicitly registered (only chain validation occurs). In Python, client sockets enforce `CERT_REQUIRED` and verify hostnames by default (with `sslcompat.match_peer_ipaddress` matching IP SANs). In Go and Java, standard TLS hostname verification is enforced by default via `crypto/tls` and JSSE HTTPS endpoint identification.
 - *Violation symptom:* a cert valid for `evil.example` is accepted when connecting to `bank.example`.
 - *Severity:* critical when applicable.
-- *Provenance:* *(documented — `lib/cpp/README.md` §AccessManager; CHANGES.md THRIFT-5343)* — explicitly **not** the default.
+- *Provenance:* *(documented — `lib/cpp/README.md` §AccessManager; CHANGES.md THRIFT-5343, THRIFT-6233)*.
 
 ### Resource-bound property
 
-**P10. Bounded memory and CPU per message — ONLY when size caps are configured.**
-- *Condition:* operator has set `containerSizeLimit`, `stringSizeLimit`, `maxFrameSize`, and (where available) `maxMessageSize`. Recursion-depth caps are enforced in bindings that have them.
+**P10. Bounded memory and CPU per message — when size caps or `TConfiguration` are active.**
+- *Condition:* in compiled/canonical bindings implementing `TConfiguration` (C++, Java, Go, Rust, netstd, Haxe, c_glib, Delphi), default limits are enforced out-of-the-box (`DEFAULT_MAX_MESSAGE_SIZE = 100 MiB`, `DEFAULT_MAX_FRAME_SIZE = 16,384,000`, `DEFAULT_RECURSION_LIMIT = 64`). In other bindings, or where `TConfiguration` is not wired, operator must configure `containerSizeLimit`, `stringSizeLimit`, `maxFrameSize`, and `maxMessageSize` explicitly.
 - *Violation symptom:* OOM, swap thrash, CPU spin, stack overflow, hang.
 - *Severity:* high (availability).
-- *Provenance:* *(documented — spec files state the defaults are unlimited; CHANGES.md shows recurring fixes for cases where the cap was missing or bypassable.)*
-- **Threshold:** the model needs the PMC to pin a categorical line — *(maintainer — Q59)* — proposed: "super-linear memory or CPU in the *declared* size of any single field, given caps are set, is a bug; constant-factor blowup against caps is not. A hang on streaming input with no cap set is the operator's choice, not a bug." Without ratification this remains the most contested triage category.
+- *Provenance:* *(documented — TConfiguration in C++/Java/Go/netstd/Rust/c_glib; CHANGES.md shows recurring fixes for cases where the cap was missing or bypassable.)*
+- **Threshold:** super-linear memory or CPU in the *declared* size of any single field, given caps are set, is a bug; constant-factor blowup against caps is not. A hang on streaming input with no cap set in an unbudgeted binding is an operator configuration concern.
 
 ### Compiler property
 
@@ -446,9 +460,9 @@ This is the section that defines what *won't* be a bug. Each item is paired with
 
 **D2. No application-layer authorization.** A peer that successfully completes TLS + SASL handshake is authorized to invoke any service method exposed via the processor. RBAC, per-method ACLs, scopes, rate-limits — all the application's job. *(maintainer — Q61.)*
 
-**D3. No defense against unbounded resource consumption when caps are not configured.** Default container/string size limit is `INT32_MAX` *(documented)*. An operator who runs an unconfigured `T*Server` on a public socket is exposed to "list of 2 billion `i32`" attacks; this is *(maintainer — Q62)* either `BY-DESIGN: property-disclaimed` (the default is dev-only and operators must flip it; the requirement appears in §10) or `VALID` (the default is the supported posture and the bug is in the default itself). Wave-1 question.
+**D3. No defense against unbounded resource consumption in periphery bindings without `TConfiguration` or when caps are explicitly unset.** While canonical bindings implementing `TConfiguration` (C++, Java, Go, Rust, netstd, Haxe, c_glib, Delphi) now enforce default limits out-of-the-box (100 MiB message, 16 MiB frame, depth 64), periphery bindings without `TConfiguration` (e.g., Node.js, Ruby, PHP, Perl, Smalltalk, Lua) default to wire-declared lengths (`INT32_MAX`). An operator running an unbudgeted binding or explicitly setting `maxMessageSize = 0` on a public socket is exposed to unbounded allocation attacks; this is `BY-DESIGN: property-disclaimed` for unbudgeted configurations.
 
-**D4. No defense against decompression bombs in `TZlibTransport`.** The transport has no documented decompressed-size cap. An attacker can ship a small compressed payload that expands to many GiB. *(maintainer — Q63.)* Standard "compression-oracle / compression-bomb" disclaimer for any compression layer (see Well-known attack classes below).
+**D4. Decompression bomb bounds in compression layers.** Decompression layers in supported transports (`zlib_transport.go` in Go, `THeaderTransport` in C++ and Python) must enforce post-transform bounds against configured frame/message budgets (`z.conf.GetMaxMessageSize()`, `maxFrameSize`, `_max_decompressed_size`). Where a supported transport fails to cap expansion or leaves decompression unbounded, it is treated as an availability bug (per §14 Q63 and CVE-2026-48586 / CVE-2026-41608). However, Thrift provides no defense against high compression ratios within configured limits (1:1000 expansion within a 16 MiB frame still costs CPU).
 
 **D5. No defense against XML-class / JSON-class parser bombs in `TJSONProtocol`.** Deeply nested JSON arrays/objects can drive recursive parse paths; the model does not promise a recursion-depth cap unless the binding documents one. *(maintainer — Q64.)*
 
@@ -472,7 +486,7 @@ This is the section that defines what *won't* be a bug. Each item is paired with
 
 ### False-friend properties
 
-**F1. `TFramedTransport` looks like a "frame size sanity check" but is not a `maxMessageSize` cap by default.** It enforces *that the receiver buffers a whole frame before dispatching*, not *that the frame is within a sane size*. Without `setMaxFrameSize`, the frame size is the wire-declared `int32`. Triage of "you accepted a 2 GiB frame" depends on whether `setMaxFrameSize` was called.
+**F1. `TFramedTransport` looks like a "frame size sanity check" but is not a `maxMessageSize` cap.** It enforces *that the receiver buffers a whole frame before dispatching*. In compiled runtimes with `TConfiguration`, it enforces `DEFAULT_MAX_FRAME_SIZE` (16,384,000) by default; however, in bindings without `TConfiguration` (such as Python `TFramedTransport`), frame size remains the wire-declared `int32` unless explicitly capped.
 
 **F2. `TBinaryProtocol`'s `version` field looks like a versioning safety net but is fixed-to-`1` *(documented)* and rejects messages without the version bit set when "strict mode" is enforced; the default mode accepts both formats.** Operators expecting strict-mode rejection get accept-both unless they enable strict mode.
 
@@ -488,7 +502,7 @@ This is the section that defines what *won't* be a bug. Each item is paired with
 
 ### Well-known attack classes left to the caller
 
-- **Decompression bomb** against `TZlibTransport`. (See D4.)
+- **Decompression bomb** against `TZlibTransport` when used without `TConfiguration` or in unbudgeted bindings. (See D4.)
 - **Algorithmic-complexity / hash-collision DoS** against any binding's map-deserialization. *(maintainer — Q72.)* Map-keyed structs deserialize into the binding's native map; binding-level hash-flooding defenses (or lack thereof) apply.
 - **Recursive-deserializer stack overflow.** Documented occurrences: THRIFT-5469 (Go), THRIFT-5221 / THRIFT-5255 (multiple). The model does not promise an explicit recursion-depth cap in every binding.
 - **JSON-protocol depth bombs.** (See D5.) Standard parser-bomb class.
@@ -560,7 +574,7 @@ These are the patterns the model warns about — uses that the API allows but th
 
 **M10. Using `TBinaryProtocol` with strict mode off when interoperating with an unknown set of peer implementations.** The old encoding is accepted, which means a peer using the old encoding looks like a legitimate message even if you intended to refuse it.
 
-**M11. Using `TZlibTransport` over an untrusted transport without an external decompressed-size cap.** Decompression-bomb territory (§9 D4).
+**M11. Using `TZlibTransport` in unbudgeted bindings without a decompressed-size cap.** Decompression-bomb territory (§9 D4). In bindings with `TConfiguration` (e.g. Go, C++/Python `THeaderTransport`), post-transform limits bound expansion.
 
 **M12. Treating an authenticated peer's bytes as schema-conformant.** Authentication says *who*; the deserializer says *whether the bytes parse*. They are independent (§9 D1).
 
@@ -580,7 +594,7 @@ These are the patterns a scanner, fuzzer, AI-assisted reviewer, or human reviewe
 
 **N1. "Container-size field is read without an explicit upper bound in `T*Protocol::readListBegin`/`readMapBegin`/`readSetBegin`/`readBinary`."** Default cap **is** unlimited per spec *(documented — `doc/specs/thrift-binary-protocol.md`)*; the operator is documented as responsible for setting `setContainerSizeLimit` / `setStringSizeLimit`. → `BY-DESIGN: property-disclaimed` (§9 D3) unless wave-1 Q38 reclassifies the default as `VALID`.
 
-**N2. "Decompression in `TZlibTransport::read` has no size limit."** Zlib does not impose one; Thrift does not impose one. → `BY-DESIGN: property-disclaimed` (§9 D4).
+**N2. "Decompression in `TZlibTransport::read` has no size limit."** In modern supported bindings (Go, C++/Python `THeaderTransport`), decompression is bounded by `TConfiguration` limits (see §9 D4 and §14 Q63); in unbudgeted bindings, operators must enforce transport or message limits externally.
 
 **N3. "Field type mismatch is undefined behavior."** Per the spec, this is binding-specific and explicitly not guaranteed uniform *(documented — `doc/specs/thrift-binary-protocol.md` §Struct)*. → `BY-DESIGN: property-disclaimed` (§9 D10).
 
