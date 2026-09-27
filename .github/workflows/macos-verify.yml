@@ -1,0 +1,109 @@
+# macOS checks for THRIFT-6377, THRIFT-6378 and THRIFT-6379 (apache/thrift #3957-#3959).
+#
+# Builds apache/thrift master plus those three changes with Homebrew's OpenSSL,
+# libevent and Boost, which live outside the compiler's default search paths,
+# using a plain autotools build with no extra flags. Then runs the lib/cpp tests
+# and the Go/Python/C++ cross-language suite.
+
+name: macOS verify C++ build fixes
+
+on:
+  push:
+    branches: [ agent-macos-verify ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  autotools:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: slachiewicz/thrift
+          ref: THRIFT-6377
+          fetch-depth: 20
+          persist-credentials: false
+
+      - name: Apply THRIFT-6378 and THRIFT-6379
+        run: |
+          git config user.name ci && git config user.email ci@example.invalid
+          for b in THRIFT-6378 THRIFT-6379; do
+            git fetch -q --depth 5 https://github.com/slachiewicz/thrift.git "$b"
+            git cherry-pick FETCH_HEAD
+          done
+          git log --oneline -4
+
+      - name: Install dependencies
+        run: |
+          brew install bison boost openssl@3 libevent automake autoconf libtool pkgconf
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q setuptools six tornado
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          echo "PY=$RUNNER_TEMP/venv/bin/python" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Configure
+        run: |
+          ./bootstrap.sh
+          ./configure --with-cpp --with-go --with-py --with-c_glib=no \
+            --without-java --without-kotlin --without-erlang --without-nodejs --without-nodets \
+            --without-lua --without-php --without-php_extension --without-dart --without-ruby \
+            --without-haxe --without-netstd --without-perl --without-d --without-rs \
+            --without-swift --without-cl --without-qt5 \
+            --with-boost="$(brew --prefix boost)" \
+            --with-openssl="$(brew --prefix openssl@3)" \
+            --with-libevent="$(brew --prefix libevent)" PYTHON="$PY"
+
+      - name: make
+        run: make -j4 PYTHON="$PY" PYTHON3="$PY"
+
+      - name: make -C lib/cpp/test check
+        run: |
+          set +e
+          make -k -j4 -C lib/cpp/test check > cppcheck.log 2>&1
+          sed 's/\x1b\[[0-9;]*m//g' cppcheck.log | grep -E '^(PASS|FAIL|ERROR):' | tee results.txt
+          # THRIFT-6385: one TNonblockingServerTest case needs RLIMIT_AS, which macOS rejects.
+          # The fuzz targets need a libFuzzer runtime that Apple clang does not ship.
+          unexpected=$(grep -E '^(FAIL|ERROR):' results.txt | grep -v 'TNonblockingServerTest' || true)
+          echo "PASS: $(grep -c '^PASS:' results.txt)"
+          if [ -n "$unexpected" ]; then echo "unexpected failures:"; echo "$unexpected"; exit 1; fi
+
+      - name: Cross-language tests (go, py, cpp)
+        run: |
+          for l in go py cpp; do make -j4 PYTHON="$PY" PYTHON3="$PY" -C test/$l precross; done
+          set +e
+          "$PY" test/test.py --server go,py,cpp --client go,py,cpp -j 3
+          "$PY" - <<'EOF'
+          import json, collections
+          res = json.load(open('test/results.json'))['results']
+          tot = collections.Counter(); ok = collections.Counter(); unexpected = []
+          for s, c, p, t, sk, success, expected, code, _ in res:
+              k = f"{s}->{c}"; tot[k] += 1
+              if success: ok[k] += 1
+              elif expected: unexpected.append(f"{s}-{c}_{p}_{t}-{sk}")
+          lines = [f"| {k} | {ok[k]}/{tot[k]} |" for k in sorted(tot)]
+          summary = ["### Cross-language tests", "", "| pair | passed |", "|---|---|", *lines, "",
+                     f"unexpected failures: {len(unexpected)}", *unexpected[:40]]
+          open(__import__('os').environ['GITHUB_STEP_SUMMARY'], 'a').write("\n".join(summary) + "\n")
+          print("\n".join(summary))
+          raise SystemExit(1 if unexpected else 0)
+          EOF
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos-logs
+          path: |
+            cppcheck.log
+            test/log/
+            test/results.json
+          if-no-files-found: warn
+          retention-days: 7
