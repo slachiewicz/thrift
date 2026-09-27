@@ -266,11 +266,14 @@ func short(v string) string {
 // runGolden is the body of the golden tests for one language. st is the
 // only registry language whose generator reads the clock, so its stamp
 // is pinned here the way java.Now is pinned around the java-specific
-// calls below.
+// calls below. The st stamp is in local time, as in the C++ generator, so
+// the time zone is pinned too; otherwise the digests depend on the machine.
 func runGolden(t *testing.T, lang string, rows []optionRow, generate func(*testing.T, string, optionRow) (map[string]string, error)) {
 	if lang == "st" {
 		st.Now = func() time.Time { return goldenDate }
-		defer func() { st.Now = time.Now }()
+		local := time.Local
+		time.Local = time.UTC
+		defer func() { st.Now = time.Now; time.Local = local }()
 	}
 	root := RepoRoot(t)
 	files := Corpus(t, root)
