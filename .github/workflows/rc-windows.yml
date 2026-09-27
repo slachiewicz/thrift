@@ -1,0 +1,182 @@
+# Windows checks for the Apache Thrift 0.25.0-rc1 vote.
+#
+# Everything here builds from the source tarball staged on dist.apache.org,
+# never from a git checkout, and uses the staged thrift-0.25.0.exe as the
+# release candidate's convenience binary. The sha256 values are the ones
+# quoted in the [VOTE] mail, so a run only passes against those exact files.
+
+name: RC 0.25.0 on Windows
+
+on:
+  push:
+    branches: [ agent/rc-0.25.0-windows ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RC_BASE: https://dist.apache.org/repos/dist/dev/thrift/0.25.0-rc1
+  TARBALL: thrift-0.25.0.tar.gz
+  TARBALL_SHA256: 66da4707214c54c94bac082103dc67adaf9e08925662700f269170a7b534b214
+  EXE: thrift-0.25.0.exe
+  EXE_SHA256: 9e1cb466141428a60a78aa944e85f901da60d25eb5ed00c8a40c4da5742af08e
+  SRC: thrift-0.25.0
+
+jobs:
+  compiler:
+    name: Compiler from source, and the staged exe against it
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - name: Fetch and check the RC files
+        shell: pwsh
+        run: &fetch |
+          $ErrorActionPreference = 'Stop'
+          foreach ($pair in @(@($env:TARBALL, $env:TARBALL_SHA256), @($env:EXE, $env:EXE_SHA256))) {
+            $f, $want = $pair
+            Invoke-WebRequest -Uri "$env:RC_BASE/$f" -OutFile $f
+            $got = (Get-FileHash -Algorithm SHA256 $f).Hash.ToLowerInvariant()
+            if ($got -ne $want) { Write-Error "$f sha256 $got, vote mail says $want"; exit 1 }
+            Write-Host "$f sha256 OK ($got)"
+          }
+          tar -xzf $env:TARBALL
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Inspect the staged exe
+        shell: pwsh
+        run: |
+          & ".\$env:EXE" -version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $script = "$env:SRC/build/windows/check-compiler-imports.ps1"
+          if (Test-Path $script) { & $script -Path ".\$env:EXE" } else { Write-Host "no $script in the tarball" }
+
+      - name: Install flex and bison
+        shell: pwsh
+        timeout-minutes: 10
+        # Same pin as cmake.yml and windows-packages.yml on the release branch.
+        run: choco install winflexbison3 --version=2.5.24.20210105 -y --no-progress
+
+      - name: Build and test the compiler (x64)
+        shell: pwsh
+        timeout-minutes: 30
+        run: |
+          cmake -S $env:SRC -B b64 -DBUILD_LIBRARIES=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build b64 --config Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir b64 -C Release --no-tests=error --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --install b64 --config Release --prefix i64
+          ./i64/bin/thrift.exe -version
+
+      - name: Build the compiler (Win32, the staged exe's architecture)
+        shell: pwsh
+        timeout-minutes: 30
+        run: |
+          cmake -S $env:SRC -B b32 -A Win32 -DBUILD_LIBRARIES=OFF -DBUILD_TESTING=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build b32 --config Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --install b32 --config Release --prefix i32
+          ./i32/bin/thrift.exe -version
+
+      - name: Compare generated code, staged exe vs. compiler built from the tarball
+        shell: pwsh
+        run: |
+          $gens = @('go', 'cpp', 'netstd', 'py', 'java:generated_annotations=undated', 'js:node', 'rs',
+                    'erl', 'lua', 'rb', 'php', 'delphi', 'haxe', 'dart', 'c_glib', 'swift', 'kotlin',
+                    'd', 'perl', 'st', 'cl', 'ocaml', 'json', 'xml', 'html', 'gv')
+          $idls = @('test/ThriftTest.thrift', 'test/DebugProtoTest.thrift', 'test/AnnotationTest.thrift',
+                    'test/DocTest.thrift', 'test/ConstantsDemo.thrift', 'test/TypedefTest.thrift',
+                    'tutorial/tutorial.thrift')
+          $compilers = [ordered]@{ rc = (Resolve-Path ".\$env:EXE").Path; src32 = (Resolve-Path './i32/bin/thrift.exe').Path }
+          $codes = @{}
+          foreach ($name in $compilers.Keys) {
+            foreach ($idl in $idls) {
+              foreach ($gen in $gens) {
+                $dir = Join-Path "out/$name" ((Split-Path $idl -LeafBase) + '/' + ($gen -replace '[:=,]', '_'))
+                New-Item -ItemType Directory -Force $dir | Out-Null
+                & $compilers[$name] -r --gen $gen -o $dir (Join-Path $env:SRC $idl) 2>&1 | Out-File "$dir.log"
+                $codes["$name|$idl|$gen"] = $LASTEXITCODE
+              }
+            }
+          }
+          $mismatch = 0
+          foreach ($idl in $idls) { foreach ($gen in $gens) {
+            $a = $codes["rc|$idl|$gen"]; $b = $codes["src32|$idl|$gen"]
+            if ($a -ne $b) { Write-Host "exit code differs: $idl $gen rc=$a src32=$b"; $mismatch++ }
+          } }
+          $ok = ($codes.GetEnumerator() | Where-Object { $_.Key -like 'rc|*' -and $_.Value -eq 0 }).Count
+          Write-Host "rc runs with exit 0: $ok of $($idls.Count * $gens.Count)"
+          git diff --no-index --stat --exit-code -- out/rc out/src32
+          $diff = $LASTEXITCODE
+          $files = (Get-ChildItem -Recurse -File out/rc | Where-Object Extension -ne '.log').Count
+          @('### Staged exe vs. compiler built from the tarball', '',
+            "- generated files compared: $files",
+            "- exit-code mismatches: $mismatch",
+            "- content diff: $(if ($diff -eq 0) { 'none' } else { 'YES, see log' })") |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          if ($mismatch -ne 0 -or $diff -ne 0) { exit 1 }
+
+      - name: Upload generated code
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: codegen-compare
+          path: out/
+          if-no-files-found: warn
+          retention-days: 7
+
+  go:
+    name: Go library tests
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Fetch and check the RC files
+        shell: pwsh
+        run: *fetch
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: thrift-0.25.0/go.mod
+          cache: false
+
+      - name: go vet and go test ./lib/go/thrift/...
+        shell: pwsh
+        working-directory: thrift-0.25.0
+        run: |
+          go version
+          go vet ./lib/go/thrift/...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go test -count=1 ./lib/go/thrift/...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  netstd:
+    name: netstd tests, code generated by the staged exe
+    runs-on: windows-2025
+    timeout-minutes: 40
+    steps:
+      - name: Fetch and check the RC files
+        shell: pwsh
+        run: *fetch
+
+      - name: Put the staged exe on PATH as thrift.exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force rcbin | Out-Null
+          Copy-Item ".\$env:EXE" rcbin\thrift.exe
+          (Resolve-Path rcbin).Path | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: dotnet test (lib/netstd/runtests.cmd)
+        shell: cmd
+        working-directory: thrift-0.25.0\lib\netstd
+        run: |
+          where thrift
+          thrift -version
+          dotnet test Tests\Thrift.IntegrationTests\Thrift.IntegrationTests.csproj || exit /b 1
+          dotnet test Tests\Thrift.Tests\Thrift.Tests.csproj || exit /b 1
