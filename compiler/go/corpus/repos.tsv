@@ -1,0 +1,16 @@
+# Real-world Thrift IDL used as a regression corpus for the Go generators.
+# name<TAB>repository<TAB>commit<TAB>sparse paths (space separated)
+# Pinned so that a run only changes when this file does.
+hive	apache/hive	9d9a51e103fddfeb855e46e1606b36cab770a56e	/standalone-metastore/metastore-common/src/main/thrift/ /service-rpc/if/ /ql/if/ /serde/if/
+parquet-format	apache/parquet-format	bf0993925ccf41b1fb4b1ae241af4a66e8adf1fe	/src/main/thrift/
+impala	apache/impala	ada9dbf7bca2445a10b3797154fd78c40d4548f3	/common/thrift/
+doris	apache/doris	bdb165d693e27ca5066c0d6356562b7cb4a83713	/gensrc/thrift/
+starrocks	StarRocks/starrocks	2edb39feddece276c435a7f52dde20629b2a0c38	/gensrc/thrift/
+hbase	apache/hbase	49279c181aef1eb6b409be87b6b444fc9add984e	/hbase-thrift/src/main/resources/
+accumulo	apache/accumulo	c238ac3d005f24ac4d074f8aa521cae1498d860f	/core/src/main/thrift/
+storm	apache/storm	c2ac7b255d94f73e321e3e2d27e8492c90f0a7ea	/storm-client/src/storm.thrift
+jaeger-idl	jaegertracing/jaeger-idl	ff5989c394723bab23529fd1ab62a1dcce566d21	/thrift/
+zipkin-api	openzipkin/zipkin-api	069ec8d1c7b58578d338b39f60abb211b7212618	/thrift/
+iotdb	apache/iotdb	7984abcabb628da2eae9dc81a51037738340c032	/iotdb-protocol/
+evernote-thrift	evernote/evernote-thrift	9fde79c52d1ad1ee58f4f63ce08f7fe29436e6e5	/src/
+incubator-pegasus	apache/incubator-pegasus	750154675eaf2825423825f16b08da1855e6a18b	/idl/
