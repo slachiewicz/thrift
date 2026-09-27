@@ -71,10 +71,11 @@ inc=(-I "$src/_inc" -I "$src/hive/service-rpc/if"
 : > "$work/results.tsv"
 while read -r f; do
   rel=${f#"$src"/}
-  proj=${rel%%/*}
-  base=$(basename "$f" .thrift)
+  # Keyed by the whole path: some projects have IDL files whose names differ
+  # only in case (HBase's thrift/Hbase.thrift and thrift2/hbase.thrift).
+  key=${rel%.thrift}
   for c in cpp go; do
-    d=$out/$c/$proj/$base
+    d=$out/$c/$key
     mkdir -p "$d"
     if [[ $c == cpp ]]; then bin=$cpp; else bin=$tgo; fi
     "$bin" -r --gen go -I "$(dirname "$f")" "${inc[@]}" -out "$d" "$f" > "$d.log" 2>&1
@@ -114,7 +115,8 @@ for spec in \
     impala/common/thrift/ImpalaService.thrift \
     evernote-thrift/src/NoteStore.thrift \
     iotdb/iotdb-protocol/thrift-confignode/src/main/thrift/confignode.thrift; do
-  name=$(basename "$spec" .thrift)
+  # Named after the project and the file, as Doris and StarRocks both have a FrontendService.
+  name=${spec%%/*}-$(basename "$spec" .thrift | tr '[:upper:]' '[:lower:]')
   m=$work/build/$name
   rm -rf "$m" && mkdir -p "$m"
   printf 'module example.com/%s\n\ngo 1.26\n\nrequire github.com/apache/thrift v0.0.0\n\nreplace github.com/apache/thrift => %s\n' "$name" "$root" > "$m/go.mod"
