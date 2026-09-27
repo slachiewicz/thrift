@@ -143,6 +143,10 @@ check() { # <label> <this run> <baseline>
   if [[ -n "$new" ]]; then
     echo "error: new $1:" >&2
     echo "$new" >&2
+    # Show what changed, so a failure can be read without the output tree.
+    printf '%s\n' "$new" | sed -n 's#^differ ##p' | head -5 | while read -r f; do
+      diff -u "$out/cpp/$f" "$out/go/$f" | head -60 >&2
+    done
     status=1
   fi
   if [[ -n "$gone" ]]; then
