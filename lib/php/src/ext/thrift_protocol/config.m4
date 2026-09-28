@@ -27,7 +27,7 @@ if test "$PHP_THRIFT_PROTOCOL" != "no"; then
   PHP_REQUIRE_CXX()
   PHP_ADD_LIBRARY_WITH_PATH(stdc++, "", THRIFT_PROTOCOL_SHARED_LIBADD)
   PHP_SUBST(THRIFT_PROTOCOL_SHARED_LIBADD)
-  CXXFLAGS="$CXXFLAGS -std=c++11"
+  CXXFLAGS="$CXXFLAGS -std=c++17"
 
   dnl Probe for stack-clash protection rather than assuming it: the option
   dnl needs GCC 8 / Clang 11 and is not implemented on every target, so ask the

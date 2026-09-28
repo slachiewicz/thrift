@@ -92,7 +92,7 @@ jobs:
       - name: Generate makefile using CMake
         timeout-minutes: 10
         run: |
-          cmake -S . -B cmake_build -DCMAKE_CXX_STANDARD=11 -DBUILD_TESTING=OFF \
+          cmake -S . -B cmake_build -DCMAKE_CXX_STANDARD=17 -DBUILD_TESTING=OFF \
             -DWITH_C_GLIB=OFF -DWITH_JAVA=OFF -DWITH_JAVASCRIPT=OFF -DWITH_NODEJS=OFF -DWITH_PYTHON=OFF
 
       - name: Run make
