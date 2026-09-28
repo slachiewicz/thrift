@@ -416,8 +416,8 @@ BOOST_AUTO_TEST_CASE(test_framed_transport_default_constructor_initialises_max_f
   BOOST_CHECK_EQUAL(wrapped.getMaxFrameSize(), static_cast<uint32_t>(kMaxFrameSize));
 }
 
-// Binding a default to a reference or taking its address needs the library to
-// define it. Reading the addresses through volatile pointers keeps an
+// Binding a default to a reference or taking its address needs a definition of
+// the constant. Reading the addresses through volatile pointers keeps an
 // optimising compiler from folding the references away (THRIFT-6213).
 BOOST_AUTO_TEST_CASE(test_configuration_defaults_are_defined) {
   const int* volatile maxMessageSize = &TConfiguration::DEFAULT_MAX_MESSAGE_SIZE;
