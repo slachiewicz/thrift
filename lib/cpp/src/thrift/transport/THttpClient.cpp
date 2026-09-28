@@ -18,11 +18,11 @@
  */
 
 #include <algorithm>
-#include <boost/algorithm/string.hpp>
+#include <cctype>
 #include <cstdlib>
 #include <limits>
 #include <sstream>
-#include <vector>
+#include <string_view>
 
 #include <thrift/config.h>
 #include <thrift/transport/THttpClient.h>
@@ -33,6 +33,30 @@ using std::string;
 namespace apache {
 namespace thrift {
 namespace transport {
+
+namespace {
+
+bool iequals(std::string_view a, std::string_view b) {
+  return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [](char x, char y) {
+           return std::tolower(static_cast<unsigned char>(x))
+                  == std::tolower(static_cast<unsigned char>(y));
+         });
+}
+
+bool iends_with(std::string_view s, std::string_view suffix) {
+  return s.size() >= suffix.size() && iequals(s.substr(s.size() - suffix.size()), suffix);
+}
+
+std::string_view trim(std::string_view s) {
+  const char* const whitespace = " \t\n\v\f\r";
+  const std::string_view::size_type first = s.find_first_not_of(whitespace);
+  if (first == std::string_view::npos) {
+    return {};
+  }
+  return s.substr(first, s.find_last_not_of(whitespace) - first + 1);
+}
+
+} // namespace
 
 THttpClient::THttpClient(std::shared_ptr<TTransport> transport,
                          std::string host,
@@ -75,22 +99,26 @@ void THttpClient::parseHeader(char* header) {
   }
   char* value = colon + 1;
 
-  const string name(header, colon);
-  if (boost::iequals(name, "Transfer-Encoding")) {
-    if (boost::iends_with(value, "chunked")) {
+  const std::string_view name(header, colon - header);
+  if (iequals(name, "Transfer-Encoding")) {
+    if (iends_with(value, "chunked")) {
       chunked_ = true;
     }
-  } else if (boost::iequals(name, "Content-Length")) {
+  } else if (iequals(name, "Content-Length")) {
     chunked_ = false;
     contentLength_ = parseContentLength(value);
-  } else if (boost::iequals(name, "Connection")) {
-    std::vector<string> options;
-    boost::split(options, value, boost::is_any_of(","));
-    for (const string& option : options) {
-      if (boost::iequals(boost::trim_copy(option), "close")) {
+  } else if (iequals(name, "Connection")) {
+    std::string_view options(value);
+    for (;;) {
+      const std::string_view::size_type comma = options.find(',');
+      if (iequals(trim(options.substr(0, comma)), "close")) {
         closeAfterResponse_ = true;
         break;
       }
+      if (comma == std::string_view::npos) {
+        break;
+      }
+      options.remove_prefix(comma + 1);
     }
   }
 }

@@ -23,7 +23,8 @@
 #include <thrift/protocol/TProtocolDecorator.h>
 #include <thrift/TApplicationException.h>
 #include <thrift/TProcessor.h>
-#include <boost/tokenizer.hpp>
+#include <string_view>
+#include <vector>
 
 namespace apache {
 namespace thrift {
@@ -164,11 +165,20 @@ public:
       throw protocol_error(in, out, name, seqid, "Unexpected message type");
     }
 
-    // Extract the service name
-    boost::tokenizer<boost::char_separator<char> > tok(name, boost::char_separator<char>(":"));
-
+    // Extract the service name. Empty pieces are skipped, so "Service::method"
+    // splits the same way as "Service:method".
     std::vector<std::string> tokens;
-    std::copy(tok.begin(), tok.end(), std::back_inserter(tokens));
+    std::string_view rest(name);
+    while (!rest.empty()) {
+      const std::string_view::size_type pos = rest.find(':');
+      if (pos != 0) {
+        tokens.emplace_back(rest.substr(0, pos));
+      }
+      if (pos == std::string_view::npos) {
+        break;
+      }
+      rest.remove_prefix(pos + 1);
+    }
 
     // A valid message should consist of two tokens: the service
     // name and the name of the method to call.
