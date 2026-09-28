@@ -30,9 +30,9 @@ public:
                 int maxFrameSize = DEFAULT_MAX_FRAME_SIZE, int recursionLimit = DEFAULT_RECURSION_DEPTH)
     : maxMessageSize_(maxMessageSize), maxFrameSize_(maxFrameSize), recursionLimit_(recursionLimit) {}
 
-  const static int DEFAULT_MAX_MESSAGE_SIZE = 100 * 1024 * 1024;
-  const static int DEFAULT_MAX_FRAME_SIZE = 16384000;      // this value is used consistently across all Thrift libraries
-  const static int DEFAULT_RECURSION_DEPTH = 64;
+  static constexpr int DEFAULT_MAX_MESSAGE_SIZE = 100 * 1024 * 1024;
+  static constexpr int DEFAULT_MAX_FRAME_SIZE = 16384000;      // this value is used consistently across all Thrift libraries
+  static constexpr int DEFAULT_RECURSION_DEPTH = 64;
 
   inline int  getMaxMessageSize() const { return maxMessageSize_; }
   inline void setMaxMessageSize(int maxMessageSize) { maxMessageSize_ = maxMessageSize; }
