@@ -54,7 +54,9 @@ you are using libthriftnb you will also need libevent.
 
 ## Dependencies
 
-C++11 is required at a minimum.  C++03/C++98 are not supported after version 0.12.0.
+C++17 is required at a minimum, both to build the library and to compile code that
+includes its headers, generated code included. C++11 and C++14 are not supported
+after version 0.25.0, and C++03/C++98 are not supported after version 0.12.0.
 
 Boost is required to run the C++ unit tests.  It is not necessary to link against
 the runtime library.

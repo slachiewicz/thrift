@@ -64,17 +64,16 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # C++ Language Level Defaults - this depends on the compiler capabilities
 #
 if (NOT DEFINED CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 11) # C++11
-  message(STATUS "Setting C++11 as the default language level.")
+  set(CMAKE_CXX_STANDARD 17) # C++17
+  message(STATUS "Setting C++17 as the default language level.")
   message(STATUS "To specify a different C++ language level, set CMAKE_CXX_STANDARD")
 endif()
 
-if (CMAKE_CXX_STANDARD EQUAL 98)
-  message(FATAL_ERROR "only C++11 or above C++ standard is supported")
-elseif (CMAKE_CXX_STANDARD EQUAL 11)
-  # should not fallback to C++98
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if (CMAKE_CXX_STANDARD EQUAL 98 OR CMAKE_CXX_STANDARD LESS 17)
+  message(FATAL_ERROR "only C++17 or above C++ standard is supported")
 endif()
+# should not fall back to an older language level
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (NOT DEFINED CMAKE_CXX_EXTENSIONS)
   set(CMAKE_CXX_EXTENSIONS OFF)        # use standards compliant language level for portability

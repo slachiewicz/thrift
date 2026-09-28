@@ -259,7 +259,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cxx_standard: [ 11, 17 ]
+        cxx_standard: [ 17 ]
     name: vs2017-toolset (C++${{ matrix.cxx_standard }})
     env:
       BOOST_ROOT: C:\Libraries\boost_1_88_0
