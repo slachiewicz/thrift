@@ -157,7 +157,8 @@ jobs:
         run: cmake --install build --config Release --prefix install
       - name: Check what the compiler imports
         shell: pwsh
-        run: ./thrift-$env:VERSION/build/windows/check-compiler-imports.ps1 -Path install/bin/thrift.exe
+        run: |
+          & "./thrift-$env:VERSION/build/windows/check-compiler-imports.ps1" -Path install/bin/thrift.exe
       - name: Check the machine type
         shell: pwsh
         run: |
