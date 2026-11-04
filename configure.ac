@@ -733,10 +733,6 @@ AC_CHECK_FUNCS([sched_get_priority_max])
 AC_CHECK_FUNCS([inet_ntoa])
 AC_CHECK_FUNCS([pow])
 
-if test "$cross_compiling" = "no" ; then
-  AX_SIGNED_RIGHT_SHIFT
-fi
-
 dnl autoscan thinks we need this macro because we have a member function
 dnl called "error".  Invoke the macro but don't run the check so autoscan
 dnl thinks we are in the clear.  It's highly unlikely that we will ever
