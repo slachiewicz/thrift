@@ -44,13 +44,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # ubuntu-22.04 sets the glibc floor at 2.35.
+          # Built on ubuntu-22.04; the binaries need glibc 2.34 or later.
           - platform: linux-x86_64
             runner: ubuntu-22.04
           - platform: linux-aarch64
             runner: ubuntu-22.04-arm
           - platform: macos-universal
             runner: macos-15
+          - platform: macos-universal-intel-host
+            runner: macos-15-intel
+          - platform: macos-universal-macos26
+            runner: macos-26
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     env:
