@@ -1,0 +1,136 @@
+# Throwaway trial of the arm64 CI jobs; not for merging.
+name: "arm64 trial"
+
+on:
+  push:
+    branches: ["arm64-ci-trial*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUILD_DEPS: automake bison flex git libboost-all-dev libevent-dev libssl-dev libtool make pkg-config
+  CONFIG_ARGS_FOR_LIBS: >
+    --disable-debug --disable-dependency-tracking --without-cpp --without-c_glib --without-java
+    --without-kotlin --without-python --without-py3 --without-ruby --without-haxe --without-netstd
+    --without-perl --without-php --without-php_extension --without-dart --without-erlang --without-go
+    --without-d --without-nodejs --without-nodets --without-lua --without-rs
+
+jobs:
+  compiler:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sudo cp .github/apt/99-ci-network /etc/apt/apt.conf.d/
+      - run: |
+          sudo apt-get update -yq
+          sudo apt-get install -y --no-install-recommends g++ $BUILD_DEPS
+      - run: ./bootstrap.sh
+      - run: ./configure --disable-debug --disable-libs
+      - run: make -j$(nproc)
+      - run: make -C test/audit check
+      - run: compiler/cpp/thrift -version
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: thrift-compiler-${{ matrix.os }}
+          path: compiler/cpp/thrift
+          retention-days: 3
+
+  lib-cpp-arm64:
+    needs: compiler
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sudo cp .github/apt/99-ci-network /etc/apt/apt.conf.d/
+      - run: |
+          sudo apt-get update -yq
+          sudo apt-get install -y --no-install-recommends g++ $BUILD_DEPS locales
+          sudo locale-gen en_US.UTF-8
+          sudo locale-gen de_DE.UTF-8
+          sudo locale-gen tr_TR.UTF-8
+          sudo update-locale
+      - run: ./bootstrap.sh
+      - run: ./configure $(echo $CONFIG_ARGS_FOR_LIBS | sed -E 's/without-cpp/with-cpp/g')
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: thrift-compiler-ubuntu-24.04-arm
+          path: compiler/cpp
+      - run: |
+          chmod a+x compiler/cpp/thrift
+          compiler/cpp/thrift -version
+          file compiler/cpp/thrift
+      - run: make -j$(nproc) -C lib/cpp
+      - run: make -j$(nproc) -C lib/cpp check
+      - run: make -j$(nproc) -C test/cpp check
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: lib-cpp-test-log-arm64
+          path: lib/cpp/test/*.xml
+          retention-days: 3
+
+  lib-cpp-cross:
+    strategy:
+      matrix:
+        source: [branch, apache-master]
+      fail-fast: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: matrix.source == 'branch'
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: matrix.source == 'apache-master'
+        with:
+          repository: apache/thrift
+          ref: master
+          persist-credentials: false
+      - run: sudo cp .github/apt/99-ci-network /etc/apt/apt.conf.d/
+      - name: Add arm64 packages from the Ubuntu ports archive
+        run: |
+          ls -l /etc/apt/sources.list.d/
+          sudo sed -i '/^Components:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
+          printf '%s\n' 'Types: deb' 'URIs: http://ports.ubuntu.com/ubuntu-ports/' \
+            'Suites: noble noble-updates noble-security' \
+            'Components: main universe' 'Architectures: arm64' \
+            'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+            | sudo tee /etc/apt/sources.list.d/arm64.sources
+          sudo dpkg --add-architecture arm64
+      - run: |
+          sudo apt-get update -yq
+          sudo apt-get install -y --no-install-recommends automake bison flex libboost-dev libtool make pkg-config \
+            g++-aarch64-linux-gnu libevent-dev:arm64 libssl-dev:arm64 zlib1g-dev:arm64
+      - run: ./bootstrap.sh
+      - name: Run configure
+        env:
+          PKG_CONFIG_LIBDIR: /usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+        run: |
+          set -o pipefail
+          ./configure --build=x86_64-linux-gnu --host=aarch64-linux-gnu \
+            --disable-tests --disable-tutorial --without-qt5 \
+            $(echo $CONFIG_ARGS_FOR_LIBS | sed -E 's/without-cpp/with-cpp/g') | tee configure.out
+          grep -x 'checking whether we are cross compiling... yes' configure.out
+          grep -E 'Building C\+\+ Library|Build (TNonblockingServer|TZlibTransport)|OpenSSL works' configure.out
+          grep -qE 'Build TNonblockingServer \.+ : yes' configure.out
+          grep -qE 'Build TZlibTransport \.+ : yes' configure.out
+          grep -qE 'against OpenSSL works\.\.\. yes' configure.out
+      - run: make -j$(nproc) -C lib/cpp
+      - name: Check the libraries were built for arm64
+        run: |
+          for lib in libthrift libthriftnb libthriftz; do
+            file -L lib/cpp/.libs/$lib.so | tee /dev/stderr | grep -q 'ARM aarch64'
+          done
+          aarch64-linux-gnu-readelf -d lib/cpp/.libs/libthrift.so | grep NEEDED
