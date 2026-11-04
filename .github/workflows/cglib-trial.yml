@@ -1,0 +1,129 @@
+# Throwaway trial of the c_glib signed-shift change; not for merging.
+name: "c_glib trial"
+
+on:
+  push:
+    branches: ["arm64-ci-trial-cglib*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUILD_DEPS: automake bison flex git libboost-all-dev libevent-dev libssl-dev libtool make pkg-config
+  CONFIG_ARGS_FOR_LIBS: >
+    --disable-debug --disable-dependency-tracking --without-cpp --without-c_glib --without-java
+    --without-kotlin --without-python --without-py3 --without-ruby --without-haxe --without-netstd
+    --without-perl --without-php --without-php_extension --without-dart --without-erlang --without-go
+    --without-d --without-nodejs --without-nodets --without-lua --without-rs
+
+jobs:
+  lib-c_glib:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04-arm]
+        source: [this, parent]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 3
+      - name: Use the parent commit's sources
+        if: matrix.source == 'parent'
+        run: git checkout HEAD~2 -- . && git log -1 --format=%s HEAD~2
+      - run: sudo cp .github/apt/99-ci-network /etc/apt/apt.conf.d/
+      - run: |
+          sudo apt-get update -yq
+          sudo apt-get install -y --no-install-recommends g++ $BUILD_DEPS libglib2.0-dev zlib1g-dev
+      - run: ./bootstrap.sh
+      - name: Run configure for c_glib
+        run: |
+          summary=$(./configure $(echo $CONFIG_ARGS_FOR_LIBS | sed -e 's/without-c_glib/with-c_glib/' -e 's/without-cpp/with-cpp/'))
+          echo "$summary"
+          echo "$summary" | grep -qE "Building C [(]GLib[)] Library [.]+ : yes"
+          if [ "${{ matrix.source }}" = this ]; then ! grep -q 'signed right shift' config.log; fi
+      - run: make -j$(nproc) -C compiler/cpp
+      - run: make -j$(nproc) -C lib/cpp libthrift.la libthriftz.la
+      - run: make -j$(nproc) -C lib/c_glib
+      - run: make -j$(nproc) -C test/c_glib precross
+      - run: make -C lib/c_glib/test check-am
+      - if: failure()
+        run: cat lib/c_glib/test/testthrift*readcheck.log || true
+
+  cmake-c_glib:
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [this, parent]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 3
+      - name: Use the parent commit's sources
+        if: matrix.source == 'parent'
+        run: git checkout HEAD~2 -- . && git log -1 --format=%s HEAD~2
+      - run: sudo cp .github/apt/99-ci-network /etc/apt/apt.conf.d/
+      - run: |
+          sudo apt-get update -yq
+          sudo apt-get install -y --no-install-recommends g++ cmake bison flex libboost-all-dev libevent-dev libssl-dev libglib2.0-dev zlib1g-dev
+      - run: |
+          cmake -S . -B build -DWITH_CPP=OFF -DWITH_JAVA=OFF -DWITH_JAVASCRIPT=OFF -DWITH_NODEJS=OFF -DWITH_PYTHON=OFF -DBUILD_TUTORIALS=OFF | tee cmake.out
+          grep -E 'Build C \(GLib\) library: +ON' cmake.out
+      - run: cmake --build build -j$(nproc)
+      - run: ctest --test-dir build -j$(nproc) --output-on-failure
+
+  c_glib-cross:
+    strategy:
+      fail-fast: false
+      matrix:
+        # parent: lib/cpp fixed, c_glib not yet; it must fail.
+        source: [this, parent]
+    runs-on: ubuntu-24.04
+    # A clean image: the runner's own packages can be a point release ahead
+    # of ports.ubuntu.com, and libglib2.0-dev needs both at the same version.
+    container: ubuntu:24.04
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 30
+    steps:
+      - run: apt-get update -yq && apt-get install -y --no-install-recommends ca-certificates git sudo
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 3
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Use the parent commit's sources
+        if: matrix.source == 'parent'
+        run: git checkout HEAD~2 -- . && git log -1 --format=%s HEAD~2
+      - name: Add arm64 packages from the Ubuntu ports archive
+        run: |
+          sudo sed -i '/^Components:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
+          printf '%s\n' 'Types: deb' 'URIs: http://ports.ubuntu.com/ubuntu-ports/' \
+            'Suites: noble noble-updates noble-security' \
+            'Components: main universe' 'Architectures: arm64' \
+            'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+            | sudo tee /etc/apt/sources.list.d/arm64.sources
+          sudo dpkg --add-architecture arm64
+      - run: |
+          sudo apt-get update -yq
+          sudo apt-get install -y --no-install-recommends automake bison flex libtool make pkg-config file \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu qemu-user libglib2.0-dev:arm64 libssl-dev:arm64 zlib1g-dev:arm64
+      - run: ./bootstrap.sh
+      - name: Run configure
+        env:
+          PKG_CONFIG_LIBDIR: /usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+        run: |
+          set -o pipefail
+          ./configure --build=x86_64-linux-gnu --host=aarch64-linux-gnu --disable-tests --disable-tutorial \
+            $(echo $CONFIG_ARGS_FOR_LIBS | sed -e 's/without-c_glib/with-c_glib/') | tee configure.out
+          grep -x 'checking whether we are cross compiling... yes' configure.out
+          grep -qE "Building C [(]GLib[)] Library [.]+ : yes" configure.out
+      - run: make -j$(nproc) -C lib/c_glib
+      - run: file -L lib/c_glib/.libs/libthrift_c_glib.so | tee /dev/stderr | grep -q 'ARM aarch64'
