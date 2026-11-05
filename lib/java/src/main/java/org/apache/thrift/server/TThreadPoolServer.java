@@ -33,6 +33,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.SocketAddressProvider;
+import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -92,6 +93,13 @@ public class TThreadPoolServer extends TServer {
 
   public TThreadPoolServer(Args args) {
     super(args);
+
+    if (args.serverTransport instanceof TNonblockingServerTransport) {
+      throw new IllegalArgumentException(
+          "TThreadPoolServer serves clients with blocking I/O and cannot use a nonblocking server"
+              + " transport such as TNonblockingServerSocket; use TServerSocket, or use"
+              + " THsHaServer or TThreadedSelectorServer with a nonblocking transport.");
+    }
 
     stopTimeoutUnit = args.stopTimeoutUnit;
     stopTimeoutVal = args.stopTimeoutVal;

@@ -20,11 +20,13 @@
 package org.apache.thrift.server;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TSocket;
@@ -72,6 +74,19 @@ public class TestThreadPoolServer {
       // TODO: The socket is actually closed (timeout) but the client code
       // ignores the timeout Exception and maintains the socket open state
       assertTrue(client.isOpen(), "Client should be closed after server shutdown");
+    }
+  }
+
+  /**
+   * A nonblocking server transport hands out sockets the blocking workers cannot read from, so the
+   * server must refuse it up front instead of accepting connections it never serves.
+   */
+  @Test
+  public void testRejectsNonblockingServerTransport() throws Exception {
+    try (TNonblockingServerSocket serverSocket = new TNonblockingServerSocket(0)) {
+      IllegalArgumentException e =
+          assertThrows(IllegalArgumentException.class, () -> buildServer(serverSocket));
+      assertTrue(e.getMessage().contains("THsHaServer"), e.getMessage());
     }
   }
 
