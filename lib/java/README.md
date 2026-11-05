@@ -290,6 +290,16 @@ http://gradle.org/
 
 # Breaking Changes
 
+## 0.26.0
+
+- `TFramedTransport` and `TFastFramedTransport` now hold the frames they write to the maximum
+frame size that `readFrame()` already enforces on reads. `flush()` of a larger frame writes
+nothing, drops the buffered message and throws a `TTransportException` of type
+`MESSAGE_SIZE_LIMIT`; it previously wrote a frame that a peer with the same limit refuses.
+A client that sends frames above the default of 16384000 bytes to a server with a higher limit
+needs the same limit itself: pass it to the constructor or factory, or call
+`TConfiguration.setMaxFrameSize()` on the underlying transport's configuration.
+
 ## 0.24.0
 
 - `TProtocolUtil.setMaxSkipDepth(int depth)` has been deprecated and 

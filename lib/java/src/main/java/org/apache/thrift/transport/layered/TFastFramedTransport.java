@@ -166,7 +166,11 @@ public class TFastFramedTransport extends TLayeredTransport {
       close();
       throw new TTransportException(
           TTransportException.CORRUPTED_DATA,
-          "Frame size (" + size + ") larger than max length (" + maxLength + ")!");
+          "Frame size ("
+              + size
+              + ") larger than max length ("
+              + getInnerTransport().getConfiguration().getMaxFrameSize()
+              + ")!");
     }
 
     readBuffer.fill(getInnerTransport(), size);
@@ -194,6 +198,13 @@ public class TFastFramedTransport extends TLayeredTransport {
   @Override
   public void flush() throws TTransportException {
     int payloadLength = writeBuffer.getLength() - 4;
+    try {
+      // See TFramedTransport.flush(): a refused frame is dropped with the buffer.
+      TFramedTransport.checkWriteFrameSize(getInnerTransport(), payloadLength);
+    } catch (TTransportException e) {
+      writeBuffer.reset();
+      throw e;
+    }
     byte[] data = writeBuffer.getBuf().array();
     TFramedTransport.encodeFrameSize(payloadLength, data);
     getInnerTransport().write(data, 0, payloadLength + 4);

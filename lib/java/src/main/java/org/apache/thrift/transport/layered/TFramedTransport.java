@@ -188,9 +188,31 @@ public class TFramedTransport extends TLayeredTransport {
     writeBuffer_.reset();
     writeBuffer_.write(sizeFiller_, 0, 4); // make room for the next frame's size data
 
+    // readFrame() refuses a frame larger than this, and so does a peer holding the same
+    // configuration. A refused frame is dropped with the buffer, before any of it is written.
+    checkWriteFrameSize(len);
+
     encodeFrameSize(len, buf); // this is the frame length without the filler
     getInnerTransport().write(buf, 0, len + 4); // we have to write the frame size and frame data
     getInnerTransport().flush();
+  }
+
+  /**
+   * Refuses a frame of {@code size} bytes that a reader holding the inner transport's configuration
+   * would refuse, with {@link TTransportException#MESSAGE_SIZE_LIMIT}. Nothing has been written
+   * when this throws, so the transport stays usable for the next frame.
+   */
+  static void checkWriteFrameSize(TTransport inner, int size) throws TTransportException {
+    int max = inner.getConfiguration().getMaxFrameSize();
+    if (size > max) {
+      throw new TTransportException(
+          TTransportException.MESSAGE_SIZE_LIMIT,
+          "Frame size (" + size + ") larger than max length (" + max + ")!");
+    }
+  }
+
+  private void checkWriteFrameSize(int size) throws TTransportException {
+    checkWriteFrameSize(getInnerTransport(), size);
   }
 
   public static void encodeFrameSize(final int frameSize, final byte[] buf) {

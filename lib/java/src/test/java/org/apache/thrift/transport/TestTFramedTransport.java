@@ -220,6 +220,49 @@ public class TestTFramedTransport {
   }
 
   @Test
+  public void testWriteAtMaxFrameSize() throws TTransportException, IOException {
+    int limit = 1024;
+    TMemoryBuffer membuf = new TMemoryBuffer(0);
+    TTransport writer = getTransport(membuf, limit);
+
+    writer.write(byteSequence(0, 255), 0, 256);
+    writer.write(new byte[limit - 256]);
+    writer.flush();
+
+    // The frame word plus exactly the limit; a reader on the same configuration takes it.
+    assertEquals(4 + limit, membuf.length());
+    TTransport reader = getTransport(membuf, limit);
+    byte[] readBuf = new byte[256];
+    assertEquals(256, reader.read(readBuf, 0, 256));
+    assertArrayEquals(byteSequence(0, 255), readBuf);
+  }
+
+  @Test
+  public void testWriteAboveMaxFrameSizeIsRefused() throws TTransportException, IOException {
+    int limit = 1024;
+    TMemoryBuffer membuf = new TMemoryBuffer(0);
+    WriteCountingTransport countTrans = new WriteCountingTransport(membuf);
+    TTransport writer = getTransport(countTrans, limit);
+
+    writer.write(new byte[limit + 1]);
+    TTransportException e = assertThrows(TTransportException.class, writer::flush);
+    assertEquals(TTransportException.MESSAGE_SIZE_LIMIT, e.getType());
+    assertEquals(0, countTrans.writeCount);
+    assertEquals(0, membuf.length());
+
+    // The refused frame went with the buffer: the next, smaller message frames on its own.
+    writer.write(byteSequence(0, 49));
+    writer.flush();
+    assertEquals(1, countTrans.writeCount);
+    assertEquals(4 + 50, membuf.length());
+
+    TTransport reader = getTransport(membuf, limit);
+    byte[] readBuf = new byte[50];
+    assertEquals(50, reader.read(readBuf, 0, 50));
+    assertArrayEquals(byteSequence(0, 49), readBuf);
+  }
+
+  @Test
   public void testDirectRead() throws IOException, TTransportException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
