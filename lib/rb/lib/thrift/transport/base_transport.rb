@@ -35,6 +35,67 @@ module Thrift
       super(message)
       @type = type
     end
+
+    # TransportException.new(TYPE, message) returns an instance of the subclass
+    # registered for TYPE, so callers can rescue a specific condition by class
+    # while code that rescues TransportException and reads #type keeps working.
+    def self.new(*args, &block)
+      if equal?(TransportException)
+        klass = SUBCLASSES[args.fetch(0, UNKNOWN)]
+        return klass.new(*args, &block) if klass
+      end
+      super
+    end
+
+    # Base for the per-type subclasses. Accepts (message) or (type, message);
+    # the type defaults to the one the subclass stands for.
+    class Typed < TransportException
+      def initialize(type_or_message = nil, message = nil)
+        if type_or_message.is_a?(Integer)
+          super(type_or_message, message)
+        else
+          super(self.class::TYPE, type_or_message)
+        end
+      end
+    end
+
+    class NotOpen < Typed
+      TYPE = NOT_OPEN
+    end
+
+    class AlreadyOpen < Typed
+      TYPE = ALREADY_OPEN
+    end
+
+    class TimedOut < Typed
+      TYPE = TIMED_OUT
+    end
+
+    class EndOfFile < Typed
+      TYPE = END_OF_FILE
+    end
+
+    class NegativeSize < Typed
+      TYPE = NEGATIVE_SIZE
+    end
+
+    class SizeLimit < Typed
+      TYPE = SIZE_LIMIT
+    end
+
+    class Unknown < Typed
+      TYPE = UNKNOWN
+    end
+
+    SUBCLASSES = {
+      NOT_OPEN => NotOpen,
+      ALREADY_OPEN => AlreadyOpen,
+      TIMED_OUT => TimedOut,
+      END_OF_FILE => EndOfFile,
+      NEGATIVE_SIZE => NegativeSize,
+      SIZE_LIMIT => SizeLimit,
+      UNKNOWN => Unknown,
+    }.freeze
   end
 
   module TransportUtils
