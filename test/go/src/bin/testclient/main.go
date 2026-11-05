@@ -37,7 +37,7 @@ var port = flag.Int64("port", 9090, "Port number to connect")
 var domain_socket = flag.String("domain-socket", "", "Domain Socket (e.g. /tmp/thrifttest.thrift), instead of host and port")
 var transport = flag.String("transport", "buffered", "Transport: buffered, framed, http, zlib")
 var _ = flag.Bool("zlib", false, "For compatibility. Ignored.")
-var protocol = flag.String("protocol", "binary", "Protocol: binary, compact, json")
+var protocol = flag.String("protocol", "binary", "Protocol: binary, compact, json, header, multi, multic, multij")
 var ssl = flag.Bool("ssl", false, "Encrypted Transport using SSL")
 var certPath = flag.String("certPath", "keys", "Directory that contains SSL certificates")
 var testloops = flag.Int("testloops", 1, "Number of Tests")
@@ -48,12 +48,25 @@ func main() {
 	if addr == "" {
 		addr = fmt.Sprintf("%s:%d", *host, *port)
 	}
-	client, _, err := common.StartClient(addr, *transport, *protocol, *ssl, *certPath)
+	client, second, _, err := common.StartClient(addr, *transport, *protocol, *ssl, *certPath)
 	if err != nil {
 		t.Fatalf("Unable to start client: ", err)
 	}
 	for range *testloops {
 		callEverything(client)
+		if second != nil {
+			callSecondService(second)
+		}
+	}
+}
+
+func callSecondService(client *thrifttest.SecondServiceClient) {
+	s, err := client.SecondtestString(defaultCtx, "foobar")
+	if err != nil {
+		t.Fatalf("Unexpected error in SecondtestString() call: %v", err)
+	}
+	if expected := `testString("foobar")`; s != expected {
+		t.Fatalf("Unexpected SecondtestString() result, expected '%s' got '%s' ", expected, s)
 	}
 }
 

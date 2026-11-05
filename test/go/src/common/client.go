@@ -32,6 +32,13 @@ import (
 
 var debugClientProtocol bool
 
+// multiplexedBase maps a multiplexed protocol name to the protocol it wraps.
+var multiplexedBase = map[string]string{
+	"multi":  "binary",
+	"multic": "compact",
+	"multij": "json",
+}
+
 func init() {
 	flag.BoolVar(&debugClientProtocol, "debug_client_protocol", false, "turn client protocol trace on")
 }
@@ -42,7 +49,7 @@ func StartClient(
 	protocol string,
 	ssl bool,
 	certPath string,
-) (client *thrifttest.ThriftTestClient, trans thrift.TTransport, err error) {
+) (client *thrifttest.ThriftTestClient, second *thrifttest.SecondServiceClient, trans thrift.TTransport, err error) {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
 	}
@@ -51,12 +58,19 @@ func StartClient(
 		// client_v3.crt, so present it as the other cross-test clients do.
 		cert, err := tls.LoadX509KeyPair(certPath+"/client_v3.crt", certPath+"/client_v3.key")
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 	cfg := &thrift.TConfiguration{
 		TLSConfig: tlsConfig,
+	}
+
+	// multi, multic and multij are binary, compact and json with each call
+	// prefixed by the service name; second is only set for those.
+	base, multiplexed := multiplexedBase[protocol]
+	if multiplexed {
+		protocol = base
 	}
 
 	var protocolFactory thrift.TProtocolFactory
@@ -72,7 +86,7 @@ func StartClient(
 	case "header":
 		protocolFactory = thrift.NewTHeaderProtocolFactoryConf(cfg)
 	default:
-		return nil, nil, fmt.Errorf("invalid protocol specified %s", protocol)
+		return nil, nil, nil, fmt.Errorf("invalid protocol specified %s", protocol)
 	}
 	if debugClientProtocol {
 		protocolFactory = thrift.NewTDebugProtocolFactoryWithLogger(protocolFactory, "client:", thrift.StdLogger(nil))
@@ -83,7 +97,7 @@ func StartClient(
 		trans = thrift.NewTSocketConf(addr, nil)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	switch transport {
 	case "http":
@@ -105,16 +119,23 @@ func StartClient(
 	case "":
 		// Do nothing
 	default:
-		return nil, nil, fmt.Errorf("invalid transport specified %s", transport)
+		return nil, nil, nil, fmt.Errorf("invalid transport specified %s", transport)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if err = trans.Open(); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	iprot := protocolFactory.GetProtocol(trans)
 	oprot := protocolFactory.GetProtocol(trans)
+	if multiplexed {
+		oprot = thrift.NewTMultiplexedProtocol(oprot, "ThriftTest")
+		second = thrifttest.NewSecondServiceClient(thrift.NewTStandardClient(
+			protocolFactory.GetProtocol(trans),
+			thrift.NewTMultiplexedProtocol(protocolFactory.GetProtocol(trans), "SecondService"),
+		))
+	}
 	client = thrifttest.NewThriftTestClient(thrift.NewTStandardClient(iprot, oprot))
 	return
 }
