@@ -767,13 +767,29 @@ void t_lua_generator::generate_process_function(ostream& out,
   out << ")" << '\n';
 
   if (!tfunction->is_oneway()) {
-      // Check for errors
-      out << indent() << "if not status then" << '\n' << indent()
-          << "  reply_type = TMessageType.EXCEPTION" << '\n' << indent()
-          << "  result = TApplicationException:new{message = res}" << '\n';
+      // Check for errors. A declared exception raised with error() goes into the
+      // result like one that is returned; any other raised value becomes the
+      // message of a TApplicationException, which needs a string.
+      const std::vector<t_field*>& xf = tfunction->get_xceptions()->get_members();
+      out << indent() << "if not status then" << '\n';
+      string keyword = "if";
+      for (vector<t_field*>::const_iterator x_iter = xf.begin(); x_iter != xf.end(); ++x_iter) {
+          out << indent() << "  " << keyword << " ttype(res) == '"
+              << (*x_iter)->get_type()->get_name() << "' then" << '\n' << indent()
+              << "    result." << (*x_iter)->get_name() << " = res" << '\n';
+          keyword = "elseif";
+      }
+      if (xf.size() > 0) {
+          out << indent() << "  else" << '\n';
+      }
+      string pad = xf.size() > 0 ? "  " : "";
+      out << indent() << pad << "  reply_type = TMessageType.EXCEPTION" << '\n' << indent() << pad
+          << "  result = TApplicationException:new{message = tostring(res)}" << '\n';
+      if (xf.size() > 0) {
+          out << indent() << "  end" << '\n';
+      }
 
       // Handle custom exceptions
-      const std::vector<t_field*>& xf = tfunction->get_xceptions()->get_members();
       if (xf.size() > 0) {
           vector<t_field*>::const_iterator x_iter;
           for (x_iter = xf.begin(); x_iter != xf.end(); ++x_iter) {

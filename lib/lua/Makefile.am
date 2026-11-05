@@ -80,6 +80,8 @@ EXTRA_DIST = \
 		coding_standards.md \
 		test/RecursionDepth.thrift \
 		test/test_recursion_depth.lua \
+		test/RaisedException.thrift \
+		test/test_raised_exception.lua \
 		test/test_http_headers.lua \
 		test/test_simple_server.lua \
 		test/test_frame_and_string_limits.lua \
@@ -103,8 +105,13 @@ test_test_socket_flags_SOURCES = test/test_socket_flags.c
 test/gen-lua/RecursionDepth_ttypes.lua: test/RecursionDepth.thrift $(THRIFT)
 	$(THRIFT) -o test --gen lua test/RecursionDepth.thrift
 
-check-local: test/gen-lua/RecursionDepth_ttypes.lua
+# test_raised_exception.lua loads its generated service from gen-lua/ too.
+test/gen-lua/RaisedException_Raiser.lua: test/RaisedException.thrift $(THRIFT)
+	$(THRIFT) -o test --gen lua test/RaisedException.thrift
+
+check-local: test/gen-lua/RecursionDepth_ttypes.lua test/gen-lua/RaisedException_Raiser.lua
 	$(LUA) test/test_recursion_depth.lua
+	$(LUA) test/test_raised_exception.lua
 	$(LUA) test/test_http_headers.lua
 	$(LUA) test/test_simple_server.lua
 	$(LUA) test/test_frame_and_string_limits.lua
