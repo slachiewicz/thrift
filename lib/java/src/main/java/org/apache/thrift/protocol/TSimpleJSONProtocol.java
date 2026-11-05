@@ -343,12 +343,18 @@ public class TSimpleJSONProtocol extends TProtocol {
   @Override
   public void writeBinary(ByteBuffer bin) throws TException {
     // TODO(mcslee): Fix this
-    writeString(
-        new String(
-            bin.array(),
-            bin.position() + bin.arrayOffset(),
-            bin.limit() - bin.position() - bin.arrayOffset(),
-            StandardCharsets.UTF_8));
+    if (bin.hasArray()) {
+      writeString(
+          new String(
+              bin.array(),
+              bin.position() + bin.arrayOffset(),
+              bin.remaining(),
+              StandardCharsets.UTF_8));
+    } else {
+      byte[] copy = new byte[bin.remaining()];
+      bin.duplicate().get(copy);
+      writeString(new String(copy, StandardCharsets.UTF_8));
+    }
   }
 
   /**

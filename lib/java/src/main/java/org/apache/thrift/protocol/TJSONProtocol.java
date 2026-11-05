@@ -614,10 +614,13 @@ public class TJSONProtocol extends TProtocol {
 
   @Override
   public void writeBinary(ByteBuffer bin) throws TException {
-    writeJSONBase64(
-        bin.array(),
-        bin.position() + bin.arrayOffset(),
-        bin.limit() - bin.position() - bin.arrayOffset());
+    if (bin.hasArray()) {
+      writeJSONBase64(bin.array(), bin.position() + bin.arrayOffset(), bin.remaining());
+    } else {
+      byte[] copy = new byte[bin.remaining()];
+      bin.duplicate().get(copy);
+      writeJSONBase64(copy, 0, copy.length);
+    }
   }
 
   /** Reading methods. */

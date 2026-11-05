@@ -246,4 +246,39 @@ public class TestTBaseHelper {
     assertEquals(0, TBaseHelper.preallocSize(2 * 1_500_000_000));
     assertEquals(0, TBaseHelper.preallocSize(Integer.MIN_VALUE));
   }
+
+  private static List<ByteBuffer> nonArrayBuffers(byte[] data, int pos, int limit) {
+    List<ByteBuffer> buffers =
+        Arrays.asList(
+            ByteBuffer.allocateDirect(data.length).put(data),
+            ByteBuffer.wrap(data).asReadOnlyBuffer(),
+            ByteBuffer.allocateDirect(data.length).put(data).asReadOnlyBuffer());
+    for (ByteBuffer bb : buffers) {
+      bb.limit(limit).position(pos);
+    }
+    return buffers;
+  }
+
+  @Test
+  public void testByteBufferHelpersWithNonArrayBuffers() {
+    byte[] data = {9, 8, 0, 1, 2, 3, 4, 5, 6, 7, 10};
+    byte[] expected = {0, 1, 2, 3, 4, 5, 6};
+    for (ByteBuffer bb : nonArrayBuffers(data, 2, 9)) {
+      assertTrue(Arrays.equals(expected, TBaseHelper.byteBufferToByteArray(bb)));
+
+      byte[] target = new byte[9];
+      assertEquals(7, TBaseHelper.byteBufferToByteArray(bb, target, 1));
+      assertTrue(Arrays.equals(new byte[] {0, 0, 1, 2, 3, 4, 5, 6, 0}, target));
+
+      assertEquals(ByteBuffer.wrap(expected), TBaseHelper.rightSize(bb));
+
+      StringBuilder sb = new StringBuilder();
+      TBaseHelper.toString(bb, sb);
+      assertEquals("00 01 02 03 04 05 06", sb.toString());
+
+      assertEquals(ByteBuffer.wrap(expected), TBaseHelper.copyBinary(bb));
+      assertEquals(2, bb.position());
+      assertEquals(9, bb.limit());
+    }
+  }
 }

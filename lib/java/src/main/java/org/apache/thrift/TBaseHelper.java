@@ -209,18 +209,16 @@ public final class TBaseHelper {
   }
 
   public static void toString(ByteBuffer bb, StringBuilder sb) {
-    byte[] buf = bb.array();
-
-    int arrayOffset = bb.arrayOffset();
-    int offset = arrayOffset + bb.position();
-    int origLimit = arrayOffset + bb.limit();
+    int offset = bb.position();
+    int origLimit = bb.limit();
     int limit = (origLimit - offset > 128) ? offset + 128 : origLimit;
 
+    // Absolute gets work for direct and read-only buffers and leave the position untouched.
     for (int i = offset; i < limit; i++) {
       if (i > offset) {
         sb.append(" ");
       }
-      sb.append(paddedByteString(buf[i]));
+      sb.append(paddedByteString(bb.get(i)));
     }
     if (origLimit != limit) {
       sb.append("...");
@@ -250,12 +248,16 @@ public final class TBaseHelper {
 
   public static int byteBufferToByteArray(ByteBuffer byteBuffer, byte[] target, int offset) {
     int remaining = byteBuffer.remaining();
-    System.arraycopy(
-        byteBuffer.array(),
-        byteBuffer.arrayOffset() + byteBuffer.position(),
-        target,
-        offset,
-        remaining);
+    if (byteBuffer.hasArray()) {
+      System.arraycopy(
+          byteBuffer.array(),
+          byteBuffer.arrayOffset() + byteBuffer.position(),
+          target,
+          offset,
+          remaining);
+    } else {
+      byteBuffer.duplicate().get(target, offset, remaining);
+    }
     return remaining;
   }
 

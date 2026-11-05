@@ -241,9 +241,17 @@ public class TBinaryProtocol extends TProtocol {
 
   @Override
   public void writeBinary(ByteBuffer bin) throws TException {
-    int length = bin.limit() - bin.position();
+    int length = bin.remaining();
     writeI32(length);
-    trans_.write(bin.array(), bin.position() + bin.arrayOffset(), length);
+    if (bin.hasArray()) {
+      trans_.write(bin.array(), bin.position() + bin.arrayOffset(), length);
+    } else {
+      // Direct and read-only buffers have no accessible array; copy from a duplicate so the
+      // caller's position is left alone.
+      byte[] copy = new byte[length];
+      bin.duplicate().get(copy);
+      trans_.write(copy, 0, length);
+    }
   }
 
   /** Reading methods. */

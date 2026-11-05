@@ -116,6 +116,40 @@ public abstract class ProtocolTestBase {
   }
 
   @Test
+  public void testBinaryFromNonArrayBuffers() throws Exception {
+    final byte[] data = {9, 8, 0, 1, 2, 3, 4, 5, 6, 7, 10};
+    final ByteBuffer expected = ByteBuffer.wrap(data, 2, 7).slice();
+    for (ByteBuffer source :
+        Arrays.asList(
+            ByteBuffer.allocateDirect(data.length).put(data),
+            ByteBuffer.wrap(data).asReadOnlyBuffer(),
+            ByteBuffer.allocateDirect(data.length).put(data).asReadOnlyBuffer())) {
+      source.limit(9).position(2);
+      final ByteBuffer bin = source;
+      if (canBeUsedNaked()) {
+        TMemoryBuffer buf = new TMemoryBuffer(0);
+        TProtocol proto = getFactory().getProtocol(buf);
+        proto.writeBinary(bin);
+        assertEquals(2, bin.position());
+        assertEquals(9, bin.limit());
+        assertEquals(expected, proto.readBinary());
+      }
+      internalTestStructField(
+          new StructFieldTestCase(TType.STRING, (short) 15) {
+            public void writeMethod(TProtocol proto) throws TException {
+              proto.writeBinary(bin);
+              assertEquals(2, bin.position());
+              assertEquals(9, bin.limit());
+            }
+
+            public void readMethod(TProtocol proto) throws TException {
+              assertEquals(expected, proto.readBinary());
+            }
+          });
+    }
+  }
+
+  @Test
   public void testString() throws Exception {
     for (String s :
         Arrays.asList("", "short", "borderlinetiny", "a bit longer than the smallest possible")) {

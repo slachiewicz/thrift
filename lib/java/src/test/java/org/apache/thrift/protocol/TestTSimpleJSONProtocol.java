@@ -47,6 +47,28 @@ public class TestTSimpleJSONProtocol {
   }
 
   @Test
+  public void testWriteBinaryFromAnyByteBuffer() throws TException {
+    byte[] data = "xxhello worldyy".getBytes(StandardCharsets.UTF_8);
+    java.util.List<java.nio.ByteBuffer> buffers =
+        java.util.Arrays.asList(
+            java.nio.ByteBuffer.wrap(data),
+            java.nio.ByteBuffer.wrap(data).asReadOnlyBuffer(),
+            java.nio.ByteBuffer.allocateDirect(data.length).put(data),
+            java.nio.ByteBuffer.allocateDirect(data.length).put(data).asReadOnlyBuffer(),
+            java.nio.ByteBuffer.wrap(data, 1, data.length - 1).slice());
+    for (int i = 0; i < buffers.size(); i++) {
+      java.nio.ByteBuffer bb = buffers.get(i);
+      int skip = i == 4 ? 1 : 2;
+      bb.limit(bb.capacity() - 2).position(skip);
+      buf = new TMemoryBuffer(1000);
+      proto = new TSimpleJSONProtocol(buf);
+      proto.writeBinary(bb);
+      assertEquals("\"hello world\"", bufToString());
+      assertEquals(skip, bb.position());
+    }
+  }
+
+  @Test
   public void testHolyMoley() throws TException {
     final HolyMoley holyMoley = Fixtures.getHolyMoley().deepCopy();
     // unset sets that produce inconsistent ordering between JDK7/8

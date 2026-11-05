@@ -174,8 +174,15 @@ public class ThriftStructProcessor implements ThriftFieldValueProcessor<TBase> {
   }
 
   private static String byteBufferToString(ByteBuffer buffer) {
-    byte[] bytes = buffer.array();
-    int pos = buffer.position();
-    return new String(bytes, pos, buffer.limit() - pos, StandardCharsets.UTF_8);
+    if (buffer.hasArray()) {
+      return new String(
+          buffer.array(),
+          buffer.arrayOffset() + buffer.position(),
+          buffer.remaining(),
+          StandardCharsets.UTF_8);
+    }
+    byte[] bytes = new byte[buffer.remaining()];
+    buffer.duplicate().get(bytes);
+    return new String(bytes, StandardCharsets.UTF_8);
   }
 }
