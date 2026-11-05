@@ -52,6 +52,11 @@ func GetServerParams(
 	hostPort := fmt.Sprintf("%s:%d", host, port)
 	var cfg *thrift.TConfiguration = nil
 
+	base, multiplexed := multiplexedBase[protocol]
+	if multiplexed {
+		protocol = base
+	}
+
 	var protocolFactory thrift.TProtocolFactory
 	switch protocol {
 	case "compact":
@@ -146,7 +151,14 @@ func GetServerParams(
 	default:
 		return nil, nil, nil, nil, "", fmt.Errorf("invalid transport specified %s", transport)
 	}
-	processor := thrifttest.NewThriftTestProcessor(handler)
+	var processor thrift.TProcessor = thrifttest.NewThriftTestProcessor(handler)
+	if multiplexed {
+		mp := thrift.NewTMultiplexedProcessor()
+		mp.RegisterDefault(processor)
+		mp.RegisterProcessor("ThriftTest", processor)
+		mp.RegisterProcessor("SecondService", thrifttest.NewSecondServiceProcessor(SecondHandler))
+		processor = mp
+	}
 
 	return processor, serverTransport, transportFactory, protocolFactory, addr, nil
 }

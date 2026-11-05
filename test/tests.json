@@ -119,7 +119,10 @@
       "binary",
       "compact",
       "json",
-      "header"
+      "header",
+      "multi",
+      "multic",
+      "multij"
     ],
     "workdir": "go/bin"
   },
