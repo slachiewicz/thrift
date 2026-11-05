@@ -105,6 +105,8 @@ public:
         gen_no_constructors_ = true;
       } else if ( iter->first.compare("private_optional") == 0) {
         gen_private_optional_ = true;
+      } else if (iter->first.compare("include_guard_prefix") == 0) {
+        include_guard_prefix_ = iter->second;
       } else {
         throw "unknown option cpp:" + iter->first;
       }
@@ -415,6 +417,11 @@ private:
   bool gen_no_skeleton_;
 
   /**
+   * Prepended to the name of every include guard (types, constants and service headers).
+   */
+  std::string include_guard_prefix_;
+
+  /**
    * True if we should omit generating constructors/destructors/assignment/destructors.
    */
   bool gen_no_constructors_;
@@ -492,10 +499,12 @@ void t_cpp_generator::init_generator() {
   f_types_tcc_ << autogen_comment();
 
   // Start ifndef
-  f_types_ << "#ifndef " << program_name_ << "_TYPES_H" << '\n' << "#define " << program_name_
-           << "_TYPES_H" << '\n' << '\n';
-  f_types_tcc_ << "#ifndef " << program_name_ << "_TYPES_TCC" << '\n' << "#define " << program_name_
-               << "_TYPES_TCC" << '\n' << '\n';
+  f_types_ << "#ifndef " << include_guard_prefix_ << program_name_ << "_TYPES_H" << '\n'
+           << "#define " << include_guard_prefix_ << program_name_ << "_TYPES_H" << '\n'
+           << '\n';
+  f_types_tcc_ << "#ifndef " << include_guard_prefix_ << program_name_ << "_TYPES_TCC" << '\n'
+               << "#define " << include_guard_prefix_ << program_name_ << "_TYPES_TCC" << '\n'
+               << '\n';
 
   // Include base types
   f_types_ << "#include <iosfwd>" << '\n'
@@ -870,9 +879,14 @@ void t_cpp_generator::generate_consts(std::vector<t_const*> consts) {
     f_consts_impl << autogen_comment();
 
     // Start ifndef
-    f_consts << "#ifndef " << program_name_ << "_CONSTANTS_H" << '\n' << "#define " << program_name_
-             << "_CONSTANTS_H" << '\n' << '\n' << "#include \"" << get_include_prefix(*get_program())
-             << program_name_ << "_types.h\"" << '\n' << '\n' << ns_open_ << '\n' << '\n';
+    f_consts << "#ifndef " << include_guard_prefix_ << program_name_ << "_CONSTANTS_H" << '\n'
+             << "#define " << include_guard_prefix_ << program_name_ << "_CONSTANTS_H" << '\n'
+             << '\n'
+             << "#include \"" << get_include_prefix(*get_program()) << program_name_ << "_types.h\""
+             << '\n'
+             << '\n'
+             << ns_open_ << '\n'
+             << '\n';
 
     f_consts_impl << "#include \"" << get_include_prefix(*get_program()) << program_name_
                   << "_constants.h\"" << '\n' << '\n' << ns_open_ << '\n' << '\n';
@@ -2257,7 +2271,8 @@ void t_cpp_generator::generate_service(t_service* tservice) {
 
   // Print header file includes
   f_header_ << autogen_comment();
-  f_header_ << "#ifndef " << svcname << "_H" << '\n' << "#define " << svcname << "_H" << '\n'
+  f_header_ << "#ifndef " << include_guard_prefix_ << svcname << "_H" << '\n'
+            << "#define " << include_guard_prefix_ << svcname << "_H" << '\n'
             << '\n';
   if (gen_cob_style_) {
     f_header_ << "#include <thrift/transport/TBufferTransports.h>" << '\n' // TMemoryBuffer
@@ -2305,8 +2320,9 @@ void t_cpp_generator::generate_service(t_service* tservice) {
     f_service_tcc_ << "#include \"" << get_include_prefix(*get_program()) << svcname << ".h\""
                    << '\n';
 
-    f_service_tcc_ << "#ifndef " << svcname << "_TCC" << '\n' << "#define " << svcname << "_TCC"
-                   << '\n' << '\n';
+    f_service_tcc_ << "#ifndef " << include_guard_prefix_ << svcname << "_TCC" << '\n'
+                   << "#define " << include_guard_prefix_ << svcname << "_TCC" << '\n'
+                   << '\n';
 
     if (gen_cob_style_) {
       f_service_tcc_ << "#include \"thrift/async/TAsyncChannel.h\"" << '\n';
@@ -5209,7 +5225,6 @@ std::string t_cpp_generator::display_name() const {
   return "C++";
 }
 
-
 THRIFT_REGISTER_GENERATOR(
     cpp,
     "C++",
@@ -5227,4 +5242,6 @@ THRIFT_REGISTER_GENERATOR(
     "                     with perfect forwarding for non-primitive types.\n"
     "    no_ostream_operators:\n"
     "                     Omit generation of ostream definitions.\n"
-    "    no_skeleton:     Omits generation of skeleton.\n")
+    "    no_skeleton:     Omits generation of skeleton.\n"
+    "    include_guard_prefix=<str>:\n"
+    "                     Prepend <str> to the name of every include guard.\n")
