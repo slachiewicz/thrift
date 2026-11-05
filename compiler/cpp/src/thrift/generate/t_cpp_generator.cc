@@ -1906,10 +1906,9 @@ void t_cpp_generator::generate_struct_definition(ostream& out,
       out << indent() << "this->" << (*m_iter)->get_name() << " = val;" << '\n';
       indent_down();
 
-      // assume all fields are required except optional fields.
-      // for optional fields change __isset.name to true
-      bool is_optional = (*m_iter)->get_req() == t_field::T_OPTIONAL;
-      if (is_optional) {
+      // every field except a required one has an __isset flag, so mark it set
+      bool has_isset = (*m_iter)->get_req() != t_field::T_REQUIRED;
+      if (has_isset) {
         out << indent() << indent() << "__isset." << (*m_iter)->get_name() << " = true;" << '\n';
       }
       out << indent() << "}" << '\n';
@@ -1950,10 +1949,9 @@ void t_cpp_generator::generate_struct_forward_setter_impls(ostream& out, t_struc
     indent_up();
     out << indent() << "this->" << (*m_iter)->get_name() << " = ::std::forward<T_>(val);" << '\n';
     
-    // assume all fields are required except optional fields.
-    // for optional fields change __isset.name to true
-    bool is_optional = (*m_iter)->get_req() == t_field::T_OPTIONAL;
-    if (is_optional) {
+    // every field except a required one has an __isset flag, so mark it set
+    bool has_isset = (*m_iter)->get_req() != t_field::T_REQUIRED;
+    if (has_isset) {
       out << indent() << "__isset." << (*m_iter)->get_name() << " = true;" << '\n';
     }
     indent_down();

@@ -86,3 +86,13 @@ struct Binaries {
   5: required binary req_bin;
   6: optional binary opt_bin;
 }
+
+exception Boom {
+  1: string why;
+}
+
+struct HoldsBoom {
+  1: Boom default_boom;
+  2: optional Boom opt_boom;
+  3: i32 default_int;
+}

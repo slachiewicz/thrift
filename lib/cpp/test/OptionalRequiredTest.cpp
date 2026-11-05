@@ -384,3 +384,28 @@ BOOST_AUTO_TEST_CASE(test_optional_required_13) {
   BOOST_CHECK_MESSAGE(!expected_result.compare(result),
     "Expected:\n" << expected_result << "\nGotten:\n" << result);
 }
+
+// THRIFT-1946: a value stored through __set_x() of a field with default requiredness
+// must be marked set, or write() skips it (exception-typed fields are always guarded).
+BOOST_AUTO_TEST_CASE(test_setter_marks_default_field_isset) {
+  HoldsBoom t1, t2;
+  Boom boom;
+  boom.why = "because";
+
+  BOOST_CHECK(!t1.__isset.default_boom);
+  BOOST_CHECK(!t1.__isset.opt_boom);
+  BOOST_CHECK(!t1.__isset.default_int);
+
+  t1.__set_default_boom(boom);
+  t1.__set_opt_boom(boom);
+  t1.__set_default_int(7);
+  BOOST_CHECK(t1.__isset.default_boom);
+  BOOST_CHECK(t1.__isset.opt_boom);
+  BOOST_CHECK(t1.__isset.default_int);
+
+  write_to_read(t1, t2);
+  BOOST_CHECK(t2.__isset.default_boom);
+  BOOST_CHECK_EQUAL(t2.default_boom.why, "because");
+  BOOST_CHECK_EQUAL(t2.opt_boom.why, "because");
+  BOOST_CHECK_EQUAL(t2.default_int, 7);
+}
