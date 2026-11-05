@@ -29,6 +29,58 @@ describe "BaseTransport" do
       expect(exc.type).to eq(Thrift::TransportException::ALREADY_OPEN)
       expect(exc.message).to eq("msg")
     end
+
+    {
+      Thrift::TransportException::UNKNOWN => Thrift::TransportException::Unknown,
+      Thrift::TransportException::NOT_OPEN => Thrift::TransportException::NotOpen,
+      Thrift::TransportException::ALREADY_OPEN => Thrift::TransportException::AlreadyOpen,
+      Thrift::TransportException::TIMED_OUT => Thrift::TransportException::TimedOut,
+      Thrift::TransportException::END_OF_FILE => Thrift::TransportException::EndOfFile,
+      Thrift::TransportException::NEGATIVE_SIZE => Thrift::TransportException::NegativeSize,
+      Thrift::TransportException::SIZE_LIMIT => Thrift::TransportException::SizeLimit,
+    }.each do |type, klass|
+      it "should return #{klass} for type #{type}" do
+        exc = Thrift::TransportException.new(type, "msg")
+        expect(exc).to be_a(klass)
+        expect(exc).to be_a(Thrift::TransportException)
+        expect(exc.type).to eq(type)
+        expect(exc.message).to eq("msg")
+      end
+
+      it "should let #{klass} be built from a message alone" do
+        exc = klass.new("msg")
+        expect(exc.type).to eq(type)
+        expect(exc.message).to eq("msg")
+        expect(klass.new.type).to eq(type)
+      end
+    end
+
+    it "should keep a plain TransportException for unregistered types" do
+      exc = Thrift::TransportException.new(42, "msg")
+      expect(exc.class).to eq(Thrift::TransportException)
+      expect(exc.type).to eq(42)
+    end
+
+    it "should default to the Unknown subclass" do
+      expect(Thrift::TransportException.new).to be_a(Thrift::TransportException::Unknown)
+    end
+
+    it "should be rescuable by specific class and by the base class" do
+      expect {
+        begin
+          raise Thrift::TransportException.new(Thrift::TransportException::NOT_OPEN, "closed")
+        rescue Thrift::TransportException::TimedOut
+          raise "wrong class rescued"
+        end
+      }.to raise_error(Thrift::TransportException::NotOpen)
+
+      rescued = begin
+        raise Thrift::TransportException.new(Thrift::TransportException::NOT_OPEN, "closed")
+      rescue Thrift::TransportException::NotOpen => e
+        e
+      end
+      expect(rescued.type).to eq(Thrift::TransportException::NOT_OPEN)
+    end
   end
 
   describe Thrift::BaseTransport do
