@@ -195,6 +195,7 @@ public:
   void generate_service_client(t_service* tservice, string style);
   void generate_service_processor(t_service* tservice, string style);
   void generate_service_skeleton(t_service* tservice);
+  std::string skeleton_return(t_function* tfunction);
   void generate_process_function(t_service* tservice,
                                  t_function* tfunction,
                                  string style,
@@ -2615,6 +2616,18 @@ void t_cpp_generator::generate_function_call(ostream& out,
 }
 
 /**
+ * Returns the line that ends a skeleton stub whose C++ signature returns a value,
+ * or an empty string for void functions and for those returning through _return.
+ */
+string t_cpp_generator::skeleton_return(t_function* tfunction) {
+  t_type* ttype = tfunction->get_returntype();
+  if (ttype->is_void() || is_complex_type(ttype)) {
+    return "";
+  }
+  return indent() + "  return " + type_name(ttype) + "();\n";
+}
+
+/**
  * Returns the functions of a service and of every service it extends, base
  * service first. A skeleton handler derives only from <svc>If, whose pure
  * virtual functions include all of them, so the skeleton must stub them all.
@@ -2671,9 +2684,10 @@ void t_cpp_generator::generate_service_async_skeleton(t_service* tservice) {
   vector<t_function*>::iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
     generate_java_doc(f_skeleton, *f_iter);
-    f_skeleton << indent() << function_signature(*f_iter, "") << " {" << '\n' << indent()
-               << "  // Your implementation goes here" << '\n' << indent() << "  printf(\""
-               << (*f_iter)->get_name() << "\\n\");" << '\n' << indent() << "}" << '\n' << '\n';
+    f_skeleton << indent() << function_signature(*f_iter, "") << " {" << '\n'
+               << indent() << "  // Your implementation goes here" << '\n'
+               << indent() << "  printf(\"" << (*f_iter)->get_name() << "\\n\");" << '\n';
+    f_skeleton << skeleton_return(*f_iter) << indent() << "}" << '\n' << '\n';
   }
 
   indent_down();
@@ -4328,9 +4342,10 @@ void t_cpp_generator::generate_service_skeleton(t_service* tservice) {
   vector<t_function*>::iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
     generate_java_doc(f_skeleton, *f_iter);
-    f_skeleton << indent() << function_signature(*f_iter, "") << " {" << '\n' << indent()
-               << "  // Your implementation goes here" << '\n' << indent() << "  printf(\""
-               << (*f_iter)->get_name() << "\\n\");" << '\n' << indent() << "}" << '\n' << '\n';
+    f_skeleton << indent() << function_signature(*f_iter, "") << " {" << '\n'
+               << indent() << "  // Your implementation goes here" << '\n'
+               << indent() << "  printf(\"" << (*f_iter)->get_name() << "\\n\");" << '\n';
+    f_skeleton << skeleton_return(*f_iter) << indent() << "}" << '\n' << '\n';
   }
 
   indent_down();
