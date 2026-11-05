@@ -155,6 +155,7 @@ node ${DIR}/deep-constructor.test.js || TESTOK=1
 node ${DIR}/recursion_depth.test.js || TESTOK=1
 node ${DIR}/connection_transport.test.js || TESTOK=1
 node ${DIR}/stdio_client_errors.test.js || TESTOK=1
+node ${DIR}/http_client_timeout.test.js || TESTOK=1
 node ${DIR}/ws_client_errors.test.js || TESTOK=1
 node ${DIR}/http_client_errors.test.js || TESTOK=1
 node ${DIR}/transport_receiver.test.js || TESTOK=1
