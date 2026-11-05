@@ -139,6 +139,7 @@ service NonblockingService {
 
 service EnumService {
   SomeEnum get_enum()
+  StructWithSomeEnum get_nested_enum()
 }
 
 union My_union {

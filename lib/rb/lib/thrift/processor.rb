@@ -20,12 +20,20 @@
 
 require "logger"
 require "thrift/protocol/base_protocol"
+require "thrift/transport/base_transport"
 
 module Thrift
   module Processor
     class ArgumentProtocolException < ProtocolException
     end
     private_constant :ArgumentProtocolException
+
+    # A failure after the REPLY envelope has been written cannot be answered
+    # with an EXCEPTION: the reply is already partly on the wire. It leaves
+    # process so that the server closes the connection.
+    class ReplyWriteError < TransportException
+    end
+    private_constant :ReplyWriteError
 
     def initialize(handler, logger = nil)
       @handler = handler
@@ -55,6 +63,8 @@ module Thrift
       if name.valid_encoding? && respond_to?("process_#{name}")
         begin
           send("process_#{name}", seqid, iprot, oprot)
+        rescue ReplyWriteError
+          raise
         rescue ArgumentProtocolException => e
           x = ApplicationException.new(ApplicationException::PROTOCOL_ERROR, e.message)
           write_error(x, oprot, name, seqid)
@@ -86,10 +96,15 @@ module Thrift
       # Struct#write validates too, but only after the REPLY envelope is on the
       # wire; an invalid result must fail here so process can send EXCEPTION alone.
       result.validate
-      oprot.write_message_begin(name, MessageTypes::REPLY, seqid)
-      result.write(oprot)
-      oprot.write_message_end
-      oprot.trans.flush
+      begin
+        oprot.write_message_begin(name, MessageTypes::REPLY, seqid)
+        result.write(oprot)
+        oprot.write_message_end
+        oprot.trans.flush
+      rescue => e
+        @logger.debug "Error writing the reply to #{name}, closing the connection: #{e.message}\n#{e.backtrace.join("\n")}"
+        raise ReplyWriteError.new(TransportException::UNKNOWN, "Failed to write the reply to #{name}: #{e.message}")
+      end
     end
 
     def write_error(err, oprot, name, seqid)

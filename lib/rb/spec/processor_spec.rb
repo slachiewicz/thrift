@@ -268,6 +268,117 @@ describe "Processor" do
       expect(output_transport.available).to eq(0)
     end
 
+    # THRIFT-6503: a nested struct is validated by its own write, after the
+    # REPLY envelope is on the wire. The reply cannot be taken back, so the
+    # error must reach the server loop, which closes the connection, instead of
+    # an EXCEPTION being appended to the partial reply.
+    describe "a failure while writing the reply" do
+      let(:processor) do
+        handler = double("Handler")
+        allow(handler).to receive(:get_nested_enum).and_return(SpecNamespace::StructWithSomeEnum.new(some_enum: 100))
+        SpecNamespace::EnumService::Processor.new(handler)
+      end
+
+      it "propagates as a TransportException and appends no exception to the partial reply" do
+        output_transport, output = output_protocol
+        input = input_protocol("get_nested_enum", Thrift::MessageTypes::CALL, 30)
+
+        expect { processor.process(input, output) }.to raise_error(Thrift::TransportException) do |error|
+          expect(error.cause).to be_a(Thrift::ProtocolException)
+        end
+
+        response = Thrift::BinaryProtocol.new(output_transport)
+        expect(response.read_message_begin).to eq(["get_nested_enum", Thrift::MessageTypes::REPLY, 30])
+        expect(output_transport.read(output_transport.available)).not_to include("Internal error")
+      end
+
+      it "propagates over the compact protocol too" do
+        transport = Thrift::MemoryBufferTransport.new
+        Thrift::CompactProtocol.new(transport).tap do |protocol|
+          protocol.write_message_begin("get_nested_enum", Thrift::MessageTypes::CALL, 31)
+          protocol.write_struct_begin("args")
+          protocol.write_field_stop
+          protocol.write_struct_end
+          protocol.write_message_end
+        end
+        output_transport = Thrift::MemoryBufferTransport.new
+
+        expect {
+          processor.process(Thrift::CompactProtocol.new(transport), Thrift::CompactProtocol.new(output_transport))
+        }.to raise_error(Thrift::TransportException)
+
+        expect(output_transport.read(output_transport.available)).not_to include("Internal error")
+      end
+
+      it "sends nothing over a framed transport, whose frame is flushed only after the write" do
+        output_transport = Thrift::MemoryBufferTransport.new
+        framed = Thrift::FramedTransport.new(output_transport)
+        input = input_protocol("get_nested_enum", Thrift::MessageTypes::CALL, 32)
+
+        expect { processor.process(input, Thrift::BinaryProtocol.new(framed)) }.to raise_error(Thrift::TransportException)
+
+        expect(output_transport.available).to eq(0)
+      end
+
+      it "leaves the answer to a top-level invalid result untouched" do
+        handler = double("Handler")
+        allow(handler).to receive(:get_enum).and_return(100)
+        enum_processor = SpecNamespace::EnumService::Processor.new(handler)
+        output_transport, output = output_protocol
+
+        expect(enum_processor.process(input_protocol("get_enum", Thrift::MessageTypes::CALL, 33), output)).to be true
+
+        response = Thrift::BinaryProtocol.new(output_transport)
+        expect(response.read_message_begin).to eq(["get_enum", Thrift::MessageTypes::EXCEPTION, 33])
+      end
+
+      it "closes the connection and keeps a SimpleServer serving other clients" do
+        probe = TCPServer.new("127.0.0.1", 0)
+        port = probe.addr[1]
+        probe.close
+        server = Thrift::SimpleServer.new(
+          processor,
+          Thrift::ServerSocket.new("127.0.0.1", port),
+          nil,
+          Thrift::BinaryProtocolFactory.new,
+          logger: Logger.new(nil),
+        )
+        thread = Thread.new { server.serve }
+
+        begin
+          call = lambda do |seqid|
+            socket = nil
+            50.times do
+              socket = TCPSocket.new("127.0.0.1", port)
+              break
+            rescue Errno::ECONNREFUSED
+              sleep 0.05
+            end
+            client = Thrift::BinaryProtocol.new(Thrift::IOStreamTransport.new(socket, socket))
+            client.write_message_begin("get_nested_enum", Thrift::MessageTypes::CALL, seqid)
+            client.write_struct_begin("args")
+            client.write_field_stop
+            client.write_struct_end
+            client.write_message_end
+            client.trans.flush
+            reply = Timeout.timeout(5) { socket.read }
+            socket.close
+            reply
+          end
+
+          # socket.read returns at EOF, so a closed connection is what ends it.
+          2.times do |i|
+            reply = call.call(40 + i)
+            expect(reply).to include("get_nested_enum")
+            expect(reply).not_to include("Internal error")
+          end
+        ensure
+          thread.kill
+          thread.join
+        end
+      end
+    end
+
     it "should write out a reply when asked" do
       result = double("MockResult")
       expect(result).to receive(:validate).ordered
