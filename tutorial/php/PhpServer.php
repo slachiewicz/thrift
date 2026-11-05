@@ -1,4 +1,3 @@
-#!/usr/bin/env php
 <?php
 
 namespace tutorial\php;
@@ -62,16 +61,16 @@ use Thrift\Transport\TBufferedTransport;
 class CalculatorHandler implements \tutorial\CalculatorIf {
   protected $log = array();
 
-  public function ping() {
+  public function ping(): void {
     error_log("ping()");
   }
 
-  public function add($num1, $num2) {
+  public function add(?int $num1, ?int $num2): ?int {
     error_log("add({$num1}, {$num2})");
     return $num1 + $num2;
   }
 
-  public function calculate($logid, \tutorial\Work $w) {
+  public function calculate(?int $logid, ?\tutorial\Work $w): ?int {
     error_log("calculate({$logid}, {{$w->op}, {$w->num1}, {$w->num2}})");
     switch ($w->op) {
       case \tutorial\Operation::ADD:
@@ -107,7 +106,7 @@ class CalculatorHandler implements \tutorial\CalculatorIf {
     return $val;
   }
 
-  public function getStruct($key) {
+  public function getStruct(?int $key): ?\shared\SharedStruct {
     error_log("getStruct({$key})");
     // This actually doesn't work because the PHP interpreter is
     // restarted for every request.
@@ -115,13 +114,13 @@ class CalculatorHandler implements \tutorial\CalculatorIf {
     return new \shared\SharedStruct(array("key" => $key, "value" => "PHP is stateless!"));
   }
 
-  public function zip() {
+  public function zip(): void {
     error_log("zip()");
   }
 
 };
 
-header('Content-Type', 'application/x-thrift');
+header('Content-Type: application/x-thrift');
 if (php_sapi_name() == 'cli') {
   echo "\r\n";
 }
