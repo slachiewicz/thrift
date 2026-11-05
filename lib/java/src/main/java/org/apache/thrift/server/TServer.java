@@ -23,6 +23,7 @@ import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransportFactory;
 
@@ -123,6 +124,21 @@ public abstract class TServer {
     outputTransportFactory_ = args.outputTransportFactory;
     inputProtocolFactory_ = args.inputProtocolFactory;
     outputProtocolFactory_ = args.outputProtocolFactory;
+  }
+
+  /**
+   * Fails fast for servers that read from accepted sockets with blocking I/O: a nonblocking server
+   * transport hands them sockets they cannot use, so they would accept connections and never serve
+   * them.
+   */
+  static void requireBlockingTransport(AbstractServerArgs args, String serverName) {
+    if (args.serverTransport instanceof TNonblockingServerTransport) {
+      throw new IllegalArgumentException(
+          serverName
+              + " serves clients with blocking I/O and cannot use a nonblocking server transport"
+              + " such as TNonblockingServerSocket; use TServerSocket, or use THsHaServer or"
+              + " TThreadedSelectorServer with a nonblocking transport.");
+    }
   }
 
   /** The run method fires up the server and gets things going. */

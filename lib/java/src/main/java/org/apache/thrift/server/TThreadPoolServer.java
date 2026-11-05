@@ -93,6 +93,8 @@ public class TThreadPoolServer extends TServer {
   public TThreadPoolServer(Args args) {
     super(args);
 
+    requireBlockingTransport(args, "TThreadPoolServer");
+
     stopTimeoutUnit = args.stopTimeoutUnit;
     stopTimeoutVal = args.stopTimeoutVal;
 

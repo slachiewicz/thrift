@@ -36,6 +36,7 @@ public class TSimpleServer extends TServer {
 
   public TSimpleServer(AbstractServerArgs args) {
     super(args);
+    requireBlockingTransport(args, "TSimpleServer");
   }
 
   @Override
