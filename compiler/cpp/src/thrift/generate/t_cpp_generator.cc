@@ -2108,8 +2108,10 @@ void t_cpp_generator::generate_struct_writer(ostream& out, t_struct* tstruct, bo
   indent(out) << "xfer += oprot->writeStructBegin(\"" << name << "\");" << '\n';
 
   for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
-    bool check_if_set = (*f_iter)->get_req() == t_field::T_OPTIONAL
-                        || (*f_iter)->get_type()->is_xception();
+    // Required fields have no __isset member, so an exception-typed one cannot be guarded.
+    bool check_if_set
+        = (*f_iter)->get_req() == t_field::T_OPTIONAL
+          || ((*f_iter)->get_req() != t_field::T_REQUIRED && (*f_iter)->get_type()->is_xception());
     if (check_if_set) {
       out << '\n' << indent() << "if (this->__isset." << (*f_iter)->get_name() << ") {" << '\n';
       indent_up();
