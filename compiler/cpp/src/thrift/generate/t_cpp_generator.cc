@@ -194,6 +194,7 @@ public:
   void generate_service_null(t_service* tservice, string style);
   void generate_service_multiface(t_service* tservice);
   void generate_service_helpers(t_service* tservice);
+  void generate_helper_struct_members(std::ostream& out, t_struct* tstruct);
   void generate_service_client(t_service* tservice, string style);
   void generate_service_processor(t_service* tservice, string style);
   void generate_service_skeleton(t_service* tservice);
@@ -2405,7 +2406,9 @@ void t_cpp_generator::generate_service_helpers(t_service* tservice) {
     // TODO(dreiss): Why is this stuff not in generate_function_helpers?
     ts->set_name(tservice->get_name() + "_" + (*f_iter)->get_name() + "_args");
     generate_struct_declaration(f_header_, ts, false);
-    generate_struct_definition(out, f_service_, ts, false);
+    generate_struct_forward_setter_impls(f_header_, ts);
+    generate_struct_definition(f_service_, f_service_, ts, true);
+    generate_helper_struct_members(f_service_, ts);
     generate_struct_reader(out, ts);
     generate_struct_writer(out, ts);
 
@@ -2416,6 +2419,31 @@ void t_cpp_generator::generate_service_helpers(t_service* tservice) {
     ts->set_name(name_orig);
 
     generate_function_helpers(tservice, *f_iter);
+  }
+}
+
+/**
+ * Defines the members that generate_struct_declaration declares for the
+ * by-value args and result helpers of a function: equality, copy and move.
+ * Like the default constructor and the setters, they always go to the .cpp
+ * file, never to a .tcc file.
+ *
+ * @param out The .cpp stream
+ * @param tstruct The helper struct, already renamed
+ */
+void t_cpp_generator::generate_helper_struct_members(ostream& out, t_struct* tstruct) {
+  if (!gen_no_default_operators_) {
+    generate_equality_operator(out, tstruct);
+  }
+  if (!gen_no_constructors_) {
+    generate_copy_constructor(out, tstruct, false);
+    if (gen_moveable_) {
+      generate_move_constructor(out, tstruct, false);
+    }
+    generate_assignment_operator(out, tstruct);
+    if (gen_moveable_) {
+      generate_move_assignment_operator(out, tstruct);
+    }
   }
 }
 
@@ -3883,7 +3911,9 @@ void t_cpp_generator::generate_function_helpers(t_service* tservice, t_function*
   }
 
   generate_struct_declaration(f_header_, &result, false);
-  generate_struct_definition(out, f_service_, &result, false);
+  generate_struct_forward_setter_impls(f_header_, &result);
+  generate_struct_definition(f_service_, f_service_, &result, true);
+  generate_helper_struct_members(f_service_, &result);
   generate_struct_reader(out, &result);
   generate_struct_result_writer(out, &result);
 
