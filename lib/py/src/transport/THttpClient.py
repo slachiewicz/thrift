@@ -28,7 +28,7 @@ import urllib.parse
 import urllib.request
 import http.client
 
-from .TTransport import TTransportBase
+from .TTransport import TTransportBase, TTransportException
 
 
 class THttpClient(TTransportBase):
@@ -143,9 +143,28 @@ class THttpClient(TTransportBase):
         self.__wbuf.write(buf)
 
     def flush(self):
+        try:
+            self._flush()
+        except (OSError, http.client.HTTPException) as e:
+            # An error while sending the request or reading the status line
+            # leaves HTTPConnection in the "request sent" state, where every
+            # later request raises CannotSendRequest. Drop the connection so
+            # the next call reconnects. The request is not retried: it may
+            # have reached the server, and oneway calls also end up here.
+            if self.isOpen():
+                self.close()
+            raise TTransportException(TTransportException.UNKNOWN, str(e), e)
+
+    def _flush(self):
         if self.isOpen():
-            self.close()
-        self.open()
+            # http.client refuses a new request until the previous response
+            # has been read to its end. Reading it also lets the connection
+            # go back to keep-alive use, or close itself when the server
+            # sent "Connection: close"; HTTPConnection then reconnects.
+            if self.__http_response is not None:
+                self.__http_response.read()
+        else:
+            self.open()
 
         # Pull data out of buffer
         data = self.__wbuf.getvalue()
