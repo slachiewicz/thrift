@@ -18,6 +18,8 @@
  */
 
 #include <map>
+#include <set>
+#include <stdexcept>
 #include <string>
 #include <fstream>
 #include <iomanip>
@@ -1350,6 +1352,27 @@ void t_js_generator::generate_js_struct_writer(ostream& out, t_struct* tstruct) 
  * @param tservice The service definition
  */
 void t_js_generator::generate_service(t_service* tservice) {
+  // The client implements method X with send_X and recv_X, so a method with one
+  // of those names, here or in an extended service, would replace the generated one.
+  std::set<string> function_names;
+  for (t_service* s = tservice; s != nullptr; s = s->get_extends()) {
+    for (t_function* fn : s->get_functions()) {
+      function_names.insert(fn->get_name());
+    }
+  }
+  for (t_service* s = tservice; s != nullptr; s = s->get_extends()) {
+    for (t_function* fn : s->get_functions()) {
+      const string& name = fn->get_name();
+      for (const char* prefix : {"send_", "recv_"}) {
+        if (name.compare(0, 5, prefix) == 0 && function_names.count(name.substr(5)) > 0) {
+          throw std::runtime_error("method " + s->get_name() + "." + name
+                                   + " collides with the client method generated for method "
+                                   + name.substr(5) + "; rename one of them");
+        }
+      }
+    }
+  }
+
   string f_service_name = get_out_dir() + service_name_ + (gen_esm_ ? ".mjs" : ".js");
   f_service_.open(f_service_name.c_str());
   if (gen_episode_file_) {
