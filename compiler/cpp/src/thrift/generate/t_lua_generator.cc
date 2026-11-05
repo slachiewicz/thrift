@@ -652,14 +652,15 @@ void t_lua_generator::generate_service_client(ostream& out, t_service* tservice)
           << "local result = " << funcname << "_result:new{}" << '\n' << indent()
           << "result:read(self.iprot)" << '\n' << indent() << "self.iprot:readMessageEnd()" << '\n';
 
-      // Return the result if it's not a void function
+      const std::vector<t_field*>& xf = (*f_iter)->get_xceptions()->get_members();
+      vector<t_field*>::const_iterator x_iter;
+
       if (!(*f_iter)->get_returntype()->is_void()) {
+        // Return the result if it's not a void function
         out << indent() << "if result.success ~= nil then" << '\n' << indent() << "  return result.success"
             << '\n';
 
         // Throw custom exceptions
-        const std::vector<t_field*>& xf = (*f_iter)->get_xceptions()->get_members();
-        vector<t_field*>::const_iterator x_iter;
         for (x_iter = xf.begin(); x_iter != xf.end(); ++x_iter) {
           out << indent() << "elseif result." << (*x_iter)->get_name() << " then" << '\n'
               << indent() << "  error(result." << (*x_iter)->get_name() << ")" << '\n';
@@ -668,6 +669,14 @@ void t_lua_generator::generate_service_client(ostream& out, t_service* tservice)
         out << indent() << "end" << '\n' << indent()
             << "error(TApplicationException:new{errorCode = "
             << "TApplicationException.MISSING_RESULT})" << '\n';
+      } else if (!xf.empty()) {
+        // A void function has no success value, but it can still throw custom exceptions
+        for (x_iter = xf.begin(); x_iter != xf.end(); ++x_iter) {
+          out << indent() << (x_iter == xf.begin() ? "if" : "elseif") << " result."
+              << (*x_iter)->get_name() << " then" << '\n'
+              << indent() << "  error(result." << (*x_iter)->get_name() << ")" << '\n';
+        }
+        out << indent() << "end" << '\n';
       }
 
       indent_down();
