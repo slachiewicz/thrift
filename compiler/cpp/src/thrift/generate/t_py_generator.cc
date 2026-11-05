@@ -1846,16 +1846,6 @@ void t_py_generator::generate_service_client(t_service* tservice) {
                    << "result.read(iprot)" << '\n' << indent() << "iprot.readMessageEnd()" << '\n';
       }
 
-      // Careful, only return _result if not a void function
-      if (!(*f_iter)->get_returntype()->is_void()) {
-        f_service_ << indent() << "if result.success is not None:" << '\n';
-        if (gen_twisted_) {
-          f_service_ << indent() << indent_str() << "return d.callback(result.success)" << '\n';
-        } else {
-          f_service_ << indent() << indent_str() << "return result.success" << '\n';
-        }
-      }
-
       t_struct* xs = (*f_iter)->get_xceptions();
       const std::vector<t_field*>& xceptions = xs->get_members();
       vector<t_field*>::const_iterator x_iter;
@@ -1867,6 +1857,17 @@ void t_py_generator::generate_service_client(t_service* tservice) {
                      << '\n';
         } else {
           f_service_ << indent() << indent_str() << "raise result." << maybe_escape_identifier(xname) << "" << '\n';
+        }
+      }
+
+      // Declared exceptions win over success: a server that sets both (for example one
+      // built before THRIFT-1474, where a primitive success defaults to 0) failed the call.
+      if (!(*f_iter)->get_returntype()->is_void()) {
+        f_service_ << indent() << "if result.success is not None:" << '\n';
+        if (gen_twisted_) {
+          f_service_ << indent() << indent_str() << "return d.callback(result.success)" << '\n';
+        } else {
+          f_service_ << indent() << indent_str() << "return result.success" << '\n';
         }
       }
 
