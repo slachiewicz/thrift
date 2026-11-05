@@ -1462,7 +1462,11 @@ void t_py_generator::generate_service(t_service* tservice) {
   generate_service_client(tservice);
   generate_service_server(tservice);
   generate_service_helpers(tservice);
-  generate_service_remote(tservice);
+  // The remote script drives a blocking Client(protocol); the Twisted and
+  // Tornado clients take transport and protocol factories instead.
+  if (!gen_twisted_ && !gen_tornado_) {
+    generate_service_remote(tservice);
+  }
 
   // Close service file
   f_service_ << "fix_spec(all_structs)" << '\n'
