@@ -34,10 +34,19 @@ import threading
 from collections import deque
 import queue
 
+try:
+    import ssl
+except ImportError:
+    ssl = None
+
 from thrift.transport import TTransport
 from thrift.protocol.TBinaryProtocol import TBinaryProtocolFactory
 
 __all__ = ['TNonblockingServer']
+
+# Raised by a non-blocking SSLSocket that must wait for the peer: a retry
+# condition, not a failed connection.
+_WANT_IO = (ssl.SSLWantReadError, ssl.SSLWantWriteError) if ssl else ()
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +128,7 @@ class Connection(object):
     def __init__(self, new_socket, wake_up, max_frame_size=TTransport.DEFAULT_MAX_FRAME_SIZE):
         self.socket = new_socket
         self.socket.setblocking(False)
+        self._ssl = ssl is not None and isinstance(new_socket, ssl.SSLSocket)
         self.status = WAIT_LEN
         self.len = 0
         self.received = deque()
@@ -140,9 +150,20 @@ class Connection(object):
         first = True
         done = False
         while not done:
-            read = self.socket.recv(buf_size)
+            try:
+                read = self.socket.recv(buf_size)
+            except _WANT_IO:
+                # TLS: nothing more can be decrypted yet. Not an error, the
+                # select loop calls read() again when more bytes arrive.
+                break
             rlen = len(read)
-            done = rlen < buf_size
+            # A short read does not mean the input is drained over TLS: the
+            # next records may already be buffered inside the SSL object,
+            # where select() on the descriptor cannot see them. Go on until
+            # the SSL layer itself reports that it would block.
+            done = rlen < buf_size and not self._ssl
+            if rlen == 0 and not first:
+                done = True
             self._rbuf += read
             if first and rlen == 0:
                 if self.status != WAIT_LEN or self._rbuf:
@@ -175,6 +196,10 @@ class Connection(object):
                     del self._rbuf[:self._reading.end]
                     self._reading = Message(0, 4, True)
             first = False
+            if self.status == CLOSED:
+                # Over TLS the loop does not stop at a short read, so it must
+                # not try the socket it has just closed.
+                break
             if self.received:
                 self.status = WAIT_PROCESS
                 break
@@ -183,7 +208,10 @@ class Connection(object):
     def write(self):
         """Writes data from socket and switch state."""
         assert self.status == SEND_ANSWER
-        sent = self.socket.send(self._wbuf)
+        try:
+            sent = self.socket.send(self._wbuf)
+        except _WANT_IO:
+            return
         if sent == len(self._wbuf):
             self.status = WAIT_LEN
             self._wbuf = b''
