@@ -340,6 +340,7 @@ public:
 
   string ts_function_signature(t_function* tfunction, bool include_callback);
   string ts_get_type(t_type* type);
+  string ts_type_name(t_type* type);
 
   /**
    * Special indentation for TypeScript Definitions because of the module.
@@ -731,12 +732,18 @@ void t_js_generator::close_generator() {
 }
 
 /**
- * Generates a typedef. This is not done in JS, types are all implicit.
+ * Generates a typedef. This is not done in JS, types are all implicit, but
+ * the TypeScript declarations keep the alias name.
  *
  * @param ttypedef The type definition
  */
 void t_js_generator::generate_typedef(t_typedef* ttypedef) {
-  (void)ttypedef;
+  if (gen_ts_) {
+    f_types_ts_ << ts_print_doc(ttypedef) << ts_indent() << ts_declare() << "type "
+                << ttypedef->get_symbolic() << " = " << ts_get_type(ttypedef->get_type()) << ";"
+                << '\n'
+                << '\n';
+  }
 }
 
 /**
@@ -1423,6 +1430,13 @@ void t_js_generator::generate_service(t_service* tservice) {
       for (x_iter = exceptions.begin(); x_iter != exceptions.end(); ++x_iter) {
         f_service_ts_ << "import " << (*x_iter)->get_name() << " = ttypes."
                   << js_namespace(program_) << (*x_iter)->get_name() << '\n';
+      }
+      // typedefs
+      vector<t_typedef*> const& typedefs = program_->get_typedefs();
+      vector<t_typedef*>::const_iterator t_iter;
+      for (t_iter = typedefs.begin(); t_iter != typedefs.end(); ++t_iter) {
+        f_service_ts_ << "import " << (*t_iter)->get_symbolic() << " = ttypes."
+                      << js_namespace(program_) << (*t_iter)->get_symbolic() << '\n';
       }
       // structs
       vector<t_struct*> const& structs = program_->get_structs();
@@ -3011,6 +3025,32 @@ string t_js_generator::type_to_enum(t_type* type) {
 }
 
 /**
+ * Renders the name of a named type (enum, struct, exception or typedef) the way
+ * the TypeScript declarations refer to it.
+ */
+string t_js_generator::ts_type_name(t_type* type) {
+  std::string type_name;
+
+  if (type->get_program()) {
+    type_name = js_namespace(type->get_program());
+
+    // If the type is not defined within the current program, we need to prefix it with the same name as
+    // the generated "import" statement for the types containing program
+    if(type->get_program() != program_)  {
+      auto prefix = include_2_import_name.find(type->get_program());
+
+      if(prefix != include_2_import_name.end()) {
+        type_name.append(prefix->second);
+        type_name.append(".");
+      }
+    }
+  }
+
+  type_name.append(type->get_name());
+  return type_name;
+}
+
+/**
  * Converts a t_type to a TypeScript type (string).
  * @param t_type Type to convert to TypeScript
  * @return String TypeScript type
@@ -3018,7 +3058,10 @@ string t_js_generator::type_to_enum(t_type* type) {
 string t_js_generator::ts_get_type(t_type* type) {
   std::string ts_type;
 
-  type = get_true_type(type);
+  if (type->is_typedef()) {
+    // Keep the alias name; generate_typedef declares it in the types file.
+    return ts_type_name(type);
+  }
 
   if (type->is_base_type()) {
     t_base_type::t_base tbase = ((t_base_type*)type)->get_base();
@@ -3053,25 +3096,7 @@ string t_js_generator::ts_get_type(t_type* type) {
       throw "compiler error: unhandled js type";
     }
   } else if (type->is_enum() || type->is_struct() || type->is_xception()) {
-    std::string type_name;
-
-    if (type->get_program()) {
-      type_name = js_namespace(type->get_program());
-
-      // If the type is not defined within the current program, we need to prefix it with the same name as
-      // the generated "import" statement for the types containing program
-      if(type->get_program() != program_)  {
-        auto prefix = include_2_import_name.find(type->get_program());
-
-        if(prefix != include_2_import_name.end()) {
-          type_name.append(prefix->second);
-          type_name.append(".");
-        }
-      }
-    }
-
-    type_name.append(type->get_name());
-    ts_type = type_name;
+    ts_type = ts_type_name(type);
   } else if (type->is_list() || type->is_set()) {
     t_type* etype;
 
@@ -3083,7 +3108,8 @@ string t_js_generator::ts_get_type(t_type* type) {
 
     ts_type = ts_get_type(etype) + "[]";
   } else if (type->is_map()) {
-    string ktype = ts_get_type(((t_map*)type)->get_key_type());
+    // An index signature needs the underlying key type, not a typedef name.
+    string ktype = ts_get_type(get_true_type(((t_map*)type)->get_key_type()));
     string vtype = ts_get_type(((t_map*)type)->get_val_type());
 
 
