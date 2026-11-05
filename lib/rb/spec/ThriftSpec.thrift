@@ -137,6 +137,10 @@ service NonblockingService {
   void sleep(1:double seconds)
 }
 
+service EnumService {
+  SomeEnum get_enum()
+}
+
 union My_union {
   1: bool im_true,
   2: byte a_bite,

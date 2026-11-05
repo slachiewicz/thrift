@@ -83,6 +83,9 @@ module Thrift
     end
 
     def write_result(result, oprot, name, seqid)
+      # Struct#write validates too, but only after the REPLY envelope is on the
+      # wire; an invalid result must fail here so process can send EXCEPTION alone.
+      result.validate
       oprot.write_message_begin(name, MessageTypes::REPLY, seqid)
       result.write(oprot)
       oprot.write_message_end

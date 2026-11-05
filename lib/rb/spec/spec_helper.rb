@@ -39,6 +39,7 @@ require "debug_proto_test_constants"
 $:.unshift File.join(File.dirname(__FILE__), *%w[gen-rb])
 require "thrift_spec_types"
 require "nonblocking_service"
+require "enum_service"
 
 module Fixtures
   COMPACT_PROTOCOL_TEST_STRUCT = Thrift::Test::COMPACT_TEST.dup

@@ -242,9 +242,36 @@ describe "Processor" do
       expect(exception.message).to eq("Internal error")
     end
 
+    # THRIFT-4018: the result used to be validated by write, after the REPLY
+    # envelope was already on the wire, so the EXCEPTION that followed was
+    # appended to a half-written reply and corrupted the connection.
+    it "answers an invalid enum return value with a single clean exception" do
+      handler = double("Handler")
+      allow(handler).to receive(:get_enum).and_return(100)
+      processor = SpecNamespace::EnumService::Processor.new(handler)
+      output_transport, output = output_protocol
+
+      2.times do |i|
+        seqid = 20 + i
+        input = input_protocol("get_enum", Thrift::MessageTypes::CALL, seqid)
+        expect(processor.process(input, output)).to be true
+      end
+
+      response = Thrift::BinaryProtocol.new(output_transport)
+      2.times do |i|
+        expect(response.read_message_begin).to eq(["get_enum", Thrift::MessageTypes::EXCEPTION, 20 + i])
+        exception = Thrift::ApplicationException.new
+        exception.read(response)
+        response.read_message_end
+        expect(exception.type).to eq(Thrift::ApplicationException::INTERNAL_ERROR)
+      end
+      expect(output_transport.available).to eq(0)
+    end
+
     it "should write out a reply when asked" do
-      expect(@prot).to receive(:write_message_begin).with("testMessage", Thrift::MessageTypes::REPLY, 23).ordered
       result = double("MockResult")
+      expect(result).to receive(:validate).ordered
+      expect(@prot).to receive(:write_message_begin).with("testMessage", Thrift::MessageTypes::REPLY, 23).ordered
       expect(result).to receive(:write).with(@prot).ordered
       expect(@prot).to receive(:write_message_end).ordered
       mock_trans(@prot)
