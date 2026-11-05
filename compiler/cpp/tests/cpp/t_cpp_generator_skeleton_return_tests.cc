@@ -77,3 +77,26 @@ TEST_CASE("t_cpp_generator server skeleton stubs return a value for non-void fun
     // The synchronous handler inside the asynchronous skeleton is built the same way.
     check_skeleton(read_file("gen-cpp/ReturnService_async_server.skeleton.cpp"));
 }
+
+TEST_CASE("t_cpp_generator async skeleton defines the handler destructor", "[functional]")
+{
+    string path = join_path(source_dir(), "test_skeleton_return.thrift");
+    string name = "test_skeleton_return";
+    map<string, string> parsed_options = {{"cob_style", ""}};
+    string option_string = "cob_style";
+
+    std::unique_ptr<t_program> program(new t_program(path, name));
+    parse_thrift_for_test(program.get());
+
+    std::unique_ptr<t_generator> gen(
+        t_generator_registry::get_generator(program.get(), "cpp", parsed_options, option_string));
+    REQUIRE(gen != nullptr);
+    REQUIRE_NOTHROW(gen->generate_program());
+
+    string source = read_file("gen-cpp/ReturnService_async_server.skeleton.cpp");
+    REQUIRE(!source.empty());
+
+    // main() instantiates the handler, so a destructor that is only declared fails to link.
+    REQUIRE(source.find("virtual ~ReturnServiceAsyncHandler() {}") != string::npos);
+    REQUIRE(source.find("virtual ~ReturnServiceAsyncHandler();") == string::npos);
+}
