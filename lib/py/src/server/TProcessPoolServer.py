@@ -41,6 +41,8 @@ class TProcessPoolServer(TServer):
         self.isRunning = Value('b', False)
         self.stopCondition = Condition()
         self.postForkCallback = None
+        # seconds between checks for workers that have died
+        self.workerCheckInterval = 1.0
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -90,6 +92,25 @@ class TProcessPoolServer(TServer):
         itrans.close()
         otrans.close()
 
+    def startWorker(self):
+        try:
+            w = Process(target=self.workerProcess)
+            w.daemon = True
+            w.start()
+            self.workers.append(w)
+        except Exception as x:
+            logger.exception(x)
+
+    def replaceDeadWorkers(self):
+        """Reap workers that exited and start a replacement for each"""
+        dead = [w for w in self.workers if not w.is_alive()]
+        for w in dead:
+            logger.warning("worker process %s exited with code %s, restarting",
+                           w.pid, w.exitcode)
+            w.join()
+            self.workers.remove(w)
+            self.startWorker()
+
     def serve(self):
         """Start workers and put into queue"""
         # this is a shared state that can tell the workers to exit when False
@@ -100,24 +121,24 @@ class TProcessPoolServer(TServer):
 
         # fork the children
         for i in range(self.numWorkers):
-            try:
-                w = Process(target=self.workerProcess)
-                w.daemon = True
-                w.start()
-                self.workers.append(w)
-            except Exception as x:
-                logger.exception(x)
+            self.startWorker()
 
-        # wait until the condition is set by stop()
+        # wait until the condition is set by stop(), replacing dead workers
+        # in the meantime
         while True:
             self.stopCondition.acquire()
             try:
-                self.stopCondition.wait()
-                break
+                if self.stopCondition.wait(self.workerCheckInterval):
+                    break
             except (SystemExit, KeyboardInterrupt):
                 break
             except Exception as x:
                 logger.exception(x)
+            finally:
+                self.stopCondition.release()
+            if not self.isRunning.value:
+                break
+            self.replaceDeadWorkers()
 
         self.isRunning.value = False
 
