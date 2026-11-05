@@ -29,6 +29,7 @@ import org.apache.thrift.protocol.TField;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolException;
 import org.apache.thrift.protocol.TStruct;
+import org.apache.thrift.protocol.TType;
 import org.apache.thrift.scheme.IScheme;
 import org.apache.thrift.scheme.SchemeFactory;
 import org.apache.thrift.scheme.StandardScheme;
@@ -237,16 +238,20 @@ public abstract class TUnion<T extends TUnion<T, F>, F extends TFieldIdEnum>
 
         TField field = iprot.readFieldBegin();
 
-        struct.value_ = struct.standardSchemeReadValue(iprot, field);
-        if (struct.value_ != null) {
-          struct.setField_ = struct.enumForId(field.id);
-        }
+        // An empty union on the wire (STOP first) reads as an unset union (THRIFT-409).
+        if (field.type != TType.STOP) {
+          struct.value_ = struct.standardSchemeReadValue(iprot, field);
+          if (struct.value_ != null) {
+            struct.setField_ = struct.enumForId(field.id);
+          }
 
-        iprot.readFieldEnd();
-        // this is so that we will eat the stop byte. we could put a check here to
-        // make sure that it actually *is* the stop byte, but it's faster to do it
-        // this way.
-        iprot.readFieldBegin();
+          iprot.readFieldEnd();
+          // A union carries at most one field, so the next header must be the stop byte.
+          if (iprot.readFieldBegin().type != TType.STOP) {
+            throw new TProtocolException(
+                TProtocolException.INVALID_DATA, "Union has more than one field on the wire");
+          }
+        }
         iprot.readStructEnd();
       } finally {
         iprot.decrementRecursionDepth();
