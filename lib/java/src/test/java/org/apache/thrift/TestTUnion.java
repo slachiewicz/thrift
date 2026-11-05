@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.protocol.TProtocolException;
 import org.apache.thrift.protocol.TTupleProtocol;
 import org.apache.thrift.transport.TMemoryBuffer;
 import org.junit.jupiter.api.Test;
@@ -239,6 +240,34 @@ public class TestTUnion {
     ComparableUnion copy = cu.deepCopy();
     assertEquals(cu, copy);
     assertNotSame(cu.bufferForBinary_field().array(), copy.bufferForBinary_field().array());
+  }
+
+  @Test
+  public void testReadEmptyUnionOnWire() throws Exception {
+    // A struct with STOP as its first field reads as an unset union (THRIFT-409).
+    TMemoryBuffer buf = new TMemoryBuffer(16);
+    buf.write(new byte[] {0, 0x08, 0, 5, 0, 0, 0, 7}, 0, 1);
+    // Trailing bytes belong to the next value and must stay unread.
+    buf.write(new byte[] {0x08, 0, 5, 0, 0, 0, 7}, 0, 7);
+    TProtocol prot = new TBinaryProtocol(buf);
+    TestUnion union = new TestUnion();
+    union.read(prot);
+    assertFalse(union.isSet());
+    assertEquals(7, buf.readAll(new byte[7], 0, 7));
+  }
+
+  @Test
+  public void testReadUnionWithTwoFieldsOnWire() throws Exception {
+    TMemoryBuffer buf = new TMemoryBuffer(32);
+    byte[] twoFields = {
+      0x08, 0, 2, 0, 0, 0, 25, // i32_field = 25
+      0x08, 0, 5, 0, 0, 0, 7, // other_i32_field = 7
+      0 // STOP
+    };
+    buf.write(twoFields, 0, twoFields.length);
+    TProtocol prot = new TBinaryProtocol(buf);
+    TestUnion union = new TestUnion();
+    assertThrows(TProtocolException.class, () -> union.read(prot));
   }
 
   @Test
