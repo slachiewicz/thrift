@@ -2614,6 +2614,20 @@ void t_cpp_generator::generate_function_call(ostream& out,
   out << ");" << '\n';
 }
 
+/**
+ * Returns the functions of a service and of every service it extends, base
+ * service first. A skeleton handler derives only from <svc>If, whose pure
+ * virtual functions include all of them, so the skeleton must stub them all.
+ */
+static vector<t_function*> functions_with_inherited(t_service* tservice) {
+  vector<t_function*> functions;
+  for (t_service* s = tservice; s != nullptr; s = s->get_extends()) {
+    const vector<t_function*>& own = s->get_functions();
+    functions.insert(functions.begin(), own.begin(), own.end());
+  }
+  return functions;
+}
+
 void t_cpp_generator::generate_service_async_skeleton(t_service* tservice) {
   string svcname = tservice->get_name();
 
@@ -2653,7 +2667,7 @@ void t_cpp_generator::generate_service_async_skeleton(t_service* tservice) {
   f_skeleton << indent() << svcname << "Handler() {" << '\n' << indent()
              << "  // Your initialization goes here" << '\n' << indent() << "}" << '\n' << '\n';
 
-  vector<t_function*> functions = tservice->get_functions();
+  vector<t_function*> functions = functions_with_inherited(tservice);
   vector<t_function*>::iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
     generate_java_doc(f_skeleton, *f_iter);
@@ -4310,7 +4324,7 @@ void t_cpp_generator::generate_service_skeleton(t_service* tservice) {
   f_skeleton << indent() << svcname << "Handler() {" << '\n' << indent()
              << "  // Your initialization goes here" << '\n' << indent() << "}" << '\n' << '\n';
 
-  vector<t_function*> functions = tservice->get_functions();
+  vector<t_function*> functions = functions_with_inherited(tservice);
   vector<t_function*>::iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
     generate_java_doc(f_skeleton, *f_iter);
