@@ -5244,4 +5244,11 @@ THRIFT_REGISTER_GENERATOR(
     "                     Omit generation of ostream definitions.\n"
     "    no_skeleton:     Omits generation of skeleton.\n"
     "    include_guard_prefix=<str>:\n"
-    "                     Prepend <str> to the name of every include guard.\n")
+    "                     Prepend <str> to the name of every include guard.\n"
+    "    no_constructors: Omits generation of the default, copy and move constructors,\n"
+    "                     assignment operators and destructor, and gives scalar fields\n"
+    "                     a default initializer.\n"
+    "    private_optional:\n"
+    "                     Declares optional fields as private members with a const\n"
+    "                     __get_<name>() accessor each, and makes swap() and\n"
+    "                     operator<< friends of the struct.\n")
