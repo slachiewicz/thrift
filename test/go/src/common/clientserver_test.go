@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 
@@ -47,6 +48,10 @@ var units = []test_unit{
 	{"127.0.0.1", 0, "", "", "compact", false},
 	{"127.0.0.1", 0, "", "", "binary", true},
 	{"127.0.0.1", 0, "", "", "compact", true},
+	{"127.0.0.1", 0, "", "", "multi", false},
+	{"127.0.0.1", 0, "", "", "multic", false},
+	{"127.0.0.1", 0, "", "", "multij", false},
+	{"127.0.0.1", 0, "", "framed", "multi", false},
 }
 
 func TestAllConnection(t *testing.T) {
@@ -79,13 +84,21 @@ func doUnit(t *testing.T, unit *test_unit) {
 		}
 		go server.Serve()
 		defer server.Stop()
-		client, trans, err := StartClient(addr, unit.transport, unit.protocol, unit.ssl, "../../../keys")
+		client, second, trans, err := StartClient(addr, unit.transport, unit.protocol, unit.ssl, "../../../keys")
 		if err != nil {
 			t.Errorf("Unable to start client: %v", err)
 			return
 		}
 		defer trans.Close()
 		callEverythingWithMock(t, client, handler)
+		if second != nil {
+			got, err := second.SecondtestString(defaultCtx, "foobar")
+			if err != nil || got != `testString("foobar")` {
+				t.Errorf("SecondtestString() = %q, %v", got, err)
+			}
+		} else if strings.HasPrefix(unit.protocol, "multi") {
+			t.Errorf("no SecondService client for %s", unit.protocol)
+		}
 	})
 }
 
