@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -119,6 +120,7 @@ public:
    * Init and close methods
    */
 
+  void generate_program() override;
   void init_generator() override;
   void close_generator() override;
   std::string display_name() const override;
@@ -468,6 +470,214 @@ private:
 std::string t_cpp_generator::get_doc_type_name(t_type* type) {
   type = get_true_type(type);
   return namespace_prefix(type->get_program()->get_namespace("cpp")) + type->get_name();
+}
+
+namespace {
+
+/**
+ * What a typedef's target needs before the typedef can be written: the local
+ * typedefs it names, and whether it names a local struct that is declared
+ * later in the IDL file. The latter is written as a bare identifier, so only
+ * a forward declaration makes it valid C++.
+ */
+void collect_typedef_needs(t_type* type,
+                           const t_program* program,
+                           std::set<t_typedef*>& typedefs,
+                           bool& needs_forward) {
+  if (type->is_map()) {
+    collect_typedef_needs(((t_map*)type)->get_key_type(), program, typedefs, needs_forward);
+    collect_typedef_needs(((t_map*)type)->get_val_type(), program, typedefs, needs_forward);
+  } else if (type->is_set()) {
+    collect_typedef_needs(((t_set*)type)->get_elem_type(), program, typedefs, needs_forward);
+  } else if (type->is_list()) {
+    collect_typedef_needs(((t_list*)type)->get_elem_type(), program, typedefs, needs_forward);
+  } else if (type->is_typedef()) {
+    t_typedef* named = (t_typedef*)type;
+    t_type* resolved = named->is_forward_typedef() ? named->get_type() : named;
+    if (resolved->get_program() != program) {
+      return;
+    }
+    if (resolved->is_typedef()) {
+      typedefs.insert((t_typedef*)resolved);
+    } else if (resolved->is_struct() || resolved->is_xception()) {
+      needs_forward = true;
+    }
+  }
+}
+
+/**
+ * Orders the typedefs of a program. A typedef keeps its declared position
+ * unless it names a local typedef declared after it, or a local struct that
+ * is only declared later. Typedefs that need a forward declaration come back
+ * in `late`, to be written after the forward declarations.
+ */
+void order_typedefs(const t_program* program, vector<t_typedef*>& early, vector<t_typedef*>& late) {
+  const vector<t_typedef*>& typedefs = program->get_typedefs();
+  map<t_typedef*, std::set<t_typedef*>> deps;
+  std::set<t_typedef*> deferred;
+  for (t_typedef* td : typedefs) {
+    bool needs_forward = false;
+    collect_typedef_needs(td->get_type(), program, deps[td], needs_forward);
+    if (needs_forward) {
+      deferred.insert(td);
+    }
+  }
+  for (bool changed = true; changed;) {
+    changed = false;
+    for (t_typedef* td : typedefs) {
+      for (t_typedef* dep : deps[td]) {
+        if (deferred.count(dep) && deferred.insert(td).second) {
+          changed = true;
+        }
+      }
+    }
+  }
+
+  std::set<t_typedef*> done;
+  struct Visitor {
+    map<t_typedef*, std::set<t_typedef*>>& deps;
+    std::set<t_typedef*>& done;
+    const std::set<t_typedef*>& deferred;
+    vector<t_typedef*>& early;
+    vector<t_typedef*>& late;
+    void visit(t_typedef* td) {
+      if (!done.insert(td).second) {
+        return;
+      }
+      for (t_typedef* dep : deps[td]) {
+        if (deps.count(dep)) {
+          visit(dep);
+        }
+      }
+      (deferred.count(td) ? late : early).push_back(td);
+    }
+  } visitor = {deps, done, deferred, early, late};
+  for (t_typedef* td : typedefs) {
+    visitor.visit(td);
+  }
+}
+
+/**
+ * Orders the structs, exceptions and unions of a program so that each comes
+ * after every local struct it holds by value. A struct that is already after
+ * everything it needs keeps its declared position, so the order only changes
+ * for definitions that did not compile before. Members declared with '&',
+ * containers and structs of other programs do not take part, and neither
+ * does a struct holding its own type (rejected in generate_struct_declaration).
+ */
+class StructOrder {
+public:
+  explicit StructOrder(const t_program* program) : program_(program) {}
+
+  vector<t_struct*> sort() {
+    for (t_struct* s : program_->get_objects()) {
+      visit(s);
+    }
+    return sorted_;
+  }
+
+private:
+  void visit(t_struct* s) {
+    if (done_.count(s)) {
+      return;
+    }
+    path_.push_back(std::make_pair(s, (t_field*)nullptr));
+    on_path_.insert(s);
+    for (t_field* field : s->get_members()) {
+      if (field->get_reference()) {
+        continue;
+      }
+      t_type* type = field->get_type()->get_true_type();
+      t_struct* dep = (type->is_struct() || type->is_xception()) ? (t_struct*)type : nullptr;
+      if (dep == nullptr || dep == s || dep->get_program() != program_) {
+        continue;
+      }
+      path_.back().second = field;
+      if (on_path_.count(dep)) {
+        report_cycle(dep);
+      }
+      visit(dep);
+    }
+    path_.pop_back();
+    on_path_.erase(s);
+    done_.insert(s);
+    sorted_.push_back(s);
+  }
+
+  void report_cycle(t_struct* back_to) {
+    // path_ holds each struct with the field that leads on to the next one.
+    size_t start = 0;
+    while (path_[start].first != back_to) {
+      ++start;
+    }
+    string chain;
+    for (size_t i = start; i < path_.size(); ++i) {
+      chain += path_[i].first->get_name() + "." + path_[i].second->get_name() + " -> ";
+    }
+    chain += back_to->get_name();
+    t_field* example = path_[start].second;
+    throw "structs hold each other by value (" + chain
+        + "), which C++ cannot define; mark one of the fields as a reference with '&', "
+          "for example \"optional "
+        + example->get_type()->get_true_type()->get_name() + " & " + example->get_name() + "\"";
+  }
+
+  const t_program* program_;
+  vector<std::pair<t_struct*, t_field*>> path_;
+  std::set<t_struct*> on_path_;
+  std::set<t_struct*> done_;
+  vector<t_struct*> sorted_;
+};
+
+} // namespace
+
+/**
+ * Top level program generation. Same steps as t_generator::generate_program(),
+ * except that typedefs and structs are written in an order the C++ compiler
+ * accepts: a typedef that names a struct declared later in the file comes
+ * after the forward declarations, and a struct comes after the structs it
+ * holds by value.
+ */
+void t_cpp_generator::generate_program() {
+  init_generator();
+
+  vector<t_enum*> enums = program_->get_enums();
+  for (t_enum* tenum : enums) {
+    generate_enum(tenum);
+  }
+
+  vector<t_typedef*> early_typedefs;
+  vector<t_typedef*> late_typedefs;
+  order_typedefs(program_, early_typedefs, late_typedefs);
+  vector<t_struct*> sorted_objects = StructOrder(program_).sort();
+
+  for (t_typedef* td : early_typedefs) {
+    generate_typedef(td);
+  }
+  for (t_struct* obj : program_->get_objects()) {
+    generate_forward_declaration(obj);
+  }
+  for (t_typedef* td : late_typedefs) {
+    generate_typedef(td);
+  }
+  for (t_struct* obj : sorted_objects) {
+    if (obj->is_xception()) {
+      generate_xception(obj);
+    } else {
+      generate_struct(obj);
+    }
+  }
+
+  vector<t_const*> consts = program_->get_consts();
+  generate_consts(consts);
+
+  vector<t_service*> services = program_->get_services();
+  for (t_service* service : services) {
+    service_name_ = get_service_name(service);
+    generate_service(service);
+  }
+
+  close_generator();
 }
 
 /**
