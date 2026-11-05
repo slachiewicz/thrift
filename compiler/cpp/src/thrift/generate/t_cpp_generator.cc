@@ -1376,6 +1376,18 @@ void t_cpp_generator::generate_struct_declaration(ostream& out,
   vector<t_field*>::const_iterator m_iter;
   const vector<t_field*>& members = tstruct->get_members();
 
+  // A by-value member of the enclosing type gives an incomplete-type error in
+  // the C++ compiler, so reject it here with advice. Only '&' makes a member
+  // a pointer; cpp.ref is read by the Go generator alone.
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    if (!is_reference(*m_iter) && (*m_iter)->get_type()->get_true_type() == tstruct) {
+      throw "field \"" + (*m_iter)->get_name() + "\" of " + tstruct->get_name()
+          + " has the type of its own struct, which C++ cannot hold by value; "
+            "mark it as a reference with '&', for example \"optional "
+          + tstruct->get_name() + " & " + (*m_iter)->get_name() + "\"";
+    }
+  }
+
   // Write the isset structure declaration outside the class. This makes
   // the generated code amenable to processing by SWIG.
   // We only declare the struct if it gets used in the class.
