@@ -399,7 +399,11 @@ void TPipe::open() {
 
   TAutoHandle hPipe;
   do {
-    DWORD flags = FILE_FLAG_OVERLAPPED; // async mode, so we can do reads at the same time as writes
+    // FILE_FLAG_OVERLAPPED: async mode, so we can do reads at the same time as writes.
+    // SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION: the server may learn who the client is,
+    // but cannot use ImpersonateNamedPipeClient() to act with the client's rights (THRIFT-5388).
+    // Without SQOS flags the server gets full impersonation of the client.
+    DWORD flags = FILE_FLAG_OVERLAPPED | SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION;
     hPipe.reset(CreateFileA(pipename_.c_str(),
                             GENERIC_READ | GENERIC_WRITE,
                             0,             // no sharing

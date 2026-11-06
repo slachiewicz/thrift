@@ -84,6 +84,14 @@ public:
   // \throws std::logic_error if listen() has been called
   void setInterruptableChildren(bool enable);
 
+  // When enabled, the named pipe is created with PIPE_REJECT_REMOTE_CLIENTS and
+  // clients on other machines (\\server\pipe\name) are refused.  Disabled by
+  // default, as before.  Has no effect on anonymous pipes.
+  //
+  // Must be called before listen().
+  // \throws std::logic_error if listen() has been called
+  void setRejectRemoteClients(bool enable);
+
   // Accessors
   std::string getPipename();
   void setPipename(const std::string& pipename);
@@ -114,6 +122,7 @@ private:
   uint32_t maxconns_;
   bool isAnonymous_;
   bool interruptableChildren_ = true;
+  bool rejectRemoteClients_ = false;
 };
 #else //_WIN32
 //*NIX named pipe implementation uses domain socket

@@ -103,8 +103,10 @@ public:
                    uint32_t bufsize,
                    uint32_t maxconnections,
                    const std::string& securityDescriptor,
-                   bool interruptableChildren)
+                   bool interruptableChildren,
+                   bool rejectRemoteClients)
     : stopping_(false),
+      rejectRemoteClients_(rejectRemoteClients),
       pipename_(pipename),
       bufsize_(bufsize),
       maxconns_(maxconnections),
@@ -154,6 +156,7 @@ private:
   TOverlappedWorkItem cancelOverlap_;
 
   bool stopping_;
+  bool rejectRemoteClients_;
   std::string pipename_;
   std::string securityDescriptor_;
   uint32_t bufsize_;
@@ -230,7 +233,7 @@ void TPipeServer::listen() {
   if (isAnonymous_)
     return;
   impl_.reset(new TNamedPipeServer(pipename_, bufsize_, maxconns_, securityDescriptor_,
-                                   interruptableChildren_));
+                                   interruptableChildren_, rejectRemoteClients_));
 }
 
 shared_ptr<TTransport> TPipeServer::acceptImpl() {
@@ -375,6 +378,13 @@ void TPipeServer::setInterruptableChildren(bool enable) {
   interruptableChildren_ = enable;
 }
 
+void TPipeServer::setRejectRemoteClients(bool enable) {
+  if (std::dynamic_pointer_cast<TNamedPipeServer>(impl_)) {
+    throw std::logic_error("setRejectRemoteClients cannot be called after listen()");
+  }
+  rejectRemoteClients_ = enable;
+}
+
 void TPipeServer::close() {
   impl_.reset();
 }
@@ -404,7 +414,9 @@ bool TNamedPipeServer::createNamedPipe(const TAutoCrit& /*lockProof*/) {
                                      PIPE_ACCESS_DUPLEX |      // read/write access
                                          FILE_FLAG_OVERLAPPED, // async mode
                                      PIPE_TYPE_BYTE |          // byte type pipe
-                                         PIPE_READMODE_BYTE,   // byte read mode
+                                         PIPE_READMODE_BYTE |  // byte read mode
+                                         (rejectRemoteClients_ ? PIPE_REJECT_REMOTE_CLIENTS
+                                                               : PIPE_ACCEPT_REMOTE_CLIENTS),
                                      maxconns_,                // max. instances
                                      bufsize_,                 // output buffer size
                                      bufsize_,                 // input buffer size
