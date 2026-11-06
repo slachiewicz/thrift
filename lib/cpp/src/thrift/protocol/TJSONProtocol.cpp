@@ -241,16 +241,18 @@ static uint32_t readSyntaxChar(TJSONProtocol::LookaheadReader& reader, uint8_t c
 }
 
 // Return the integer value of a hex character ch.
-// Throw a protocol exception if the character is not [0-9a-f].
+// Throw a protocol exception if the character is not [0-9a-fA-F].
 static uint8_t hexVal(uint8_t ch) {
   if ((ch >= '0') && (ch <= '9')) {
     return ch - '0';
   } else if ((ch >= 'a') && (ch <= 'f')) {
     return ch - 'a' + 10;
+  } else if ((ch >= 'A') && (ch <= 'F')) {
+    return ch - 'A' + 10;
   } else {
     throw TProtocolException(TProtocolException::INVALID_DATA,
-                             "Expected hex val ([0-9a-f]); got \'" + std::string((char*)&ch, 1)
-                             + "\'.");
+                             "Expected hex val ([0-9a-fA-F]); got \'" + std::string((char*)&ch, 1)
+                                 + "\'.");
   }
 }
 

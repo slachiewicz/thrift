@@ -141,6 +141,16 @@ namespace Thrift.Tests.Protocols
         }
 
         [TestMethod]
+        public void ToHexVal_UppercaseHexDigits_Test()
+        {
+            var chars = "ABCDEF";
+            for (var i = 0; i < chars.Length; i++)
+            {
+                Assert.AreEqual((byte)(10 + i), TJSONProtocolHelper.ToHexVal((byte)chars[i]));
+            }
+        }
+
+        [TestMethod]
         public void ToHexVal_WrongInputChar_Test()
         {
             Assert.ThrowsExactly<TProtocolException>(() => TJSONProtocolHelper.ToHexVal((byte)'s'));

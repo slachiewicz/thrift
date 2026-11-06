@@ -51,6 +51,19 @@ namespace Thrift.Tests.Protocols
             Assert.IsTrue(result.WrappedReader.GetType().Name.Equals("LookaheadReader", StringComparison.OrdinalIgnoreCase));
         }
 
+        [TestMethod]
+        public async Task TJSONProtocol_ReadString_Accepts_Uppercase_Hex_In_Unicode_Escape_Test()
+        {
+            // JSON allows either case of hex digits in \u escapes (RFC 8259, section 7)
+            foreach (var json in new[] { "\"\\u00E9\"", "\"\\u00e9\"", "\"\\u00E9x\\uD83D\\uDE00\"" })
+            {
+                var stream = new System.IO.MemoryStream(Encoding.UTF8.GetBytes(json));
+                var proto = new TJsonProtocol(new TStreamTransport(stream, null, new TConfiguration()));
+                var result = await proto.ReadStringAsync(default);
+                Assert.IsTrue(result.StartsWith("\u00e9", StringComparison.Ordinal), result);
+            }
+        }
+
         private class TJSONProtocolWrapper(TTransport trans) : TJsonProtocol(trans)
         {
             public object WrappedContext => Context;

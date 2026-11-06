@@ -589,3 +589,10 @@ BOOST_AUTO_TEST_CASE(test_json_unicode_escapes_to_utf8) {
   // together with it.
   BOOST_CHECK_EQUAL(readJSONString("\"a\\ud835\\u0041b\""), "ab");
 }
+
+// JSON allows either case of hex digits in a \u escape (RFC 8259, section 7).
+BOOST_AUTO_TEST_CASE(test_json_unicode_escapes_uppercase_hex) {
+  BOOST_CHECK_EQUAL(readJSONString("\"\\u00E9\""), "\xc3\xa9");
+  BOOST_CHECK_EQUAL(readJSONString("\"\\u20AC\""), "\xe2\x82\xac");
+  BOOST_CHECK_EQUAL(readJSONString("\"\\uD835\\uDD3E\""), "\xf0\x9d\x94\xbe");
+}

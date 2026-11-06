@@ -145,7 +145,7 @@ namespace Thrift.Protocol.Utilities
         }
 
         /// <summary>
-        ///     Convert a byte containing a hex char ('0'-'9' or 'a'-'f') into its
+        ///     Convert a byte containing a hex char ('0'-'9', 'a'-'f' or 'A'-'F') into its
         ///     corresponding hex value
         /// </summary>
         public static byte ToHexVal(byte ch)
@@ -159,6 +159,11 @@ namespace Thrift.Protocol.Utilities
             {
                 ch += 10;
                 return (byte)((char)ch - 'a');
+            }
+
+            if (ch >= 'A' && ch <= 'F')
+            {
+                return (byte)(ch - 'A' + 10);
             }
 
             throw new TProtocolException(TProtocolException.INVALID_DATA, "Expected hex character");
