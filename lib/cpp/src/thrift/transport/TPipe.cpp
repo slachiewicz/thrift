@@ -127,7 +127,10 @@ class TWaitableNamedPipeImpl : public TPipeImpl {
 public:
   explicit TWaitableNamedPipeImpl(TAutoHandle& pipehandle,
                                   std::shared_ptr<TManualResetEvent> interruptListener = nullptr)
-    : TPipeImpl(interruptListener), begin_unread_idx_(0), end_unread_idx_(0) {
+    : TPipeImpl(interruptListener),
+      begin_unread_idx_(0),
+      end_unread_idx_(0),
+      read_pending_(false) {
     readOverlap_.action = TOverlappedWorkItem::READ;
     readOverlap_.h = pipehandle.h;
     cancelOverlap_.action = TOverlappedWorkItem::CANCELIO;
@@ -137,8 +140,9 @@ public:
     Pipe_.reset(pipehandle.release());
   }
   virtual ~TWaitableNamedPipeImpl() {
-    // see if there is an outstanding read request
-    if (begin_unread_idx_ == end_unread_idx_) {
+    // see if there is an outstanding read request.  A read that ReadFile
+    // rejected is not outstanding, and there is nothing to wait for.
+    if (read_pending_) {
       // if so, cancel it, and wait for the dead completion
       thread_->addWorkItem(&cancelOverlap_);
       readOverlap_.overlappedResults(false /*ignore errors*/);
@@ -167,6 +171,8 @@ private:
   std::vector<uint8_t> buffer_;
   uint32_t begin_unread_idx_;
   uint32_t end_unread_idx_;
+  // true from a ReadFile that the system accepted until endAsyncRead() has seen it finish
+  bool read_pending_;
 };
 
 // Waits for an overlapped operation on the pipe to finish, as GetOverlappedResult()
@@ -215,18 +221,23 @@ static void throwOverlappedFailure(HANDLE cancel_event, HANDLE interrupt_event) 
 
 void TWaitableNamedPipeImpl::beginAsyncRead(uint8_t* buf, uint32_t len) {
   begin_unread_idx_ = end_unread_idx_ = 0;
+  read_pending_ = false;
   readOverlap_.reset(buf, len, ready_event_.h);
   thread_->addWorkItem(&readOverlap_);
   if (readOverlap_.success == FALSE && readOverlap_.last_error != ERROR_IO_PENDING) {
     TOutput::instance().perror("TPipe ::ReadFile errored GLE=", readOverlap_.last_error);
     throw TTransportException(TTransportException::UNKNOWN, "TPipe: ReadFile failed");
   }
+  read_pending_ = true;
 }
 
 uint32_t TWaitableNamedPipeImpl::endAsyncRead() {
   DWORD bytes = 0;
-  if (!waitForOverlappedResult(readOverlap_.h, &readOverlap_.overlap, cancel_event_.h,
-                               interruptListener(), &bytes)) {
+  BOOL finished = waitForOverlappedResult(readOverlap_.h, &readOverlap_.overlap, cancel_event_.h,
+                                          interruptListener(), &bytes);
+  // the system is done with the read, whether it succeeded or not
+  read_pending_ = false;
+  if (!finished) {
     throwOverlappedFailure(cancel_event_.h, interruptListener());
   }
   return bytes;
@@ -235,6 +246,10 @@ uint32_t TWaitableNamedPipeImpl::endAsyncRead() {
 uint32_t TWaitableNamedPipeImpl::read(uint8_t* buf, uint32_t len) {
   checkNotInterrupted(interruptListener());
   if (begin_unread_idx_ == end_unread_idx_) {
+    if (!read_pending_) {
+      // the last read failed, and no new one was started
+      throw TTransportException(TTransportException::NOT_OPEN, "TPipe: no read in progress");
+    }
     end_unread_idx_ = endAsyncRead();
     // the interrupt may have come while we waited, together with the data
     checkNotInterrupted(interruptListener());
