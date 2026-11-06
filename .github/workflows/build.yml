@@ -84,6 +84,9 @@ jobs:
       - name: Run thrift audit tests
         run: make -C test/audit check
 
+      - name: Run compiler tests
+        run: make -C compiler/cpp check
+
       - name: Test Delphi UUIDv8 GUID determinism
         run: |
           # Run the Delphi generator twice on the same input and verify identical output.

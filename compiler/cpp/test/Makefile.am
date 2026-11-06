@@ -28,3 +28,12 @@ distdir:
 
 AM_CPPFLAGS = -I$(top_srcdir)/compiler/cpp/src
 AM_CXXFLAGS = -Wall -Wextra -pedantic
+
+# The Python tests under compiler/ are picked up by name, as CMakeLists.txt
+# lists them: every *_test.py plus staleness_check.py. Each one takes the
+# compiler path as its argument, which run_python_test.sh supplies.
+# $(wildcard) needs GNU make; a test not matching the pattern is not run.
+TESTS = $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/compiler/*_test.py)) \
+        compiler/staleness_check.py
+TESTS_ENVIRONMENT = PYTHON3="$(PYTHON3)" THRIFT="$(abs_top_builddir)/compiler/cpp/thrift" \
+                    $(SHELL) $(srcdir)/compiler/run_python_test.sh $(srcdir)/
