@@ -3772,10 +3772,11 @@ string t_netstd_generator::nullable_value_access(t_type* ttype) {
 bool t_netstd_generator::force_member_nullable(t_field* tfield) {
   // IMPORTANT:
   // If tfield is a struct that contains a required field of the same type (directly or indirectly),
-  // auto-initializing such a member field would immediately produce an OOM, or at least unexpectedly
-  // allocate potentially large amounts of memory -> ALWAYS leave containers and struct members nullable
+  // auto-initializing such a member field would immediately produce an OOM, or at least
+  // unexpectedly allocate potentially large amounts of memory -> ALWAYS leave containers, struct
+  // and exception members nullable
   t_type* ttype = resolve_typedef(tfield->get_type());
-  return ttype->is_struct() || ttype->is_container();
+  return ttype->is_struct() || ttype->is_xception() || ttype->is_container();
 }
 
 string t_netstd_generator::type_name(t_type* ttype, bool with_namespace)
