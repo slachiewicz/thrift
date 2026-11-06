@@ -816,9 +816,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update -yq
-          sudo apt-get install -y --no-install-recommends $BUILD_DEPS
-          sudo apt-get install -y --no-install-recommends curl openssl ca-certificates
+          # ci-tmp diagnosis: find where apt stalls; ends the step itself so the log survives
+          cat /etc/apt/apt-mirrors.txt || true
+          ls /etc/apt/apt.conf.d/
+          date -u
+          timeout 300 sudo apt-get update -o Debug::Acquire::http=true -o Debug::pkgAcquire::Worker=true 2>&1 | grep -E "^(Get|Hit|Ign|Err|0%|Fetched)|Answer for|GET |Connecting|Timeout|Waiting" | tail -80; echo "update rc=${PIPESTATUS[0]}"; date -u
+          timeout 600 sudo apt-get install -y --no-install-recommends -o Debug::pkgAcquire::Worker=true $BUILD_DEPS 2>&1 | grep -E "^(Get|Err)|Waiting|Timeout|dpkg|Setting up|Unpacking" | tail -60; echo "install rc=${PIPESTATUS[0]}"; date -u
+          ps -eo pid,etime,cmd | grep -E "apt|dpkg|unattended" | grep -v grep || true
+          exit 1
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
