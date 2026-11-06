@@ -41,6 +41,11 @@
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "${PACKAGE_VERSION}"
 
+/* Define to the numeric components of the version of this package. */
+#define THRIFT_VERSION_MAJOR ${thrift_VERSION_MAJOR}
+#define THRIFT_VERSION_MINOR ${thrift_VERSION_MINOR}
+#define THRIFT_VERSION_PATCH ${thrift_VERSION_PATCH}
+
 /* Define to the full name and version of this package. */
 #define PACKAGE_STRING "${PACKAGE_STRING}"
 

@@ -140,6 +140,7 @@ UnitTests_SOURCES = \
 	Base64Test.cpp \
 	ToStringTest.cpp \
 	TypedefTest.cpp \
+	VersionTest.cpp \
 	TServerSocketTest.cpp \
 	TServerTransportTest.cpp \
 	TestThread.h \

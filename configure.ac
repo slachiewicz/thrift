@@ -770,6 +770,14 @@ AC_SUBST(GCOV_CFLAGS)
 AC_SUBST(GCOV_CXXFLAGS)
 AC_SUBST(GCOV_LDFLAGS)
 
+# Numeric version components for #if checks in code that includes thrift/config.h
+m4_define([thrift_version_major], m4_bpatsubst(AC_PACKAGE_VERSION, [^\([0-9]+\)\..*], [\1]))
+m4_define([thrift_version_minor], m4_bpatsubst(AC_PACKAGE_VERSION, [^[0-9]+\.\([0-9]+\)\..*], [\1]))
+m4_define([thrift_version_patch], m4_bpatsubst(AC_PACKAGE_VERSION, [^[0-9]+\.[0-9]+\.\([0-9]+\).*], [\1]))
+AC_DEFINE([THRIFT_VERSION_MAJOR], [thrift_version_major], [Major component of the Thrift version])
+AC_DEFINE([THRIFT_VERSION_MINOR], [thrift_version_minor], [Minor component of the Thrift version])
+AC_DEFINE([THRIFT_VERSION_PATCH], [thrift_version_patch], [Patch component of the Thrift version])
+
 AC_CONFIG_HEADERS(config.h:config.hin)
 AC_CONFIG_HEADERS(lib/cpp/src/thrift/config.h:config.hin)
 AC_CONFIG_HEADERS(lib/c_glib/src/thrift/config.h:config.hin)
