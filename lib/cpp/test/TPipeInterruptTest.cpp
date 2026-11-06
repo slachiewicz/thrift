@@ -489,5 +489,36 @@ BOOST_AUTO_TEST_CASE(stress_pipe_close_during_use) {
   BOOST_CHECK_MESSAGE(reader.finishesWithin(std::chrono::seconds(10)), "the reader did not finish");
 }
 
+// THRIFT-4507: the server end reads the last of what the client sent, and the
+// client goes away.  The read that follows starts a new background read, which
+// fails because the peer is gone, and destroying the server end must not wait
+// for a read that never started.  The whole sequence runs on a thread of its
+// own, so that a hang fails the test instead of blocking it.
+BOOST_AUTO_TEST_CASE(test_destroy_after_peer_disconnected) {
+  BackgroundCall call([]() {
+    ConnectedPipes pipes("TPipeInterruptTest.PeerDisconnected");
+    std::shared_ptr<TTransport> serverEnd = pipes.accepted;
+    pipes.accepted.reset();
+
+    // fills the 1024 byte buffer of the server end, which reads it all at once
+    uint8_t buf[1024] = {};
+    pipes.client->write(buf, sizeof(buf));
+    // takes a byte, so that the next read does not start a background read yet
+    serverEnd->read(buf, 1);
+    pipes.client.reset();
+
+    // takes the rest, starts a background read, and that fails
+    try {
+      serverEnd->read(buf, sizeof(buf) - 1);
+    } catch (const TTransportException&) {
+    }
+    serverEnd.reset();
+  });
+  BOOST_CHECK_MESSAGE(call.finishesWithin(wakeupTime),
+                      "destroying a pipe whose peer is gone did not return");
+  if (call.finishesWithin(std::chrono::milliseconds(0)))
+    BOOST_CHECK_MESSAGE(call.outcome() == "returned", "the call " << call.outcome());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 #endif
