@@ -240,6 +240,16 @@ target_link_libraries(TPipedTransportTest
 target_link_libraries(TPipedTransportTest thrift)
 add_test(NAME TPipedTransportTest COMMAND TPipedTransportTest)
 
+if (WIN32)
+    add_executable(TPipeTest TPipeTest.cpp)
+    target_link_libraries(TPipeTest
+        ${Boost_LIBRARIES}
+    )
+    target_link_libraries(TPipeTest thrift)
+    add_test(NAME TPipeTest COMMAND TPipeTest)
+    set_tests_properties(TPipeTest PROPERTIES TIMEOUT 120)
+endif()
+
 add_executable(TTransportFactoryConfigTest TTransportFactoryConfigTest.cpp)
 target_link_libraries(TTransportFactoryConfigTest
     ${Boost_LIBRARIES}
