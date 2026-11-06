@@ -1477,7 +1477,7 @@ void t_cpp_generator::generate_struct_declaration(ostream& out,
       generate_java_doc(out, *m_iter);
       indent(out) << declare_field(*m_iter,
                                    !pointers && gen_no_constructors_,
-                                   (pointers && !(*m_iter)->get_type()->is_xception()),
+                                   (pointers && !(*m_iter)->get_type()->get_true_type()->is_xception()),
                                    !read) << '\n';
     }
   }
@@ -1801,7 +1801,7 @@ void t_cpp_generator::generate_struct_reader(ostream& out, t_struct* tstruct, bo
             indent() << "  throw TProtocolException(TProtocolException::INVALID_DATA);" << '\n';
 #endif
 
-      if (pointers && !(*f_iter)->get_type()->is_xception()) {
+      if (pointers && !(*f_iter)->get_type()->get_true_type()->is_xception()) {
         generate_deserialize_field(out, *f_iter, "(*(this->", "))");
       } else {
         generate_deserialize_field(out, *f_iter, "this->");
@@ -1873,7 +1873,7 @@ void t_cpp_generator::generate_struct_writer(ostream& out, t_struct* tstruct, bo
 
   for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
     bool check_if_set = (*f_iter)->get_req() == t_field::T_OPTIONAL
-                        || (*f_iter)->get_type()->is_xception();
+                        || (*f_iter)->get_type()->get_true_type()->is_xception();
     if (check_if_set) {
       out << '\n' << indent() << "if (this->__isset." << (*f_iter)->get_name() << ") {" << '\n';
       indent_up();
@@ -1886,7 +1886,7 @@ void t_cpp_generator::generate_struct_writer(ostream& out, t_struct* tstruct, bo
         << "\"" << (*f_iter)->get_name() << "\", " << type_to_enum((*f_iter)->get_type()) << ", "
         << (*f_iter)->get_key() << ");" << '\n';
     // Write field contents
-    if (pointers && !(*f_iter)->get_type()->is_xception()) {
+    if (pointers && !(*f_iter)->get_type()->get_true_type()->is_xception()) {
       generate_serialize_field(out, *f_iter, "(*(this->", "))");
     } else {
       generate_serialize_field(out, *f_iter, "this->");
