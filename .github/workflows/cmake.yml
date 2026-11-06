@@ -102,6 +102,43 @@ jobs:
       - name: Run install
         run: cmake --install cmake_build --prefix cmake_install
 
+  lib-cpp-without-libevent-zlib:
+    # libevent and zlib are optional (THRIFT-4104): the C++ library and its
+    # tests must still build and pass with both switched off.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configure apt retries and timeouts
+        run: sudo cp .github/apt/99-ci-network /etc/apt/apt.conf.d/
+
+      - name: Install dependencies
+        timeout-minutes: 10
+        run: |
+          sudo apt-get update -yq
+          sudo apt-get install -y --no-install-recommends $BUILD_DEPS libssl-dev libboost-test-dev locales
+          sudo locale-gen en_US.UTF-8
+          sudo locale-gen de_DE.UTF-8
+          sudo locale-gen tr_TR.UTF-8
+          sudo update-locale
+
+      - name: Generate makefile using CMake
+        timeout-minutes: 10
+        run: |
+          cmake -S . -B cmake_build -DWITH_LIBEVENT=OFF -DWITH_ZLIB=OFF \
+            -DWITH_C_GLIB=OFF -DWITH_JAVA=OFF -DWITH_JAVASCRIPT=OFF -DWITH_NODEJS=OFF -DWITH_PYTHON=OFF
+
+      - name: Run make
+        timeout-minutes: 30
+        run: cmake --build cmake_build -j"$(nproc)"
+
+      - name: Run test
+        timeout-minutes: 30
+        run: ctest --test-dir cmake_build --no-tests=error --output-on-failure -j"$(nproc --ignore=2)"
+
   compiler-windows:
     runs-on: windows-2025
     timeout-minutes: 60
