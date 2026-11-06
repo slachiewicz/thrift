@@ -257,44 +257,59 @@ shared_ptr<TTransport> TAnonPipeServer::acceptImpl() {
 }
 
 void TNamedPipeServer::initiateNamedConnect(const TAutoCrit &lockProof) {
-  if (stopping_)
-    return;
-  if (!createNamedPipe(lockProof)) {
-    TOutput::instance().perror("TPipeServer CreateNamedPipe failed, GLE=", GetLastError());
-    throw TTransportException(TTransportException::NOT_OPEN, " TPipeServer CreateNamedPipe failed");
-  }
+  // A client that connects and goes away before the server has set up the
+  // connection (THRIFT-3238) is that client's problem, not the server's:
+  // drop its pipe instance and listen on a fresh one.
+  for (;;) {
+    if (stopping_)
+      return;
+    if (!createNamedPipe(lockProof)) {
+      TOutput::instance().perror("TPipeServer CreateNamedPipe failed, GLE=", GetLastError());
+      throw TTransportException(TTransportException::NOT_OPEN,
+                                " TPipeServer CreateNamedPipe failed");
+    }
 
-  // The prior connection has been handled, so close the gate
-  ResetEvent(listen_event_.h);
-  connectOverlap_.reset(nullptr, 0, listen_event_.h);
-  connectOverlap_.h = Pipe_.h;
-  thread_->addWorkItem(&connectOverlap_);
+    // The prior connection has been handled, so close the gate
+    ResetEvent(listen_event_.h);
+    connectOverlap_.reset(nullptr, 0, listen_event_.h);
+    connectOverlap_.h = Pipe_.h;
+    thread_->addWorkItem(&connectOverlap_);
 
-  // Wait for the client to connect; if it succeeds, the
-  // function returns a nonzero value. If the function returns
-  // zero, GetLastError should return ERROR_PIPE_CONNECTED.
-  if (connectOverlap_.success) {
+    // Wait for the client to connect; if it succeeds, the
+    // function returns a nonzero value. If the function returns
+    // zero, GetLastError should return ERROR_PIPE_CONNECTED.
+    bool connected = connectOverlap_.success != FALSE;
+    if (!connected) {
+      DWORD dwErr = connectOverlap_.last_error;
+      switch (dwErr) {
+      case ERROR_PIPE_CONNECTED:
+        connected = true;
+        break;
+      case ERROR_IO_PENDING:
+        return; // acceptImpl will do the appropriate WaitForMultipleObjects
+      case ERROR_NO_DATA: // the client closed its end already
+        TOutput::instance().printf("Client disconnected before it was accepted.");
+        continue;
+      default:
+        TOutput::instance().perror("TPipeServer ConnectNamedPipe failed, GLE=", dwErr);
+        throw TTransportException(TTransportException::NOT_OPEN,
+                                  " TPipeServer ConnectNamedPipe failed");
+      }
+    }
+
+    try {
+      cached_client_.reset(new TPipe(Pipe_, childInterrupt_));
+    } catch (TTransportException& ttx) {
+      if (ttx.getType() == TTransportException::INTERRUPTED) {
+        throw;
+      }
+      TOutput::instance().perror("Client connection failed. TTransportExceptionType=", ttx.getType());
+      continue;
+    }
     TOutput::instance().printf("Client connected.");
-    cached_client_.reset(new TPipe(Pipe_, childInterrupt_));
     // make sure people know that a connection is ready
     SetEvent(listen_event_.h);
     return;
-  }
-
-  DWORD dwErr = connectOverlap_.last_error;
-  switch (dwErr) {
-  case ERROR_PIPE_CONNECTED:
-    TOutput::instance().printf("Client connected.");
-    cached_client_.reset(new TPipe(Pipe_, childInterrupt_));
-    // make sure people know that a connection is ready
-    SetEvent(listen_event_.h);
-    return;
-  case ERROR_IO_PENDING:
-    return; // acceptImpl will do the appropriate WaitForMultipleObjects
-  default:
-    TOutput::instance().perror("TPipeServer ConnectNamedPipe failed, GLE=", dwErr);
-    throw TTransportException(TTransportException::NOT_OPEN,
-                              " TPipeServer ConnectNamedPipe failed");
   }
 }
 
@@ -350,6 +365,13 @@ shared_ptr<TTransport> TNamedPipeServer::acceptImpl() {
   // if we got here, then we are in an error / shutdown case
   DWORD gle = GetLastError(); // save error before doing cleanup
   TOutput::instance().perror("TPipeServer ConnectNamedPipe GLE=", gle);
+  if (gle == ERROR_NO_DATA || gle == ERROR_BROKEN_PIPE || gle == ERROR_PIPE_NOT_CONNECTED) {
+    // the client went away before it was accepted; keep serving the others
+    TAutoCrit lock(pipe_protect_);
+    initiateNamedConnect(lock);
+    throw TTransportException(TTransportException::CLIENT_DISCONNECT,
+                              "TPipeServer: client disconnected before it was accepted");
+  }
   if(gle == ERROR_OPERATION_ABORTED) {
     TAutoCrit lock(pipe_protect_);    	// Needed to insure concurrent thread to be out of interrupt.
     throw TTransportException(TTransportException::INTERRUPTED, "TPipeServer: server interupted");

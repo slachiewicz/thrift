@@ -240,6 +240,15 @@ target_link_libraries(TPipedTransportTest
 target_link_libraries(TPipedTransportTest thrift)
 add_test(NAME TPipedTransportTest COMMAND TPipedTransportTest)
 
+if (WIN32)
+    add_executable(TPipeServerFaultyClientTest TPipeServerFaultyClientTest.cpp)
+    target_link_libraries(TPipeServerFaultyClientTest
+        ${Boost_LIBRARIES}
+    )
+    target_link_libraries(TPipeServerFaultyClientTest thrift)
+    add_test(NAME TPipeServerFaultyClientTest COMMAND TPipeServerFaultyClientTest)
+endif ()
+
 add_executable(TTransportFactoryConfigTest TTransportFactoryConfigTest.cpp)
 target_link_libraries(TTransportFactoryConfigTest
     ${Boost_LIBRARIES}
