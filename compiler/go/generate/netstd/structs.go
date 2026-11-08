@@ -105,7 +105,7 @@ func (g *Generator) generateNetstdStructDefinition(out *strings.Builder, s *sema
 	hasRequiredFields := false
 	for _, m := range members {
 		g.netstdDocField(out, m)
-		g.generateProperty(out, m, true, true)
+		g.generateProperty(out, m, true, true, isException)
 		if fieldIsRequired(m) {
 			hasRequiredFields = true
 		} else {
@@ -258,7 +258,7 @@ func (g *Generator) generateNetstdWcffault(out *strings.Builder, s *sema.Struct)
 	out.WriteString("\n")
 
 	for _, m := range members {
-		g.generateProperty(out, m, true, false)
+		g.generateProperty(out, m, true, false, false)
 	}
 
 	g.indentDown()
@@ -732,8 +732,11 @@ func (g *Generator) generateNetstdStructHashcode(out *strings.Builder, s *sema.S
 		t := f.Type()
 
 		g.generateNullCheckBegin(out, f)
+		// the field ID goes in first, so that the same value hashes differently in another field
+		out.WriteString(g.indent() + "hashcode = (hashcode * 397) + " + itoa(int64(f.Key())) + ";\n")
 		out.WriteString(g.indent() + "hashcode = (hashcode * 397) + ")
-		if t.IsContainer() {
+		// by content, the same way as Equals() compares them
+		if t.IsContainer() || t.IsBinary() {
 			out.WriteString("TCollections.GetHashCode(" + g.propName(f, false) + ")")
 		} else {
 			out.WriteString(g.propName(f, false) + ".GetHashCode()")
@@ -752,12 +755,12 @@ func (g *Generator) generateNetstdStructHashcode(out *strings.Builder, s *sema.S
 }
 
 // generateProperty is generate_property.
-func (g *Generator) generateProperty(out *strings.Builder, f *sema.Field, isPublic, generateIsset bool) {
-	g.generateNetstdProperty(out, f, isPublic, generateIsset, "_")
+func (g *Generator) generateProperty(out *strings.Builder, f *sema.Field, isPublic, generateIsset, inException bool) {
+	g.generateNetstdProperty(out, f, isPublic, generateIsset, "_", inException)
 }
 
 // generateNetstdProperty is generate_netstd_property.
-func (g *Generator) generateNetstdProperty(out *strings.Builder, f *sema.Field, isPublic, generateIsset bool, fieldPrefix string) {
+func (g *Generator) generateNetstdProperty(out *strings.Builder, f *sema.Field, isPublic, generateIsset bool, fieldPrefix string, inException bool) {
 	if (g.isSerializeEnabled() || g.isWCFEnabled()) && isPublic {
 		out.WriteString(g.indent() + "[DataMember(Order = 0)]\n")
 	}
@@ -767,7 +770,11 @@ func (g *Generator) generateNetstdProperty(out *strings.Builder, f *sema.Field, 
 	if isPublic {
 		access = "public "
 	}
-	out.WriteString(g.indent() + access + g.typeName(f.Type(), true) + g.nullableFieldSuffixField(f) + " " + g.propName(f, false))
+	newKw := ""
+	if hidesInheritedMember(g.propName(f, false), inException) {
+		newKw = "new "
+	}
+	out.WriteString(g.indent() + access + newKw + g.typeName(f.Type(), true) + g.nullableFieldSuffixField(f) + " " + g.propName(f, false))
 
 	isRequired := fieldIsRequired(f)
 	if isRequired {
@@ -799,4 +806,26 @@ func (g *Generator) generateNetstdProperty(out *strings.Builder, f *sema.Field, 
 		out.WriteString(g.indent() + "}\n")
 	}
 	out.WriteString("\n")
+}
+
+// hidesInheritedMember is hides_inherited_member. Whether a member of that
+// name hides one that every generated class inherits from System.Object, or
+// that an exception inherits from System.Exception. Such a member is declared
+// "new", which keeps the inherited one intact (CS0108, CS0114). Equals(),
+// GetHashCode() and ToString() are left out, as the generated classes declare
+// them themselves, and so is Finalize(), which cannot be hidden.
+func hidesInheritedMember(name string, inException bool) bool {
+	switch name {
+	case "GetType", "MemberwiseClone", "ReferenceEquals":
+		return true
+	}
+	if !inException {
+		return false
+	}
+	switch name {
+	case "Data", "GetBaseException", "GetObjectData", "HelpLink", "HResult", "InnerException",
+		"Message", "SerializeObjectState", "Source", "StackTrace", "TargetSite":
+		return true
+	}
+	return false
 }

@@ -534,7 +534,7 @@ func (g *Generator) generateProcessFunctionAsync(out *strings.Builder, s *sema.S
 	out.WriteString(g.indent() + "{\n")
 	out.WriteString(g.indent() + "  throw;\n")
 	out.WriteString(g.indent() + "}\n")
-	out.WriteString(g.indent() + "catch (Exception " + tmpex + ")\n")
+	out.WriteString(g.indent() + "catch (global::System.Exception " + tmpex + ")\n")
 	out.WriteString(g.indent() + "{\n")
 	g.indentUp()
 

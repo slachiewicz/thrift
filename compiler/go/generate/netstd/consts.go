@@ -48,6 +48,9 @@ func (g *Generator) generateEnumTo(out *strings.Builder, e *sema.Enum) {
 	g.netstdDoc(out, e)
 
 	g.generateDeprecationAttribute(out, e.Annotations())
+	if e.Annotations().Has("enum.flags") {
+		out.WriteString(g.indent() + "[Flags]\n")
+	}
 	out.WriteString(g.indent() + "public enum " + g.typeName(e, false) + "\n")
 	g.scopeUp(out)
 
