@@ -1,5 +1,6 @@
 d15208e68fb29cb6	compiler/cpp/tests/cpp/test_enum_class.thrift	Types.php
 48654a3ce9b02f30	compiler/cpp/tests/cpp/test_forward_setter.thrift	Types.php
+e03d9d554a67c591	compiler/cpp/tests/cpp/test_list_bool.thrift	Types.php
 1f593f75cc475fb5	compiler/cpp/tests/cpp/test_private_optional.thrift	Types.php
 8d28269b48f8f841	compiler/cpp/tests/cpp/test_string_escapes.thrift	Types.php
 64bbef873a6b40a7	compiler/cpp/tests/cpp/test_template_streamop.thrift	Types.php
@@ -23,7 +24,7 @@ d5eef2a2a9905cac	contrib/zeromq/storage.thrift	Types.php
 60eb8aa845d18fff	lib/go/test/BinaryKeyTest.thrift	Types.php
 05289b9f777df85b	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest.php
 ca3f888e5df900bc	lib/go/test/ClientMiddlewareExceptionTest.thrift	Types.php
-2588cbf1a6f0423b	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.php
+8a2101f2eb92ffe0	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.php
 d5eef2a2a9905cac	lib/go/test/ConflictArgNamesTest.thrift	Types.php
 2da1dab78920be64	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictService.php
 d5eef2a2a9905cac	lib/go/test/ConflictNamespaceServiceTest.thrift	Types.php
@@ -46,6 +47,8 @@ d5eef2a2a9905cac	lib/go/test/DuplicateImportsTest.thrift	Types.php
 ec2f695bf636feeb	lib/go/test/ErrorTest.thrift	Types.php
 ce9e25f801eab9de	lib/go/test/ForwardType.thrift	Types.php
 ced7cd573d2b25d1	lib/go/test/GoTagTest.thrift	Types.php
+9d4d9c5b4c818d3b	lib/go/test/Hyphenated-Name.thrift	HyphenatedService.php
+e5b76a52da98b484	lib/go/test/Hyphenated-Name.thrift	Types.php
 0016a3c5a10a2317	lib/go/test/IgnoreInitialismsTest.thrift	Types.php
 b9942db1bb6e495d	lib/go/test/InitialismsTest.thrift	Types.php
 24ac88fb5c622bd8	lib/go/test/MultiplexedProtocolTest.thrift	First.php
@@ -62,10 +65,15 @@ fde9e0995ac884b1	lib/go/test/OptionalFieldsTest.thrift	Types.php
 ed47676377eafe83	lib/go/test/ProcessorMiddlewareTest.thrift	Service.php
 2c5c7717ea628e3f	lib/go/test/ProcessorMiddlewareTest.thrift	Types.php
 86e8e5e939a3f509	lib/go/test/RefAnnotationFieldsTest.thrift	Types.php
+83d847f6e8462e79	lib/go/test/RemoteShadowAlias.thrift	Types.php
+b090774939841886	lib/go/test/RemoteShadowClient.thrift	Types.php
+1808d69a056ad01b	lib/go/test/RemoteShadowHost.thrift	Types.php
+c77805294cd2aef2	lib/go/test/RemoteShadowTest.thrift	ShadowService.php
+d5eef2a2a9905cac	lib/go/test/RemoteShadowTest.thrift	Types.php
 1698ed510fa4a47f	lib/go/test/RequiredFieldTest.thrift	Types.php
 60b524dc09e18c4d	lib/go/test/ServicesTest.thrift	Types.php
 effb7e96d7ca9838	lib/go/test/ServicesTest.thrift	a_serv.php
-f59a846817cdf18c	lib/go/test/ServicesTest.thrift	container_test.php
+af679c842bf53a49	lib/go/test/ServicesTest.thrift	container_test.php
 cce5aa288825f235	lib/go/test/ServicesTest.thrift	container_test_parent.php
 44a0fd373bbcd3c0	lib/go/test/StringParseAllocationTest.thrift	Types.php
 48c7763bd1edf7c3	lib/go/test/StructKeyTest.thrift	Types.php
@@ -139,7 +147,7 @@ d5c65327e3daf06c	test/SmallTest.thrift	SmallService.php
 88665868941733e7	test/StressTest.thrift	Service.php
 d5eef2a2a9905cac	test/StressTest.thrift	Types.php
 77d39fbbadf54d82	test/ThriftTest.thrift	ThriftTest/SecondService.php
-b3b23f34d9169deb	test/ThriftTest.thrift	ThriftTest/ThriftTest.php
+8bb27f3016f887db	test/ThriftTest.thrift	ThriftTest/ThriftTest.php
 68cb96b30ce742b9	test/ThriftTest.thrift	ThriftTest/Types.php
 27cbe0beded0725b	test/TypedefTest.thrift	Types.php
 5deda78aa870dd49	test/Types.thrift	BaseService.php

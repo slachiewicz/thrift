@@ -168,19 +168,19 @@ public class Keywords implements org.apache.thrift.TBase<Keywords, Keywords._Fie
   {
     this();
     this.string = string;
-    setStringIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __STRING_ISSET_ID, true);
     this.list = list;
-    setListIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __LIST_ISSET_ID, true);
     this.service = service;
-    setServiceIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SERVICE_ISSET_ID, true);
     this.include = include;
-    setIncludeIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __INCLUDE_ISSET_ID, true);
     this.minus = minus;
-    setMinusIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __MINUS_ISSET_ID, true);
     this.plus = plus;
-    setPlusIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __PLUS_ISSET_ID, true);
     this.hex = hex;
-    setHexIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __HEX_ISSET_ID, true);
     this.quoted = quoted;
   }
 

@@ -2,6 +2,8 @@
 983ed5e01014a7bb	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class.markdown
 b670057840bf0ba7	compiler/cpp/tests/cpp/test_forward_setter.thrift	index.markdown
 ba864531adb3a155	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter.markdown
+bdafe9f99d8d8d01	compiler/cpp/tests/cpp/test_list_bool.thrift	index.markdown
+1e2002ec8740e790	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool.markdown
 a4fdb11242c7a46d	compiler/cpp/tests/cpp/test_private_optional.thrift	index.markdown
 c56657815c213f73	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional.markdown
 26fafe4707a46acc	compiler/cpp/tests/cpp/test_string_escapes.thrift	index.markdown
@@ -28,7 +30,7 @@ c66dcb38f0179cbe	lib/go/test/BinaryKeyTest.thrift	BinaryKeyTest.markdown
 80fd9e76abefc4f3	lib/go/test/BinaryKeyTest.thrift	index.markdown
 ef2780c200b51642	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest.markdown
 d14ce152e534dd69	lib/go/test/ClientMiddlewareExceptionTest.thrift	index.markdown
-7941dcb1a5e8ee15	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.markdown
+43163f16a833b96d	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.markdown
 16f413b0975f1a58	lib/go/test/ConflictArgNamesTest.thrift	index.markdown
 88417642886ddc61	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictNamespaceServiceTest.markdown
 54deec60d8dff1fa	lib/go/test/ConflictNamespaceServiceTest.thrift	index.markdown
@@ -66,6 +68,8 @@ ea98104230e8204b	lib/go/test/ErrorTest.thrift	ErrorTest.markdown
 41c49301c70e220a	lib/go/test/ForwardType.thrift	index.markdown
 80a851b7efef74a7	lib/go/test/GoTagTest.thrift	GoTagTest.markdown
 e8b477525180d693	lib/go/test/GoTagTest.thrift	index.markdown
+659adf86e44bb669	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name.markdown
+fcf0c4df3dfb499b	lib/go/test/Hyphenated-Name.thrift	index.markdown
 b8f07d335f3ddb51	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest.markdown
 916690a90a61a98e	lib/go/test/IgnoreInitialismsTest.thrift	index.markdown
 3a81a05c74e9debd	lib/go/test/InitialismsTest.thrift	InitialismsTest.markdown
@@ -84,10 +88,18 @@ b174e468674b6698	lib/go/test/ProcessorMiddlewareTest.thrift	ProcessorMiddlewareT
 e7a475f3c4529556	lib/go/test/ProcessorMiddlewareTest.thrift	index.markdown
 f4835079815b77f7	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest.markdown
 799883ef72adfbd3	lib/go/test/RefAnnotationFieldsTest.thrift	index.markdown
+853a11e11abebdcd	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias.markdown
+d1eeeda199ddab95	lib/go/test/RemoteShadowAlias.thrift	index.markdown
+3bd8fc9dd8ceac37	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient.markdown
+685e2e704858279c	lib/go/test/RemoteShadowClient.thrift	index.markdown
+f6f76e418dde8103	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost.markdown
+66df7584775de90e	lib/go/test/RemoteShadowHost.thrift	index.markdown
+e4f9f1d564de9121	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest.markdown
+1c1faf69c1f85417	lib/go/test/RemoteShadowTest.thrift	index.markdown
 3b9d2afa6120be16	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest.markdown
 b2583a372df9180f	lib/go/test/RequiredFieldTest.thrift	index.markdown
-277df15b855e7f7f	lib/go/test/ServicesTest.thrift	ServicesTest.markdown
-79584d2c1c133e56	lib/go/test/ServicesTest.thrift	index.markdown
+c9d736750119104b	lib/go/test/ServicesTest.thrift	ServicesTest.markdown
+ddc3af32d6b4f8f7	lib/go/test/ServicesTest.thrift	index.markdown
 e27602be845d8069	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest.markdown
 545a428923373bdf	lib/go/test/StringParseAllocationTest.thrift	index.markdown
 194eedc31e7b068c	lib/go/test/StructKeyTest.thrift	StructKeyTest.markdown
@@ -177,7 +189,7 @@ b733267e7e84e9d5	test/SpecificNameTest.thrift	SpecificNameTest.markdown
 0c6b76cdd37e7a54	test/SpecificNameTest.thrift	index.markdown
 f837381f9430838b	test/StressTest.thrift	StressTest.markdown
 adece660d4a6a969	test/StressTest.thrift	index.markdown
-2e31cab6ffe97731	test/ThriftTest.thrift	ThriftTest.markdown
+11ef09d819be50f1	test/ThriftTest.thrift	ThriftTest.markdown
 5d260f2cca19aa8c	test/ThriftTest.thrift	index.markdown
 212ddd65ff2deb36	test/TypedefTest.thrift	TypedefTest.markdown
 63f4339be4e4f033	test/TypedefTest.thrift	index.markdown

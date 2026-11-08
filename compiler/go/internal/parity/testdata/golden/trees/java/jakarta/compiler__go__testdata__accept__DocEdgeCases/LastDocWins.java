@@ -101,7 +101,7 @@ public class LastDocWins implements org.apache.thrift.TBase<LastDocWins, LastDoc
   {
     this();
     this.a = a;
-    setAIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __A_ISSET_ID, true);
   }
 
   /**

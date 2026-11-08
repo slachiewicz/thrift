@@ -144,9 +144,9 @@ public class Work implements org.apache.thrift.TBase<Work, Work._Fields>, java.i
   {
     this();
     this.num1 = num1;
-    setNum1IsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __NUM1_ISSET_ID, true);
     this.num2 = num2;
-    setNum2IsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __NUM2_ISSET_ID, true);
     this.op = op;
   }
 

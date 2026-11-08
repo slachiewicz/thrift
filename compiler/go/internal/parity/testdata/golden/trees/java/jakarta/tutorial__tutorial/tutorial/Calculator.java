@@ -26,6 +26,9 @@ public class Calculator {
 
     public int add(int num1, int num2) throws org.apache.thrift.TException;
 
+    /**
+     * @throws tutorial.InvalidOperation
+     */
     public int calculate(int logid, Work w) throws InvalidOperation, org.apache.thrift.TException;
 
     /**
@@ -1414,9 +1417,9 @@ public class Calculator {
     {
       this();
       this.num1 = num1;
-      setNum1IsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __NUM1_ISSET_ID, true);
       this.num2 = num2;
-      setNum2IsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __NUM2_ISSET_ID, true);
     }
 
     /**
@@ -1885,7 +1888,7 @@ public class Calculator {
     {
       this();
       this.success = success;
-      setSuccessIsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, true);
     }
 
     /**
@@ -2278,7 +2281,7 @@ public class Calculator {
     {
       this();
       this.logid = logid;
-      setLogidIsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __LOGID_ISSET_ID, true);
       this.w = w;
     }
 
@@ -2772,7 +2775,7 @@ public class Calculator {
     {
       this();
       this.success = success;
-      setSuccessIsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, true);
       this.ouch = ouch;
     }
 

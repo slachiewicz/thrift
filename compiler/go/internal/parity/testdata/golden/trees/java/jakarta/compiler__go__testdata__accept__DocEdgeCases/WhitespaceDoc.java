@@ -100,7 +100,7 @@ public class WhitespaceDoc implements org.apache.thrift.TBase<WhitespaceDoc, Whi
   {
     this();
     this.a = a;
-    setAIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __A_ISSET_ID, true);
   }
 
   /**

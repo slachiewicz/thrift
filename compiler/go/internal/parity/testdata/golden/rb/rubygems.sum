@@ -2,6 +2,8 @@ f0261b46f0f3ac0e	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class_c
 6db46cf3185e3fa5	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class_types.rb
 15a58e89706c6fdf	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter_constants.rb
 b849d3dcdc2ce5c3	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter_types.rb
+b60eeebb5bf25048	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool_constants.rb
+68ef5275d771638b	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool_types.rb
 c72d483579d2714a	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional_constants.rb
 a2f31c6c839633f4	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional_types.rb
 ad7e667a6eead885	compiler/cpp/tests/cpp/test_string_escapes.thrift	test_string_escapes_constants.rb
@@ -38,7 +40,7 @@ c29388af6a71c0db	contrib/transport-sample/Sample.thrift	sample_service.rb
 7964e024537fb207	lib/go/test/ClientMiddlewareExceptionTest.thrift	client_middleware_exception_test.rb
 9ba25b93a5722ee1	lib/go/test/ClientMiddlewareExceptionTest.thrift	client_middleware_exception_test_constants.rb
 94f04c5dfd218739	lib/go/test/ClientMiddlewareExceptionTest.thrift	client_middleware_exception_test_types.rb
-88add7eac66e2782	lib/go/test/ConflictArgNamesTest.thrift	conflict_arg_names_test.rb
+3bb5021800b49fd5	lib/go/test/ConflictArgNamesTest.thrift	conflict_arg_names_test.rb
 52fbcc79aa7a71ec	lib/go/test/ConflictArgNamesTest.thrift	conflict_arg_names_test_constants.rb
 167d4efd8fe0dd35	lib/go/test/ConflictArgNamesTest.thrift	conflict_arg_names_test_types.rb
 9a3359df968290de	lib/go/test/ConflictNamespaceServiceTest.thrift	conflict_namespace_service_test_constants.rb
@@ -80,6 +82,9 @@ ec6240738cdcde5c	lib/go/test/ForwardType.thrift	forward_type_constants.rb
 402d8434f71a4d62	lib/go/test/ForwardType.thrift	forward_type_types.rb
 7e055336b84905be	lib/go/test/GoTagTest.thrift	go_tag_test_constants.rb
 f41e94099cf6ffc2	lib/go/test/GoTagTest.thrift	go_tag_test_types.rb
+21ace152f83e16fc	lib/go/test/Hyphenated-Name.thrift	hyphenated-_name_constants.rb
+747afc10d6660230	lib/go/test/Hyphenated-Name.thrift	hyphenated-_name_types.rb
+ea3af42d86ba5982	lib/go/test/Hyphenated-Name.thrift	hyphenated_service.rb
 54c1394da1cdbf13	lib/go/test/IgnoreInitialismsTest.thrift	ignore_initialisms_test_constants.rb
 8578ffc1b55bd175	lib/go/test/IgnoreInitialismsTest.thrift	ignore_initialisms_test_types.rb
 87e880ba1f2bafab	lib/go/test/InitialismsTest.thrift	initialisms_test_constants.rb
@@ -105,10 +110,19 @@ aa02bad5f20cc9ab	lib/go/test/OnewayTest.thrift	oneway_test_constants.rb
 5c29e9606d68db3c	lib/go/test/ProcessorMiddlewareTest.thrift	service.rb
 1adad695e44dfde2	lib/go/test/RefAnnotationFieldsTest.thrift	ref_annotation_fields_test_constants.rb
 6eccb68e458a5975	lib/go/test/RefAnnotationFieldsTest.thrift	ref_annotation_fields_test_types.rb
+481028084103da28	lib/go/test/RemoteShadowAlias.thrift	remote_shadow_alias_constants.rb
+22f015d0b6657f74	lib/go/test/RemoteShadowAlias.thrift	remote_shadow_alias_types.rb
+0633e3c9aa034aa7	lib/go/test/RemoteShadowClient.thrift	remote_shadow_client_constants.rb
+164158e6c05b693d	lib/go/test/RemoteShadowClient.thrift	remote_shadow_client_types.rb
+272f66654e8fe090	lib/go/test/RemoteShadowHost.thrift	remote_shadow_host_constants.rb
+42d7345193d981f5	lib/go/test/RemoteShadowHost.thrift	remote_shadow_host_types.rb
+c121af0d7c015831	lib/go/test/RemoteShadowTest.thrift	remote_shadow_test_constants.rb
+ad249581fc980f87	lib/go/test/RemoteShadowTest.thrift	remote_shadow_test_types.rb
+8f62cc45ca0a0ca8	lib/go/test/RemoteShadowTest.thrift	shadow_service.rb
 eed6c28ce95f7bbb	lib/go/test/RequiredFieldTest.thrift	required_field_test_constants.rb
 3fab39da2cea224e	lib/go/test/RequiredFieldTest.thrift	required_field_test_types.rb
 f567d82444875ada	lib/go/test/ServicesTest.thrift	a_serv.rb
-f9d951c9140f9470	lib/go/test/ServicesTest.thrift	container_test.rb
+c6c22c7e34214f45	lib/go/test/ServicesTest.thrift	container_test.rb
 d632b4dfbc71c48f	lib/go/test/ServicesTest.thrift	container_test_parent.rb
 4f55724dc408287e	lib/go/test/ServicesTest.thrift	services_test_constants.rb
 e9cadae1075b6d4e	lib/go/test/ServicesTest.thrift	services_test_types.rb
@@ -228,7 +242,7 @@ b151aa0b34b1e6b7	test/SpecificNameTest.thrift	specific_name_test_types.rb
 bd99c65856b7d9c9	test/StressTest.thrift	stress_test_constants.rb
 167d4efd8fe0dd35	test/StressTest.thrift	stress_test_types.rb
 e7a68eabba097157	test/ThriftTest.thrift	second_service.rb
-042978278f44d0c3	test/ThriftTest.thrift	thrift_test.rb
+769f798334ecd9f2	test/ThriftTest.thrift	thrift_test.rb
 c44be62ac846d047	test/ThriftTest.thrift	thrift_test_constants.rb
 7a9b0f792be45181	test/ThriftTest.thrift	thrift_test_types.rb
 d9b423b8de4a3acb	test/TypedefTest.thrift	typedef_test_constants.rb

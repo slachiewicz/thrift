@@ -110,7 +110,7 @@ public class TrailingEmptyDocLine implements org.apache.thrift.TBase<TrailingEmp
   {
     this();
     this.a = a;
-    setAIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __A_ISSET_ID, true);
   }
 
   /**
