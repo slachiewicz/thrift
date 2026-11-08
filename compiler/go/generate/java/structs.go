@@ -208,7 +208,7 @@ func (g *Generator) generateJavaStructDefinition(out *strings.Builder, s *sema.S
 				} else {
 					out.WriteString(g.indent() + "this." + id + " = " + id + ";\n")
 				}
-				g.issetSet(out, m, "")
+				g.issetSetInConstructor(out, s, m)
 			}
 		}
 		g.indentDown()
@@ -968,7 +968,9 @@ func (g *Generator) generateJavaBeanBoilerplate(out *strings.Builder, s *sema.St
 				out.WriteString(g.indent() + "@Deprecated\n")
 			}
 			out.WriteString(g.indent() + "public byte[] get" + capName + "() {\n")
-			out.WriteString(g.indent() + "  set" + capName + "(org.apache.thrift.TBaseHelper.rightSize(" + fieldName + "));\n")
+			// Assign the right-sized buffer directly: going through the setter would copy it again
+			// (copyBinary) on every call, although the returned array is the field's own either way.
+			out.WriteString(g.indent() + "  this." + fieldName + " = org.apache.thrift.TBaseHelper.rightSize(" + fieldName + ");\n")
 			out.WriteString(g.indent() + "  return " + fieldName + " == null ? null : " + fieldName + ".array();\n")
 			out.WriteString(g.indent() + "}\n\n")
 

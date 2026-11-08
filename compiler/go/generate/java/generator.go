@@ -332,10 +332,16 @@ func (g *Generator) javaDoc(out *strings.Builder, doc interface {
 	}
 }
 
-// javaDocFunction is generate_java_doc(ostream&, t_function*).
+// docTypeName is t_java_generator::get_doc_type_name.
+func (g *Generator) docTypeName(t sema.Type) string {
+	return g.typeName(t, false, false, false, true)
+}
+
+// javaDocFunction is generate_java_doc(ostream&, t_function*) of
+// t_oop_generator.
 func (g *Generator) javaDocFunction(out *strings.Builder, f *sema.Function) {
+	var ss strings.Builder
 	if f.HasDoc() {
-		var ss strings.Builder
 		ss.WriteString(f.Doc())
 		for _, p := range f.Arglist().Members() {
 			ss.WriteString("\n@param " + p.Name())
@@ -343,7 +349,12 @@ func (g *Generator) javaDocFunction(out *strings.Builder, f *sema.Function) {
 				ss.WriteString(" " + p.Doc())
 			}
 		}
-		emit.DocstringComment(out, g.indent(), "/**\n", " * ", ss.String(), " */\n")
+	}
+
+	emit.ThrowsDoc(&ss, f, g.docTypeName)
+
+	if resultDoc := ss.String(); resultDoc != "" {
+		g.javaDocstringComment(out, resultDoc)
 	}
 }
 
@@ -790,6 +801,23 @@ func (g *Generator) issetCheckName(name string) string {
 func (g *Generator) issetSet(out *strings.Builder, f *sema.Field, prefix string) {
 	if !typeCanBeNull(f.Type()) {
 		out.WriteString(g.indent() + prefix + "set" + g.capName(f.Name()) + g.capName("isSet") + "(true);\n")
+	}
+}
+
+// issetSetInConstructor is generate_isset_set_in_constructor. Calling the
+// public, overridable setXIsSet() from a constructor lets 'this' escape
+// before a subclass is initialized (javac's this-escape lint), so the bit is
+// set directly, the way that method does it.
+func (g *Generator) issetSetInConstructor(out *strings.Builder, s *sema.Struct, f *sema.Field) {
+	if typeCanBeNull(f.Type()) {
+		return
+	}
+	switch kind, _ := g.needsIsset(s); kind {
+	case issetPrimitive:
+		out.WriteString(g.indent() + "__isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, " + issetFieldID(f) + ", true);\n")
+	case issetBitset:
+		out.WriteString(g.indent() + "__isset_bit_vector.set(" + issetFieldID(f) + ", true);\n")
+	case issetNone:
 	}
 }
 

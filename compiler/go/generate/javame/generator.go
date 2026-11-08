@@ -201,10 +201,29 @@ func (g *Generator) javaDoc(out *strings.Builder, doc interface {
 	}
 }
 
-// javaDocFunction is generate_java_doc(ostream&, t_function*).
+// docTypeName is t_javame_generator::get_doc_type_name: a type of another
+// program is named as type_name does, one of this program is qualified by
+// its java namespace.
+func (g *Generator) docTypeName(t sema.Type) string {
+	t = trueType(t)
+	typeNameStr := g.typeName(t, false)
+	if t.Program() != g.program {
+		return typeNameStr
+	}
+
+	pkg := t.Program().Namespace("java")
+	if pkg != "" {
+		pkg += "."
+	}
+	return pkg + typeNameStr
+}
+
+// javaDocFunction is generate_java_doc(ostream&, t_function*), which
+// delegates to the t_oop_generator version: the doc, its @param lines and
+// the @throws lines of the exceptions the function declares.
 func (g *Generator) javaDocFunction(out *strings.Builder, f *sema.Function) {
+	var ss strings.Builder
 	if f.HasDoc() {
-		var ss strings.Builder
 		ss.WriteString(f.Doc())
 		for _, p := range f.Arglist().Members() {
 			ss.WriteString("\n@param " + p.Name())
@@ -212,7 +231,12 @@ func (g *Generator) javaDocFunction(out *strings.Builder, f *sema.Function) {
 				ss.WriteString(" " + p.Doc())
 			}
 		}
-		emit.DocstringComment(out, g.indent(), "/**\n", " * ", ss.String(), " */\n")
+	}
+
+	emit.ThrowsDoc(&ss, f, g.docTypeName)
+
+	if resultDoc := ss.String(); resultDoc != "" {
+		g.javaDocstringComment(out, resultDoc)
 	}
 }
 
