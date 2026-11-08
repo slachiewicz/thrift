@@ -73,7 +73,7 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, f *sema.Field
 		}
 		out.WriteString("\n")
 	case typ.IsEnum():
-		if g.opts.Enum {
+		if g.opts.Enum || isFlags(typ) {
 			out.WriteString(g.indent() + name + " = " + g.typeName(typ) + "(iprot.readI32())")
 		} else {
 			out.WriteString(g.indent() + name + " = iprot.readI32()")
@@ -237,7 +237,7 @@ func (g *Generator) generateSerializeField(out *strings.Builder, f *sema.Field, 
 				throw("compiler error: no Python name for base type %s", sema.BaseName(bt.Base()))
 			}
 		} else if typ.IsEnum() {
-			if g.opts.Enum {
+			if g.opts.Enum || isFlags(typ) {
 				out.WriteString("writeI32(" + name + ".value)")
 			} else {
 				out.WriteString("writeI32(" + name + ")")

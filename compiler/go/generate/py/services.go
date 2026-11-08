@@ -53,7 +53,13 @@ func (g *Generator) generateService(s *sema.Service) {
 		g.fService.WriteString("from tornado import concurrent\n")
 	}
 
-	g.fService.WriteString("all_structs = []\n")
+	if g.opts.TypeHints {
+		g.fService.WriteString("all_structs: list[typing.Any] = []\n")
+		g.fService.WriteString("_THRIFT_DEFAULT: typing.Any = object()\n")
+	} else {
+		g.fService.WriteString("all_structs = []\n")
+		g.fService.WriteString("_THRIFT_DEFAULT = object()\n")
+	}
 
 	// Generate the three main parts of the service.
 	g.generateServiceInterface(s)
