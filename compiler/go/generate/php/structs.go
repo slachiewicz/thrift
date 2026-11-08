@@ -346,11 +346,12 @@ func (g *Generator) generatePHPStructReader(out *strings.Builder, s *sema.Struct
 	out.WriteString(g.indent() + "$xfer = 0;\n" + g.indent() + "$fname = null;\n" + g.indent() +
 		"$ftype = 0;\n" + g.indent() + "$fid = 0;\n")
 
-	// Declare stack tmp variables.
+	// In inline mode $input is the TTransport, which holds the depth budget
+	// for the reads that bypass a TProtocol.
+	out.WriteString(g.indent() + "$input->incrementRecursionDepth();\n")
+	out.WriteString(g.indent() + "try {\n")
+	g.indentUp()
 	if !g.opts.Inlined {
-		out.WriteString(g.indent() + "$input->incrementRecursionDepth();\n")
-		out.WriteString(g.indent() + "try {\n")
-		g.indentUp()
 		out.WriteString(g.indent() + "$xfer += $input->readStructBegin($fname);\n")
 	}
 
@@ -421,13 +422,13 @@ func (g *Generator) generatePHPStructReader(out *strings.Builder, s *sema.Struct
 
 	if !g.opts.Inlined {
 		out.WriteString(g.indent() + "$xfer += $input->readStructEnd();\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "} finally {\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "$input->decrementRecursionDepth();\n")
-		g.indentDown()
-		out.WriteString(g.indent() + "}\n")
 	}
+	g.indentDown()
+	out.WriteString(g.indent() + "} finally {\n")
+	g.indentUp()
+	out.WriteString(g.indent() + "$input->decrementRecursionDepth();\n")
+	g.indentDown()
+	out.WriteString(g.indent() + "}\n")
 
 	if g.needsPHPReadValidator(s, isResult) {
 		out.WriteString(g.indent() + "$this->validateForRead();\n")
