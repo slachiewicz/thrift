@@ -91,8 +91,12 @@ func (g *Generator) generateService(s *sema.Service) {
 
 	if g.opts.Node {
 		if extends := s.Extends(); extends != nil {
-			g.fService.WriteString(g.jsConstType + extends.Name() + " = require('" + g.getImportPathService(extends) + "');" + "\n" +
-				g.jsConstType + extends.Name() + "Client = " + extends.Name() + ".Client;" + "\n" +
+			if g.opts.ESM {
+				g.fService.WriteString("import * as " + extends.Name() + " from '" + g.getImportPathService(extends) + "';" + "\n")
+			} else {
+				g.fService.WriteString(g.jsConstType + extends.Name() + " = require('" + g.getImportPathService(extends) + "');" + "\n")
+			}
+			g.fService.WriteString(g.jsConstType + extends.Name() + "Client = " + extends.Name() + ".Client;" + "\n" +
 				g.jsConstType + extends.Name() + "Processor = " + extends.Name() + ".Processor;" + "\n")
 			if g.opts.TS {
 				g.fServiceTS.WriteString("import " + extends.Name() + " = require('" + g.getImportPathService(extends) + "');" + "\n")
@@ -905,14 +909,10 @@ func (g *Generator) generateSendFunction(s *sema.Service, f *sema.Function, argS
 	g.indentUp()
 	if g.opts.Node {
 		g.fService.WriteString(g.indent() + "delete this._reqs[this.seqid()];" + "\n")
-		g.fService.WriteString(g.indent() + "if (typeof " + outputVar + ".reset === 'function') {" + "\n")
-		g.fService.WriteString(g.indent() + "  " + outputVar + ".reset();" + "\n")
-		g.fService.WriteString(g.indent() + "}" + "\n")
-	} else {
-		g.fService.WriteString(g.indent() + "if (typeof " + outputVar + ".getTransport().reset === 'function') {" + "\n")
-		g.fService.WriteString(g.indent() + "  " + outputVar + ".getTransport().reset();" + "\n")
-		g.fService.WriteString(g.indent() + "}" + "\n")
 	}
+	g.fService.WriteString(g.indent() + "if (typeof " + outputVar + ".getTransport().reset === 'function') {" + "\n")
+	g.fService.WriteString(g.indent() + "  " + outputVar + ".getTransport().reset();" + "\n")
+	g.fService.WriteString(g.indent() + "}" + "\n")
 	g.fService.WriteString(g.indent() + "throw e;" + "\n")
 	g.indentDown()
 	g.fService.WriteString(g.indent() + "}" + "\n")

@@ -119,12 +119,7 @@ func (g *Generator) renderConstValue(t sema.Type, v *sema.ConstValue) string {
 		case sema.TypeString:
 			out.WriteString("'" + jsEscapeString(v.String()) + "'")
 		case sema.TypeUUID:
-			// The C++ source writes `out << "'" << value << "'"` where
-			// value is the t_const_value*, not get_escaped_string(value):
-			// it prints the pointer's address, which is not reproducible
-			// between runs. See undefinedInCpp["js"] in the parity test;
-			// this port renders the UUID string instead.
-			out.WriteString("'" + v.String() + "'")
+			out.WriteString("'" + jsEscapeString(v.String()) + "'")
 		case sema.TypeBool:
 			if v.Integer() > 0 {
 				out.WriteString("true")
