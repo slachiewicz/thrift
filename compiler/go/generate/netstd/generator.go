@@ -855,16 +855,30 @@ func (g *Generator) netstdDoc(out *strings.Builder, doc interface {
 
 // netstdDocFunction is generate_netstd_doc(ostream&, t_function*).
 func (g *Generator) netstdDocFunction(out *strings.Builder, f *sema.Function) {
-	if !f.HasDoc() {
-		return
-	}
 	var ps strings.Builder
-	for _, p := range f.Arglist().Members() {
-		ps.WriteString("\n<param name=\"" + p.Name() + "\">")
-		if p.HasDoc() {
-			ps.WriteString(strings.ReplaceAll(p.Doc(), "\n", ""))
+	if f.HasDoc() {
+		ps.WriteString("<summary>\n" + emit.XMLEncode(f.Doc()) + "</summary>")
+		for _, p := range f.Arglist().Members() {
+			ps.WriteString("\n<param name=\"" + p.Name() + "\">")
+			if p.HasDoc() {
+				ps.WriteString(emit.XMLEncode(p.Doc()))
+			}
+			ps.WriteString("</param>")
 		}
-		ps.WriteString("</param>")
 	}
-	emit.DocstringComment(out, g.indent(), "", "/// ", "<summary>\n"+f.Doc()+"</summary>"+ps.String(), "")
+
+	for _, e := range f.Xceptions().Members() {
+		if ps.Len() > 0 {
+			ps.WriteString("\n")
+		}
+		ps.WriteString("<exception cref=\"" + g.typeName(e.Type(), true) + "\">")
+		if e.HasDoc() {
+			ps.WriteString(emit.XMLEncode(strings.TrimRight(e.Doc(), "\r\n")))
+		}
+		ps.WriteString("</exception>")
+	}
+
+	if ps.Len() > 0 {
+		emit.DocstringComment(out, g.indent(), "", "/// ", ps.String(), "")
+	}
 }

@@ -103,8 +103,13 @@ func (g *Generator) generateNetstdUnionDefinition(out *strings.Builder, u *sema.
 	out.WriteString(g.indent() + "public override int GetHashCode()\n")
 	out.WriteString(g.indent() + "{\n")
 	g.indentUp()
+	// as in the member classes, the ID of the field that is set goes in first
+	out.WriteString(g.indent() + "int hashcode = 157;\n")
+	out.WriteString(g.indent() + "unchecked {\n")
+	g.indentUp()
+	out.WriteString(g.indent() + "hashcode = (hashcode * 397) + Isset;\n")
 	if g.opts.TargetNetVersion >= 6 {
-		out.WriteString(g.indent() + "return Isset switch\n")
+		out.WriteString(g.indent() + "hashcode = (hashcode * 397) + (Isset switch\n")
 		out.WriteString(g.indent() + "{\n")
 		g.indentUp()
 		for _, f := range fields {
@@ -120,7 +125,7 @@ func (g *Generator) generateNetstdUnionDefinition(out *strings.Builder, u *sema.
 		}
 		out.WriteString(g.indent() + "_ =>  (new ___undefined()).GetHashCode()\n")
 		g.indentDown()
-		out.WriteString(g.indent() + "};\n")
+		out.WriteString(g.indent() + "});\n")
 	} else {
 		out.WriteString(g.indent() + "switch (Isset)\n")
 		out.WriteString(g.indent() + "{\n")
@@ -132,20 +137,26 @@ func (g *Generator) generateNetstdUnionDefinition(out *strings.Builder, u *sema.
 			}
 			out.WriteString(g.indent() + "case " + itoa(int64(f.Key())) + ":\n")
 			g.indentUp()
-			out.WriteString(g.indent() + "return As_" + f.Name() + nullCoalesce + ".GetHashCode()")
+			out.WriteString(g.indent() + "hashcode = (hashcode * 397) + ")
 			if nullCoalesce != "" {
-				out.WriteString(" ?? 0")
+				out.WriteString("(As_" + f.Name() + nullCoalesce + ".GetHashCode() ?? 0);\n")
+			} else {
+				out.WriteString("As_" + f.Name() + ".GetHashCode();\n")
 			}
-			out.WriteString(";\n")
+			out.WriteString(g.indent() + "break;\n")
 			g.indentDown()
 		}
 		out.WriteString(g.indent() + "default:\n")
 		g.indentUp()
-		out.WriteString(g.indent() + "return (new ___undefined()).GetHashCode();\n")
+		out.WriteString(g.indent() + "hashcode = (hashcode * 397) + (new ___undefined()).GetHashCode();\n")
+		out.WriteString(g.indent() + "break;\n")
 		g.indentDown()
 		g.indentDown()
 		out.WriteString(g.indent() + "}\n")
 	}
+	g.indentDown()
+	out.WriteString(g.indent() + "}\n")
+	out.WriteString(g.indent() + "return hashcode;\n")
 	g.indentDown()
 	out.WriteString(g.indent() + "}\n\n")
 
@@ -284,6 +295,8 @@ func (g *Generator) generateNetstdUnionClass(out *strings.Builder, u *sema.Struc
 	}
 	out.WriteString(g.indent() + "if (ReferenceEquals(this, other)) return true;\n")
 	out.WriteString("\n")
+	out.WriteString(g.indent() + "if(this.Isset != other.Isset) return false;\n")
+	out.WriteString("\n")
 	out.WriteString(g.indent() + "return Equals( _data, other.As_" + f.Name() + ");\n")
 	g.indentDown()
 	out.WriteString(g.indent() + "}\n\n")
@@ -291,7 +304,15 @@ func (g *Generator) generateNetstdUnionClass(out *strings.Builder, u *sema.Struc
 	out.WriteString(g.indent() + "public override int GetHashCode()\n")
 	out.WriteString(g.indent() + "{\n")
 	g.indentUp()
-	out.WriteString(g.indent() + "return _data.GetHashCode();\n")
+	// the field ID goes in first, so that the same value hashes differently in another member
+	out.WriteString(g.indent() + "int hashcode = 157;\n")
+	out.WriteString(g.indent() + "unchecked {\n")
+	g.indentUp()
+	out.WriteString(g.indent() + "hashcode = (hashcode * 397) + " + itoa(int64(f.Key())) + ";\n")
+	out.WriteString(g.indent() + "hashcode = (hashcode * 397) + _data.GetHashCode();\n")
+	g.indentDown()
+	out.WriteString(g.indent() + "}\n")
+	out.WriteString(g.indent() + "return hashcode;\n")
 	g.indentDown()
 	out.WriteString(g.indent() + "}\n\n")
 
