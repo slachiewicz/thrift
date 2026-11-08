@@ -791,8 +791,8 @@ func (g *generator) generateHaxeDoc(out *strings.Builder, tdoc docer) {
 // generateHaxeFunctionDoc is the t_function overload of
 // t_haxe_generator::generate_haxe_doc.
 func (g *generator) generateHaxeFunctionDoc(out *strings.Builder, tfunction *sema.Function) {
+	var ss strings.Builder
 	if tfunction.HasDoc() {
-		var ss strings.Builder
 		ss.WriteString(tfunction.Doc())
 		for _, p := range tfunction.Arglist().Members() {
 			ss.WriteString("\n@param " + p.Name())
@@ -800,7 +800,12 @@ func (g *generator) generateHaxeFunctionDoc(out *strings.Builder, tfunction *sem
 				ss.WriteString(" " + p.Doc())
 			}
 		}
-		emit.DocstringComment(out, g.indent(), "/**\n", " * ", ss.String(), " */\n")
+	}
+
+	emit.ThrowsDoc(&ss, tfunction, g.typeName)
+
+	if resultDoc := ss.String(); resultDoc != "" {
+		emit.DocstringComment(out, g.indent(), "/**\n", " * ", resultDoc, " */\n")
 	}
 }
 

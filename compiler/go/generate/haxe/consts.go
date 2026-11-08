@@ -98,11 +98,7 @@ func (g *generator) renderConstValue(out *strings.Builder, t sema.Type, value *s
 			} else {
 				out.WriteString("false")
 			}
-		case sema.TypeI8:
-			out.WriteString("(byte)" + strconv.FormatInt(value.Integer(), 10))
-		case sema.TypeI16:
-			out.WriteString("(short)" + strconv.FormatInt(value.Integer(), 10))
-		case sema.TypeI32:
+		case sema.TypeI8, sema.TypeI16, sema.TypeI32:
 			out.WriteString(strconv.FormatInt(value.Integer(), 10))
 		case sema.TypeI64:
 			out.WriteString(strconv.FormatInt(value.Integer(), 10) + "L")
