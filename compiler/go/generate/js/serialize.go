@@ -331,7 +331,10 @@ func (g *Generator) generateSerializeContainer(out *strings.Builder, t sema.Type
 		viter := g.tmp("viter")
 		out.WriteString(g.indent() + "for (" + g.jsLetType + kiter + " in " + prefix + ") {" + "\n")
 		g.indentUp()
-		out.WriteString(g.indent() + "if (" + prefix + ".hasOwnProperty(" + kiter + ")) {" + "\n")
+		// A map key can be "hasOwnProperty": calling it as prefix.hasOwnProperty()
+		// would then run the string instead of the inherited method, so the own-key
+		// test goes through Object.prototype.
+		out.WriteString(g.indent() + "if (Object.prototype.hasOwnProperty.call(" + prefix + ", " + kiter + ")) {" + "\n")
 		g.indentUp()
 		out.WriteString(g.indent() + g.jsLetType + viter + " = " + prefix + "[" + kiter + "];" + "\n")
 		g.generateSerializeMapElement(out, t.(*sema.Map), kiter, viter)
