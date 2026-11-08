@@ -229,6 +229,10 @@ func lowercase(in string) string { return strings.ToLower(in) }
 
 func isUpper(c byte) bool { return c >= 'A' && c <= 'Z' }
 func isLower(c byte) bool { return c >= 'a' && c <= 'z' }
+
+func isAlnum(c byte) bool {
+	return isLower(c) || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+}
 func toUpper(c byte) byte {
 	if isLower(c) {
 		return c - 'a' + 'A'
@@ -402,6 +406,16 @@ func variableNameToGoName(value string) string {
 	return value
 }
 
+// argumentNameToGoName is argument_name_to_go_name. Function arguments become
+// parameters of the generated client method, whose receiver is named "p", so an
+// argument of that name gets the keyword suffix.
+func argumentNameToGoName(value string) string {
+	if value == "p" {
+		return value + "_a1"
+	}
+	return variableNameToGoName(value)
+}
+
 func packageNameToGoName(value string) string {
 	if value == "error" {
 		return value
@@ -422,7 +436,15 @@ func (g *Generator) realGoModule(program *sema.Program) string {
 	if m := program.Namespace("go"); m != "" {
 		return m
 	}
-	return lowercase(program.Name())
+	// Named after the IDL file, which may contain characters such as '-' that a Go package
+	// name cannot; '.' stays, because it separates the nested package directories.
+	realModule := []byte(lowercase(program.Name()))
+	for i, c := range realModule {
+		if !isAlnum(c) && c != '_' && c != '.' {
+			realModule[i] = '_'
+		}
+	}
+	return string(realModule)
 }
 
 // ---- files ----
@@ -573,7 +595,13 @@ func (g *Generator) renderProgramImport(program *sema.Program, unusedProtection 
 	if !ok {
 		value := variableNameToGoName(lastComponent)
 		if g.packageIdentifiersSet[value] {
-			value = g.tmp(value)
+			base := value
+			for {
+				value = g.tmp(base)
+				if !g.packageIdentifiersSet[value] {
+					break
+				}
+			}
 		}
 		g.packageIdentifiersSet[value] = true
 		g.packageIdentifiers[goModule] = value

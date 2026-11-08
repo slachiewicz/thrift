@@ -51,6 +51,21 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 	remoteName := remoteDir + "/" + underscore(g.serviceName) + "-remote.go"
 	var out strings.Builder
 	var unusedProtection string
+
+	// The stub is its own package main, so it gets its own import identifiers: those of the
+	// program's other files are restored once the stub is written. main() below declares these
+	// local variables; an imported package with one of these names would be shadowed by them, so
+	// the stub imports such a package under an alias. Keep this list in sync with main().
+	savedPackageIdentifiers := g.packageIdentifiers
+	savedPackageIdentifiersSet := g.packageIdentifiersSet
+	g.packageIdentifiers = map[string]string{}
+	g.packageIdentifiersSet = map[string]bool{}
+	for _, id := range []string{"cfg", "client", "cmd", "err", "framed", "headers", "host", "httptrans",
+		"iprot", "m", "oprot", "parsedUrl", "parts", "port", "portStr", "protocol",
+		"protocolFactory", "trans", "urlString", "useHttp"} {
+		g.packageIdentifiersSet[id] = true
+	}
+
 	systemPackages := []string{"context", "flag", "fmt", "math", "net", "net/url", "os", "strconv", "strings"}
 	thriftPackage := []string{"thrift \"" + g.opts.ThriftImport + "\""}
 	systemImports := g.renderSystemPackages(systemPackages)
@@ -343,6 +358,9 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 				jsProt := g.tmp("jsProt")
 				err2 := g.tmp("err")
 				argName := g.publicize(a.Name())
+				// The args struct names its read methods after the field id, which need not be the
+				// argument's position, and is negative (ReadField_N) when the IDL gives none.
+				readMethod := fieldMethodName("ReadField", a.Key())
 				out.WriteString(arg + " := flag.Arg(" + flagArg + ")\n")
 				out.WriteString(mbTrans + " := thrift.NewTMemoryBufferLen(len(" + arg + "))\n")
 				out.WriteString("defer " + mbTrans + ".Close()\n")
@@ -354,7 +372,7 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 				out.WriteString(factory + " := thrift.NewTJSONProtocolFactory()\n")
 				out.WriteString(jsProt + " := " + factory + ".GetProtocol(" + mbTrans + ")\n")
 				out.WriteString("containerStruct" + is + " := " + argumentsModule + ".New" + argumentsName + "()\n")
-				out.WriteString(err2 + " := containerStruct" + is + ".ReadField" + itoa(int64(i+1)) + "(context.Background(), " + jsProt + ")\n")
+				out.WriteString(err2 + " := containerStruct" + is + "." + readMethod + "(context.Background(), " + jsProt + ")\n")
 				out.WriteString("if " + err2 + " != nil {\n")
 				out.WriteString("Usage()\n")
 				out.WriteString("return\n")
@@ -395,6 +413,9 @@ func (g *Generator) generateServiceRemote(s *sema.Service) {
 	out.WriteString("fmt.Fprintln(os.Stderr, \"Invalid function \", cmd)\n")
 	out.WriteString("}\n")
 	out.WriteString("}\n")
+	g.packageIdentifiers = savedPackageIdentifiers
+	g.packageIdentifiersSet = savedPackageIdentifiersSet
+
 	writeFile(remoteName, out.String())
 	_ = os.Chmod(remoteName, 0o755)
 }

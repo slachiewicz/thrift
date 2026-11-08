@@ -335,7 +335,7 @@ func (g *Generator) functionSignatureIf(f *sema.Function, prefix string, addErro
 func (g *Generator) argumentList(s *sema.Struct) string {
 	var parts []string
 	for _, f := range s.Members() {
-		parts = append(parts, variableNameToGoName(f.Name())+" "+g.typeToGoType(f.Type()))
+		parts = append(parts, argumentNameToGoName(f.Name())+" "+g.typeToGoType(f.Type()))
 	}
 	return strings.Join(parts, ", ")
 }
