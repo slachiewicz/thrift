@@ -145,7 +145,7 @@ func ParseOptions(spec string) (Options, error) {
 		case "dynfrozenexc":
 			o.DynbaseClassFrozenExc = value
 		case "dynimport":
-			o.ImportDynbase = value
+			o.ImportDynbase = value + "\n"
 		case "zope.interface":
 			o.ZopeInterface = true
 		case "twisted":
@@ -208,6 +208,75 @@ func isImmutable(t sema.Type) bool {
 		return false
 	}
 	return true
+}
+
+// flagsBaseAlias is flags_base_alias: the import alias of the Flag base
+// class, lengthened until it collides with nothing the module defines.
+func (g *Generator) flagsBaseAlias() string {
+	names := map[string]bool{}
+	for _, e := range g.program.Enums() {
+		names[maybeEscapeIdentifier(e.Name())] = true
+	}
+	for _, o := range g.program.Objects() {
+		names[maybeEscapeIdentifier(o.Name())] = true
+	}
+	for _, c := range g.program.Consts() {
+		names[maybeEscapeIdentifier(c.Name())] = true
+	}
+	for _, inc := range g.program.Includes() {
+		module := g.realPyModule(inc, g.opts.PackagePrefix)
+		if i := strings.IndexByte(module, '.'); i >= 0 {
+			module = module[:i]
+		}
+		names[module] = true
+	}
+	alias := "_thrift_Flag"
+	for names[alias] {
+		alias += "_"
+	}
+	return alias
+}
+
+// isFlags is the static is_flags helper.
+func isFlags(t sema.Type) bool {
+	t = sema.TrueType(t)
+	if !t.IsEnum() {
+		return false
+	}
+	_, ok := t.Annotations()["enum.flags"]
+	return ok
+}
+
+// containsFlags is the static contains_flags helper.
+func containsFlags(t sema.Type) bool {
+	return containsFlagsVisited(t, map[sema.Type]bool{})
+}
+
+func containsFlagsVisited(t sema.Type, visited map[sema.Type]bool) bool {
+	t = sema.TrueType(t)
+	if visited[t] {
+		return false
+	}
+	visited[t] = true
+	if isFlags(t) {
+		return true
+	}
+	switch {
+	case t.IsStruct() || t.IsXception():
+		for _, f := range t.(*sema.Struct).Members() {
+			if containsFlagsVisited(f.Type(), visited) {
+				return true
+			}
+		}
+	case t.IsMap():
+		m := t.(*sema.Map)
+		return containsFlagsVisited(m.KeyType(), visited) || containsFlagsVisited(m.ValType(), visited)
+	case t.IsList():
+		return containsFlagsVisited(t.(*sema.List).ElemType(), visited)
+	case t.IsSet():
+		return containsFlagsVisited(t.(*sema.Set).ElemType(), visited)
+	}
+	return false
 }
 
 // Generator is t_py_generator for one program.
@@ -383,8 +452,10 @@ func (g *Generator) initGenerator() {
 		"from thrift.transport import TTransport" + "\n" + g.opts.ImportDynbase)
 	if g.opts.TypeHints {
 		g.fTypes.WriteString("all_structs: list[typing.Any] = []\n")
+		g.fTypes.WriteString("_THRIFT_DEFAULT: typing.Any = object()\n")
 	} else {
 		g.fTypes.WriteString("all_structs = []\n")
+		g.fTypes.WriteString("_THRIFT_DEFAULT = object()\n")
 	}
 
 	g.fConsts.WriteString(g.pyAutogenComment() + "\n" + g.pyImports() + "\n" + "from .ttypes import *\n")
@@ -432,6 +503,16 @@ func (g *Generator) pyImports() string {
 	if g.opts.Enum {
 		sb.WriteString("from enum import IntEnum\n")
 	}
+	for _, e := range g.program.Enums() {
+		if isFlags(e) {
+			flagBase := "Flag"
+			if g.opts.TypeHints {
+				flagBase = "IntFlag"
+			}
+			sb.WriteString("from enum import " + flagBase + " as " + g.flagsBaseAlias() + "\n")
+			break
+		}
+	}
 	if g.opts.Utf8Strings {
 		sb.WriteString("\nimport sys")
 	}
@@ -446,7 +527,9 @@ func (g *Generator) generateTypedef(*sema.Typedef) {}
 func (g *Generator) generateEnum(e *sema.Enum) {
 	var toStringMapping, fromStringMapping strings.Builder
 	baseClass := ""
-	if g.opts.Enum {
+	if isFlags(e) {
+		baseClass = g.flagsBaseAlias()
+	} else if g.opts.Enum {
 		baseClass = "IntEnum"
 	} else if g.opts.NewStyle {
 		baseClass = "object"
@@ -461,6 +544,52 @@ func (g *Generator) generateEnum(e *sema.Enum) {
 	g.fTypes.WriteString(":\n")
 	g.indentUp()
 	g.generatePythonDocstring(&g.fTypes, e)
+
+	if isFlags(e) {
+		var declaredBits int32
+		for _, c := range e.Constants() {
+			declaredBits |= int32(c.Value())
+		}
+		// Preserve unknown bits on older Python versions as well as signed I32 values.
+		g.fTypes.WriteString(g.indent() + "@classmethod\n")
+		g.fTypes.WriteString(g.indent() + "def _missing_(cls, value):\n")
+		g.indentUp()
+		g.fTypes.WriteString(g.indent() + "if not isinstance(value, int):\n")
+		g.fTypes.WriteString(g.indent() + indentStr + "return None\n")
+		// Let enum name known combinations, but do not cache unknown wire values.
+		g.fTypes.WriteString(g.indent() + "if value >= 0 and not (value & ~(" + strconv.FormatInt(int64(declaredBits), 10) + ")):\n")
+		g.indentUp()
+		g.fTypes.WriteString(g.indent() + "try:\n")
+		g.fTypes.WriteString(g.indent() + indentStr + "return super()._missing_(value)\n")
+		g.fTypes.WriteString(g.indent() + "except ValueError:\n")
+		g.fTypes.WriteString(g.indent() + indentStr + "pass\n")
+		g.indentDown()
+		memberNew := "object.__new__(cls)"
+		if g.opts.TypeHints {
+			memberNew = "int.__new__(cls, value)"
+		}
+		g.fTypes.WriteString(g.indent() + "member = " + memberNew + "\n")
+		g.fTypes.WriteString(g.indent() + "member._name_ = None\n")
+		g.fTypes.WriteString(g.indent() + "member._value_ = value\n")
+		g.fTypes.WriteString(g.indent() + "return member\n")
+		g.indentDown()
+		g.fTypes.WriteString("\n")
+
+		if !g.opts.TypeHints {
+			// Uncached Flag values need value equality and a hash independent of their name.
+			g.fTypes.WriteString(g.indent() + "def __eq__(self, other):\n")
+			g.indentUp()
+			g.fTypes.WriteString(g.indent() + "if self.__class__ is other.__class__:\n")
+			g.fTypes.WriteString(g.indent() + indentStr + "return self._value_ == other._value_\n")
+			g.fTypes.WriteString(g.indent() + "return NotImplemented\n")
+			g.indentDown()
+			g.fTypes.WriteString("\n")
+			g.fTypes.WriteString(g.indent() + "def __hash__(self):\n")
+			g.fTypes.WriteString(g.indent() + indentStr + "return hash(self._value_)\n\n")
+		}
+		g.fTypes.WriteString(g.indent() + "def __invert__(self):\n")
+		g.fTypes.WriteString(g.indent() + indentStr + "return self.__class__(~self._value_)\n\n")
+	}
 
 	toStringMapping.WriteString(g.indent() + "_VALUES_TO_NAMES = {\n")
 	fromStringMapping.WriteString(g.indent() + "_NAMES_TO_VALUES = {\n")
@@ -478,7 +607,7 @@ func (g *Generator) generateEnum(e *sema.Enum) {
 
 	g.indentDown()
 	g.fTypes.WriteString("\n")
-	if !g.opts.Enum {
+	if !g.opts.Enum && !isFlags(e) {
 		g.fTypes.WriteString(toStringMapping.String() + "\n" + fromStringMapping.String())
 	}
 }
@@ -527,7 +656,9 @@ func (g *Generator) renderConstValue(typ sema.Type, value *sema.ConstValue) stri
 	case typ.IsEnum():
 		out.WriteString(g.indent())
 		intVal := value.Integer()
-		if g.opts.Enum {
+		if isFlags(typ) {
+			out.WriteString(g.typeName(typ) + "(" + strconv.FormatInt(intVal, 10) + ")")
+		} else if g.opts.Enum {
 			en := typ.(*sema.Enum)
 			enumVal := en.ConstantByValue(intVal)
 			out.WriteString(g.typeName(typ) + "." + maybeEscapeIdentifier(enumVal.Name()))
@@ -769,7 +900,12 @@ func (g *Generator) declareArgument(f *sema.Field) string {
 	result := maybeEscapeIdentifier(f.Name()) + g.memberHint(f.Type(), f.Req())
 	result += " = "
 	if f.Value() != nil {
-		result += g.renderFieldDefaultValue(f)
+		typ := sema.TrueType(f.Type())
+		if !typ.IsBaseType() && !typ.IsEnum() {
+			result += "_THRIFT_DEFAULT"
+		} else {
+			result += g.renderFieldDefaultValue(f)
+		}
 	} else {
 		result += "None"
 	}
@@ -848,7 +984,17 @@ func (g *Generator) generatePythonDocstringStruct(out *strings.Builder, s *sema.
 }
 
 func (g *Generator) generatePythonDocstringFunction(out *strings.Builder, f *sema.Function) {
-	g.generatePythonDocstringFor(out, f, f.Arglist(), "Parameters")
+	hasDoc := false
+	var ss strings.Builder
+	if f.HasDoc() {
+		hasDoc = true
+		ss.WriteString(f.Doc())
+	}
+	g.generatePythonParamsDocstring(&ss, f.Arglist(), &hasDoc, "Parameters")
+	g.generatePythonParamsDocstring(&ss, f.Xceptions(), &hasDoc, "Raises")
+	if hasDoc {
+		g.pyDocstringComment(out, "\"\"\"\n", "", ss.String(), "\"\"\"\n")
+	}
 }
 
 func (g *Generator) generatePythonDocstringFor(out *strings.Builder, doc docHaver, s *sema.Struct, subheader string) {
@@ -858,26 +1004,33 @@ func (g *Generator) generatePythonDocstringFor(out *strings.Builder, doc docHave
 		hasDoc = true
 		ss.WriteString(doc.Doc())
 	}
+	g.generatePythonParamsDocstring(&ss, s, &hasDoc, subheader)
+	if hasDoc {
+		g.pyDocstringComment(out, "\"\"\"\n", "", ss.String(), "\"\"\"\n")
+	}
+}
 
+// generatePythonParamsDocstring is generate_python_params_docstring.
+func (g *Generator) generatePythonParamsDocstring(ss *strings.Builder, s *sema.Struct, hasDoc *bool, subheader string) {
 	fields := s.Members()
 	if len(fields) > 0 {
-		if hasDoc {
+		if *hasDoc {
 			ss.WriteString("\n")
 		}
-		hasDoc = true
+		*hasDoc = true
 		ss.WriteString(subheader + ":\n")
 		for _, p := range fields {
-			ss.WriteString(" - " + p.Name())
+			if s.IsMethodXcepts() {
+				ss.WriteString(" - " + g.typeToPyType(p.Type()))
+			} else {
+				ss.WriteString(" - " + p.Name())
+			}
 			if p.HasDoc() {
 				ss.WriteString(": " + p.Doc())
 			} else {
 				ss.WriteString("\n")
 			}
 		}
-	}
-
-	if hasDoc {
-		g.pyDocstringComment(out, "\"\"\"\n", "", ss.String(), "\"\"\"\n")
 	}
 }
 

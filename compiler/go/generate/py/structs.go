@@ -170,16 +170,23 @@ func (g *Generator) generatePyStructDefinition(out *strings.Builder, s *sema.Str
 
 		for _, f := range members {
 			typ := f.Type()
-			if !typ.IsBaseType() && !typ.IsEnum() && f.Value() != nil {
-				out.WriteString(g.indent() + "if " + maybeEscapeIdentifier(f.Name()) + " is " +
-					"self.thrift_spec[" + strconv.FormatInt(int64(f.Key()), 10) + "][4]:\n")
+			// Resolve typedefs only for THRIFT_DEFAULT checking to prevent None being stored for enums.
+			trueType := sema.TrueType(typ)
+			if !trueType.IsBaseType() && !trueType.IsEnum() && f.Value() != nil {
+				out.WriteString(g.indent() + "if " + maybeEscapeIdentifier(f.Name()) + " is _THRIFT_DEFAULT:\n")
 				g.indentUp()
 				out.WriteString(g.indent() + maybeEscapeIdentifier(f.Name()) + " = " + g.renderFieldDefaultValue(f) + "\n")
 				g.indentDown()
 			}
 
 			if isImmutable(s) {
-				if g.opts.Enum && typ.IsEnum() {
+				if g.opts.Enum && isFlags(typ) {
+					fieldName := maybeEscapeIdentifier(f.Name())
+					out.WriteString(g.indent() + "super(" + maybeEscapeIdentifier(s.Name()) + ", self).__setattr__('" +
+						f.Name() + "', " + fieldName +
+						" if hasattr(" + fieldName + ", 'value') or " + fieldName + " is None else " +
+						g.typeName(trueType) + "(" + fieldName + "))\n")
+				} else if g.opts.Enum && typ.IsEnum() {
 					out.WriteString(g.indent() + "super(" + maybeEscapeIdentifier(s.Name()) + ", self).__setattr__('" +
 						f.Name() + "', " + maybeEscapeIdentifier(f.Name()) +
 						" if hasattr(" + maybeEscapeIdentifier(f.Name()) + ", 'value') else " +
@@ -269,7 +276,7 @@ func (g *Generator) generatePyStructDefinition(out *strings.Builder, s *sema.Str
 		}
 	}
 
-	if !g.opts.Dynamic {
+	if !g.opts.Dynamic || containsFlags(s) {
 		out.WriteString("\n")
 		g.generatePyStructReader(out, s)
 		g.generatePyStructWriter(out, s)
@@ -356,18 +363,21 @@ func (g *Generator) generatePyStructReader(out *strings.Builder, s *sema.Struct)
 		id = "cls"
 	}
 
-	out.WriteString(g.indent() + "if iprot._fast_decode is not None " +
-		"and isinstance(iprot.trans, TTransport.CReadableTransport) " +
-		"and " + id + ".thrift_spec is not None:\n")
-	g.indentUp()
+	// The accelerated codec's I32 specification does not preserve flag types.
+	if !containsFlags(s) {
+		out.WriteString(g.indent() + "if iprot._fast_decode is not None " +
+			"and isinstance(iprot.trans, TTransport.CReadableTransport) " +
+			"and " + id + ".thrift_spec is not None:\n")
+		g.indentUp()
 
-	if isImmutable(s) {
-		out.WriteString(g.indent() + "return iprot._fast_decode(None, iprot, [cls, cls.thrift_spec])\n")
-	} else {
-		out.WriteString(g.indent() + "iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])\n")
-		out.WriteString(g.indent() + "return\n")
+		if isImmutable(s) {
+			out.WriteString(g.indent() + "return iprot._fast_decode(None, iprot, [cls, cls.thrift_spec])\n")
+		} else {
+			out.WriteString(g.indent() + "iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])\n")
+			out.WriteString(g.indent() + "return\n")
+		}
+		g.indentDown()
 	}
-	g.indentDown()
 
 	out.WriteString(g.indent() + "iprot.increment_recursion_depth()\n")
 	out.WriteString(g.indent() + "try:\n")
@@ -461,12 +471,14 @@ func (g *Generator) generatePyStructWriter(out *strings.Builder, s *sema.Struct)
 	out.WriteString(g.indent() + "def write(self, oprot):\n")
 	g.indentUp()
 	out.WriteString(g.indent() + "self.validate()\n")
-	out.WriteString(g.indent() + "if oprot._fast_encode is not None and self.thrift_spec is not None:\n")
-	g.indentUp()
+	if !containsFlags(s) {
+		out.WriteString(g.indent() + "if oprot._fast_encode is not None and self.thrift_spec is not None:\n")
+		g.indentUp()
 
-	out.WriteString(g.indent() + "oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))\n")
-	out.WriteString(g.indent() + "return\n")
-	g.indentDown()
+		out.WriteString(g.indent() + "oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))\n")
+		out.WriteString(g.indent() + "return\n")
+		g.indentDown()
+	}
 
 	out.WriteString(g.indent() + "oprot.increment_recursion_depth()\n")
 	out.WriteString(g.indent() + "try:\n")
