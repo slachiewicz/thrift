@@ -269,8 +269,62 @@ func (g *Generator) generateSerializeListElement(out *strings.Builder, tlist *se
 	g.generateSerializeField(out, efield, "", "", errorRet)
 }
 
+// generateFreeField returns a statement that releases the container-element
+// temporary NAME of type TTYPE, matching how declare_local_variable allocated
+// it, or an empty string when nothing needs to be released. forHashTable
+// mirrors the flag passed to declare_local_variable (map and set elements),
+// where an enum temporary is stored by value rather than as an allocation.
+func (g *Generator) generateFreeField(ttype sema.Type, name string, forHashTable bool) string {
+	ttype = sema.TrueType(ttype)
+
+	if forHashTable && ttype.IsEnum() {
+		return ""
+	} else if ttype.IsMap() || ttype.IsSet() {
+		return "if (" + name + " != NULL) thrift_safe_hash_table_destroy ((GHashTable *) " + name + ");"
+	} else if ttype.IsList() {
+		etype := sema.TrueType(ttype.(*sema.List).ElemType())
+		unref := "g_ptr_array_unref"
+		if g.isNumeric(etype) {
+			unref = "g_array_unref"
+		}
+		return "if (" + name + " != NULL) " + unref + " (" + name + ");"
+	} else if ttype.IsStruct() || ttype.IsXception() {
+		return "if (" + name + " != NULL) g_object_unref (" + name + ");"
+	} else if g.isNumeric(ttype) {
+		// numeric (and list-element enum) temporaries are g_new'd, so always set
+		return "g_free (" + name + ");"
+	} else if ttype.IsString() {
+		if ttype.IsBinary() {
+			return "if (" + name + " != NULL) g_byte_array_free (" + name + ", TRUE);"
+		}
+		return "if (" + name + " != NULL) g_free (" + name + ");"
+	}
+	return ""
+}
+
+// generateDeserializeErrorReturn emits the error return of a deserialize read
+// that is guarded by a brace-less `if (...)`. With no cleanup this is the
+// historical `  return <error_ret>;`; with cleanup the statements and the
+// return are wrapped in a block so that they are all governed by the guard.
+func (g *Generator) generateDeserializeErrorReturn(out *strings.Builder, errorRet string, cleanup []string) {
+	if len(cleanup) == 0 {
+		g.indentUp()
+		out.WriteString(g.indent() + "return " + errorRet + ";\n")
+		g.indentDown()
+	} else {
+		out.WriteString(g.indent() + "{\n")
+		g.indentUp()
+		for _, c := range cleanup {
+			out.WriteString(g.indent() + c + "\n")
+		}
+		out.WriteString(g.indent() + "return " + errorRet + ";\n")
+		g.indentDown()
+		out.WriteString(g.indent() + "}\n")
+	}
+}
+
 // generateDeserializeField deserializes a field of any type.
-func (g *Generator) generateDeserializeField(out *strings.Builder, tfield *sema.Field, prefix, suffix, errorRet string, allocate bool) {
+func (g *Generator) generateDeserializeField(out *strings.Builder, tfield *sema.Field, prefix, suffix, errorRet string, allocate bool, cleanup []string) {
 	t := sema.TrueType(tfield.Type())
 
 	if t.IsVoid() {
@@ -280,9 +334,9 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, tfield *sema.
 	name := prefix + tfield.Name() + suffix
 
 	if t.IsStruct() || t.IsXception() {
-		g.generateDeserializeStruct(out, t.(*sema.Struct), name, errorRet, allocate)
+		g.generateDeserializeStruct(out, t.(*sema.Struct), name, errorRet, allocate, cleanup)
 	} else if t.IsContainer() {
-		g.generateDeserializeContainer(out, t, name, errorRet)
+		g.generateDeserializeContainer(out, t, name, errorRet, cleanup)
 	} else if t.IsBaseType() {
 		bt := t.(*sema.BaseType)
 		if bt.Base() == sema.TypeString {
@@ -324,7 +378,8 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, tfield *sema.
 			emit.Throw("compiler error: no C reader for base type %s%s", sema.BaseName(bt.Base()), name)
 		}
 		out.WriteString(", error)) < 0)\n")
-		out.WriteString(g.indent() + "  return " + errorRet + ";\n" + g.indent() + "xfer += ret;\n")
+		g.generateDeserializeErrorReturn(out, errorRet, cleanup)
+		out.WriteString(g.indent() + "xfer += ret;\n")
 
 		// load the byte array with the data
 		if bt.Base() == sema.TypeString && bt.IsBinary() {
@@ -335,8 +390,9 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, tfield *sema.
 	} else if t.IsEnum() {
 		tv := g.tmp("ecast")
 		out.WriteString(g.indent() + "gint32 " + tv + ";\n" +
-			g.indent() + "if ((ret = thrift_protocol_read_i32 (protocol, &" + tv + ", error)) < 0)\n" +
-			g.indent() + "  return " + errorRet + ";\n" + g.indent() + "xfer += ret;\n" +
+			g.indent() + "if ((ret = thrift_protocol_read_i32 (protocol, &" + tv + ", error)) < 0)\n")
+		g.generateDeserializeErrorReturn(out, errorRet, cleanup)
+		out.WriteString(g.indent() + "xfer += ret;\n" +
 			g.indent() + name + " = (" + g.typeName(t, false, false) + ")" + tv + ";\n")
 	} else {
 		emit.Throw("DO NOT KNOW HOW TO SERIALIZE FIELD '%s' TYPE '%s", tfield.Name(), g.typeName(t, false, false))
@@ -354,7 +410,7 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, tfield *sema.
 }
 
 // generateDeserializeStruct is generate_deserialize_struct.
-func (g *Generator) generateDeserializeStruct(out *strings.Builder, tstruct *sema.Struct, prefix, errorRet string, allocate bool) {
+func (g *Generator) generateDeserializeStruct(out *strings.Builder, tstruct *sema.Struct, prefix, errorRet string, allocate bool, cleanup []string) {
 	nameUC := toUpperCase(initialCapsToUnderscores(tstruct.Name()))
 	if tstruct.IsXception() {
 		out.WriteString(g.indent() + "/* This struct is an exception */\n")
@@ -374,9 +430,10 @@ func (g *Generator) generateDeserializeStruct(out *strings.Builder, tstruct *sem
 	g.indentUp()
 	if allocate {
 		out.WriteString(g.indent() + "g_object_unref (" + prefix + ");\n")
-		if tstruct.IsXception() {
-			out.WriteString(g.indent() + prefix + " = NULL;\n")
-		}
+		out.WriteString(g.indent() + prefix + " = NULL;\n")
+	}
+	for _, c := range cleanup {
+		out.WriteString(g.indent() + c + "\n")
 	}
 	out.WriteString(g.indent() + "return " + errorRet + ";\n")
 	g.indentDown()
@@ -384,7 +441,7 @@ func (g *Generator) generateDeserializeStruct(out *strings.Builder, tstruct *sem
 }
 
 // generateDeserializeContainer is generate_deserialize_container.
-func (g *Generator) generateDeserializeContainer(out *strings.Builder, ttype sema.Type, prefix, errorRet string) {
+func (g *Generator) generateDeserializeContainer(out *strings.Builder, ttype sema.Type, prefix, errorRet string, cleanup []string) {
 	g.scopeUp(out)
 
 	if ttype.IsMap() {
@@ -395,23 +452,19 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, ttype sem
 			g.indent() + "ThriftType value_type;\n\n" +
 			g.indent() + "/* read the map begin marker */\n" +
 			g.indent() + "if ((ret = thrift_protocol_read_map_begin (protocol, &key_type, &value_type, &size, error)) < 0)\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return " + errorRet + ";\n")
-		g.indentDown()
+		g.generateDeserializeErrorReturn(out, errorRet, cleanup)
 		out.WriteString(g.indent() + "xfer += ret;\n\n")
 
 		out.WriteString(g.indent() + "/* iterate through each of the map's fields */\n" +
 			g.indent() + "for (i = 0; i < size; i++)\n")
 		g.scopeUp(out)
-		g.generateDeserializeMapElement(out, m, prefix, errorRet)
+		g.generateDeserializeMapElement(out, m, prefix, errorRet, cleanup)
 		g.scopeDown(out)
 		out.WriteString("\n")
 
 		out.WriteString(g.indent() + "/* read the map end marker */\n" +
 			g.indent() + "if ((ret = thrift_protocol_read_map_end (protocol, error)) < 0)\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return " + errorRet + ";\n")
-		g.indentDown()
+		g.generateDeserializeErrorReturn(out, errorRet, cleanup)
 		out.WriteString(g.indent() + "xfer += ret;\n")
 	} else if ttype.IsSet() {
 		s := ttype.(*sema.Set)
@@ -419,21 +472,17 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, ttype sem
 			g.indent() + "guint32 i;\n" +
 			g.indent() + "ThriftType element_type;\n\n" +
 			g.indent() + "if ((ret = thrift_protocol_read_set_begin (protocol, &element_type, &size, error)) < 0)\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return " + errorRet + ";\n")
-		g.indentDown()
+		g.generateDeserializeErrorReturn(out, errorRet, cleanup)
 		out.WriteString(g.indent() + "xfer += ret;\n\n")
 
 		out.WriteString(g.indent() + "/* iterate through the set elements */\n" +
 			g.indent() + "for (i = 0; i < size; ++i)\n")
 		g.scopeUp(out)
-		g.generateDeserializeSetElement(out, s, prefix, errorRet)
+		g.generateDeserializeSetElement(out, s, prefix, errorRet, cleanup)
 		g.scopeDown(out)
 
 		out.WriteString(g.indent() + "if ((ret = thrift_protocol_read_set_end (protocol, error)) < 0)\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return " + errorRet + ";\n")
-		g.indentDown()
+		g.generateDeserializeErrorReturn(out, errorRet, cleanup)
 		out.WriteString(g.indent() + "xfer += ret;\n\n")
 	} else if ttype.IsList() {
 		l := ttype.(*sema.List)
@@ -441,21 +490,17 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, ttype sem
 			g.indent() + "guint32 i;\n" +
 			g.indent() + "ThriftType element_type;\n\n" +
 			g.indent() + "if ((ret = thrift_protocol_read_list_begin (protocol, &element_type,&size, error)) < 0)\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return " + errorRet + ";\n")
-		g.indentDown()
+		g.generateDeserializeErrorReturn(out, errorRet, cleanup)
 		out.WriteString(g.indent() + "xfer += ret;\n\n")
 
 		out.WriteString(g.indent() + "/* iterate through list elements */\n" +
 			g.indent() + "for (i = 0; i < size; i++)\n")
 		g.scopeUp(out)
-		g.generateDeserializeListElement(out, l, prefix, "i", errorRet)
+		g.generateDeserializeListElement(out, l, prefix, "i", errorRet, cleanup)
 		g.scopeDown(out)
 
 		out.WriteString(g.indent() + "if ((ret = thrift_protocol_read_list_end (protocol, error)) < 0)\n")
-		g.indentUp()
-		out.WriteString(g.indent() + "return " + errorRet + ";\n")
-		g.indentDown()
+		g.generateDeserializeErrorReturn(out, errorRet, cleanup)
 		out.WriteString(g.indent() + "xfer += ret;\n")
 	}
 
@@ -463,7 +508,7 @@ func (g *Generator) generateDeserializeContainer(out *strings.Builder, ttype sem
 }
 
 // generateDeserializeMapElement is generate_deserialize_map_element.
-func (g *Generator) generateDeserializeMapElement(out *strings.Builder, tmap *sema.Map, prefix, errorRet string) {
+func (g *Generator) generateDeserializeMapElement(out *strings.Builder, tmap *sema.Map, prefix, errorRet string, cleanup []string) {
 	tkey, tval := tmap.KeyType(), tmap.ValType()
 	keyname := g.tmp("key")
 	valname := g.tmp("val")
@@ -485,11 +530,22 @@ func (g *Generator) generateDeserializeMapElement(out *strings.Builder, tmap *se
 		tvalPtr = "*"
 	}
 
+	// A read failure before the element is inserted into the map must release
+	// both the key and the value temporary, plus any outer temporaries.
+	var elementCleanup []string
+	if keyFree := g.generateFreeField(tkey, keyname, true); keyFree != "" {
+		elementCleanup = append(elementCleanup, keyFree)
+	}
+	if valFree := g.generateFreeField(tval, valname, true); valFree != "" {
+		elementCleanup = append(elementCleanup, valFree)
+	}
+	elementCleanup = append(elementCleanup, cleanup...)
+
 	// deserialize the fields of the map element
 	fkey := sema.NewField(tkey, tkeyPtr+keyname, 0)
-	g.generateDeserializeField(out, fkey, "", "", errorRet, true)
+	g.generateDeserializeField(out, fkey, "", "", errorRet, true, elementCleanup)
 	fval := sema.NewField(tval, tvalPtr+valname, 0)
-	g.generateDeserializeField(out, fval, "", "", errorRet, true)
+	g.generateDeserializeField(out, fval, "", "", errorRet, true, elementCleanup)
 
 	out.WriteString(g.indent() + "if (" + prefix + " && " + keyname + ")\n")
 	g.indentUp()
@@ -499,7 +555,7 @@ func (g *Generator) generateDeserializeMapElement(out *strings.Builder, tmap *se
 }
 
 // generateDeserializeSetElement is generate_deserialize_set_element.
-func (g *Generator) generateDeserializeSetElement(out *strings.Builder, tset *sema.Set, prefix, errorRet string) {
+func (g *Generator) generateDeserializeSetElement(out *strings.Builder, tset *sema.Set, prefix, errorRet string, cleanup []string) {
 	telem := tset.ElemType()
 	elem := g.tmp("_elem")
 
@@ -511,8 +567,16 @@ func (g *Generator) generateDeserializeSetElement(out *strings.Builder, tset *se
 		telemPtr = "*"
 	}
 
+	// A read failure before the element is inserted into the set must release
+	// the element temporary, plus any outer temporaries.
+	var elementCleanup []string
+	if elemFree := g.generateFreeField(telem, elem, true); elemFree != "" {
+		elementCleanup = append(elementCleanup, elemFree)
+	}
+	elementCleanup = append(elementCleanup, cleanup...)
+
 	felem := sema.NewField(telem, telemPtr+elem, 0)
-	g.generateDeserializeField(out, felem, "", "", errorRet, true)
+	g.generateDeserializeField(out, felem, "", "", errorRet, true, elementCleanup)
 
 	out.WriteString(g.indent() + "if (" + prefix + " && " + elem + ")\n")
 	g.indentUp()
@@ -522,7 +586,7 @@ func (g *Generator) generateDeserializeSetElement(out *strings.Builder, tset *se
 }
 
 // generateDeserializeListElement is generate_deserialize_list_element.
-func (g *Generator) generateDeserializeListElement(out *strings.Builder, tlist *sema.List, prefix, index, errorRet string) {
+func (g *Generator) generateDeserializeListElement(out *strings.Builder, tlist *sema.List, prefix, index, errorRet string, cleanup []string) {
 	ttype := sema.TrueType(tlist.ElemType())
 	elem := g.tmp("_elem")
 	telemPtr := ""
@@ -532,8 +596,16 @@ func (g *Generator) generateDeserializeListElement(out *strings.Builder, tlist *
 
 	g.declareLocalVariable(out, ttype, elem, false)
 
+	// A read failure before the element is appended to the list must release
+	// the element temporary, plus any outer temporaries.
+	var elementCleanup []string
+	if elemFree := g.generateFreeField(ttype, elem, false); elemFree != "" {
+		elementCleanup = append(elementCleanup, elemFree)
+	}
+	elementCleanup = append(elementCleanup, cleanup...)
+
 	felem := sema.NewField(ttype, telemPtr+elem, 0)
-	g.generateDeserializeField(out, felem, "", "", errorRet, true)
+	g.generateDeserializeField(out, felem, "", "", errorRet, true, elementCleanup)
 
 	if ttype.IsVoid() {
 		emit.Throw("compiler error: list element type cannot be void")

@@ -146,7 +146,7 @@ func (g *Generator) generateObject(tstruct *sema.Struct) {
 	}
 
 	g.generateObjectInstanceInit(name, nameU, tstruct)
-	g.generateObjectFinalize(name, nameU, nameUC, tstruct)
+	g.generateObjectFinalize(name, nameU, nameUC, classNameLC, tstruct)
 	g.generateObjectClassInit(name, className, classNameLC, classNameUC, tstruct)
 }
 
@@ -329,8 +329,9 @@ func (g *Generator) generateObjectInstanceInit(name, nameU string, tstruct *sema
 	members := tstruct.Members()
 
 	g.fTypesImpl.WriteString("static void \n" + g.nspaceLC + nameU + "_instance_init (" +
-		g.nspace + name + " * object)\n{\n")
+		g.nspace + name + " * object, gpointer g_class)\n{\n")
 	g.indentUp()
+	g.fTypesImpl.WriteString(g.indent() + "THRIFT_UNUSED_VAR (g_class);\n")
 
 	// generate default-value structures for container-type members
 	constantDeclarationOutput := false
@@ -462,8 +463,10 @@ func (g *Generator) generateObjectInstanceInit(name, nameU string, tstruct *sema
 }
 
 // generateObjectFinalize creates the destructor.
-func (g *Generator) generateObjectFinalize(name, nameU, nameUC string, tstruct *sema.Struct) {
+func (g *Generator) generateObjectFinalize(name, nameU, nameUC, classNameLC string, tstruct *sema.Struct) {
 	members := tstruct.Members()
+
+	g.fTypesImpl.WriteString("static gpointer " + classNameLC + "_parent_class = NULL;\n\n")
 
 	g.fTypesImpl.WriteString("static void \n" + g.nspaceLC + nameU + "_finalize (GObject *object)\n{\n")
 	g.indentUp()
@@ -533,6 +536,8 @@ func (g *Generator) generateObjectFinalize(name, nameU, nameUC string, tstruct *
 		}
 	}
 
+	g.fTypesImpl.WriteString("\n" + g.indent() + "G_OBJECT_CLASS (" + classNameLC + "_parent_class)->finalize (object);\n")
+
 	g.indentDown()
 	g.fTypesImpl.WriteString("}\n\n")
 }
@@ -541,13 +546,15 @@ func (g *Generator) generateObjectFinalize(name, nameU, nameUC string, tstruct *
 func (g *Generator) generateObjectClassInit(name, className, classNameLC, classNameUC string, tstruct *sema.Struct) {
 	members := tstruct.Members()
 
-	g.fTypesImpl.WriteString("static void\n" + classNameLC + "_class_init (" + className + "Class * cls)\n")
+	g.fTypesImpl.WriteString("static void\n" + classNameLC + "_class_init (" + className + "Class * cls, gpointer class_data)\n")
 	g.scopeUp(&g.fTypesImpl)
+	g.fTypesImpl.WriteString(g.indent() + "THRIFT_UNUSED_VAR (class_data);\n")
 
 	g.fTypesImpl.WriteString(g.indent() + "GObjectClass *gobject_class = G_OBJECT_CLASS (cls);\n" +
-		g.indent() + "ThriftStructClass *struct_class = " + "THRIFT_STRUCT_CLASS (cls);\n\n" + g.indent() +
-		"struct_class->read = " + classNameLC + "_read;\n" + g.indent() +
-		"struct_class->write = " + classNameLC + "_write;\n\n" +
+		g.indent() + "ThriftStructClass *struct_class = " + "THRIFT_STRUCT_CLASS (cls);\n\n" +
+		g.indent() + classNameLC + "_parent_class = g_type_class_peek_parent (cls);\n\n" +
+		g.indent() + "struct_class->read = " + classNameLC + "_read;\n" +
+		g.indent() + "struct_class->write = " + classNameLC + "_write;\n\n" +
 		g.indent() + "gobject_class->finalize = " + classNameLC + "_finalize;\n")
 	if len(members) > 0 {
 		g.fTypesImpl.WriteString(g.indent() + "gobject_class->get_property = " + classNameLC + "_get_property;\n" +
@@ -864,7 +871,7 @@ func (g *Generator) generateStructReader(out *strings.Builder, tstruct *sema.Str
 
 		g.indentUp()
 		// generate deserialize field
-		g.generateDeserializeField(out, f, thisName, "", errorRet, false)
+		g.generateDeserializeField(out, f, thisName, "", errorRet, false, nil)
 		g.indentDown()
 
 		out.WriteString(g.indent() + "} else {\n" + g.indent() +
