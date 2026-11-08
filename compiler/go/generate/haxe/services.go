@@ -262,9 +262,25 @@ func (g *generator) generateServiceHelpers(tservice *sema.Service) {
 	functions := tservice.Functions()
 	for _, f := range functions {
 		ts := f.Arglist()
+		nameOrig := ts.Name()
+		ts.SetName(g.argsStructName(tservice, f))
 		g.generateHaxeStruct(ts, false, false)
-		g.generateFunctionHelpers(f)
+		ts.SetName(nameOrig)
+		g.generateFunctionHelpers(tservice, f)
 	}
+}
+
+// argsStructName is t_haxe_generator::args_struct_name: the names of the
+// argument and result structs of a method. These are classes of the package,
+// as are those of the other services in it, so they carry the name of the
+// service that declares the method.
+func (g *generator) argsStructName(tservice *sema.Service, tfunction *sema.Function) string {
+	return getCapName(tservice.Name() + "_" + tfunction.Name() + "_args")
+}
+
+// resultStructName is t_haxe_generator::result_struct_name.
+func (g *generator) resultStructName(tservice *sema.Service, tfunction *sema.Function) string {
+	return getCapName(tservice.Name() + "_" + tfunction.Name() + "_result")
 }
 
 // generateServiceClient is t_haxe_generator::generate_service_client:
@@ -331,7 +347,7 @@ func (g *generator) generateServiceClient(tservice *sema.Service) {
 		g.indentUp()
 
 		argStruct := fn.Arglist()
-		argsname := getCapName(fn.Name() + "_args")
+		argsname := g.argsStructName(tservice, fn)
 		fields := argStruct.Members()
 
 		// Serialize the request
@@ -367,7 +383,7 @@ func (g *generator) generateServiceClient(tservice *sema.Service) {
 			g.indentUp()
 			appex := g.tmp("appex")
 			out.WriteString(g.indent() + "var " + appex + " : TApplicationException;\n")
-			resultname := getCapName(fn.Name() + "_result")
+			resultname := g.resultStructName(tservice, fn)
 			out.WriteString(g.indent() + "if (error != null) {\n")
 			g.indentUp()
 			out.WriteString(g.indent() + "if (onError == null)\n")
@@ -562,12 +578,12 @@ func (g *generator) generateServiceServer(tservice *sema.Service) {
 
 // generateFunctionHelpers is t_haxe_generator::generate_function_helpers:
 // generates a struct and helpers for a function.
-func (g *generator) generateFunctionHelpers(tfunction *sema.Function) {
+func (g *generator) generateFunctionHelpers(tservice *sema.Service, tfunction *sema.Function) {
 	if tfunction.IsOneway() {
 		return
 	}
 
-	resultName := getCapName(tfunction.Name() + "_result")
+	resultName := g.resultStructName(tservice, tfunction)
 	result := sema.NewStruct(g.program)
 	result.SetName(resultName)
 	if !tfunction.ReturnType().IsVoid() {
@@ -597,8 +613,8 @@ func (g *generator) generateProcessFunction(tservice *sema.Service, tfunction *s
 	out.WriteString(g.indent() + "return function( seqid : Int, iprot : TProtocol, oprot : TProtocol) : Void\n")
 	g.scopeUp(out)
 
-	argsname := getCapName(tfunction.Name() + "_args")
-	resultname := getCapName(tfunction.Name() + "_result")
+	argsname := g.argsStructName(tservice, tfunction)
+	resultname := g.resultStructName(tservice, tfunction)
 
 	out.WriteString(g.indent() + "var args : " + argsname + " = new " + argsname + "();\n" +
 		g.indent() + "args.read(iprot);\n" + g.indent() + "iprot.readMessageEnd();\n")
