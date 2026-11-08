@@ -203,7 +203,13 @@ func (g *Generator) generateDeserializeListElement(out *strings.Builder, l *sema
 		// count, so grow it one element at a time and read into the
 		// element just appended, rather than indexing into a full resize.
 		_ = index
-		out.WriteString(g.indent() + prefix + ".emplace_back();\n")
+		// std::vector<bool> has no emplace_back() before C++14, so a list
+		// of bool uses push_back().
+		if sema.TrueType(l.ElemType()).IsBool() {
+			out.WriteString(g.indent() + prefix + ".push_back(false);\n")
+		} else {
+			out.WriteString(g.indent() + prefix + ".emplace_back();\n")
+		}
 		felem := sema.NewField(l.ElemType(), prefix+".back()", 0)
 		g.generateDeserializeField(out, felem, "", "")
 	}

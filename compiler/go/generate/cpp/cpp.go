@@ -403,20 +403,35 @@ func (g *Generator) generateJavaDocField(out *strings.Builder, f *sema.Field) {
 	}
 }
 
-// generateJavaDocFunction is the t_function overload of generate_java_doc.
+// generateJavaDocFunction is the t_function overload of generate_java_doc. A
+// function with no doc of its own still gets a comment when it declares
+// exceptions, since generate_throws_doc adds one "@throws" line per exception.
 func (g *Generator) generateJavaDocFunction(out *strings.Builder, f *sema.Function) {
-	if !f.HasDoc() {
-		return
-	}
 	var ss strings.Builder
-	ss.WriteString(f.Doc())
-	for _, p := range f.Arglist().Members() {
-		ss.WriteString("\n@param " + p.Name())
-		if p.HasDoc() {
-			ss.WriteString(" " + p.Doc())
+	if f.HasDoc() {
+		ss.WriteString(f.Doc())
+		for _, p := range f.Arglist().Members() {
+			ss.WriteString("\n@param " + p.Name())
+			if p.HasDoc() {
+				ss.WriteString(" " + p.Doc())
+			}
 		}
 	}
-	emit.DocstringComment(out, g.indent(), "/**\n", " * ", ss.String(), " */\n")
+	emit.ThrowsDoc(&ss, f, g.getDocTypeName)
+	if ss.Len() > 0 {
+		g.generateJavaDocstringComment(out, ss.String())
+	}
+}
+
+// getDocTypeName is t_cpp_generator::get_doc_type_name: the C++ qualified
+// name of the true type, rather than the Java package of the base class.
+func (g *Generator) getDocTypeName(t sema.Type) string {
+	t = sema.TrueType(t)
+	ns := ""
+	if p := t.Program(); p != nil {
+		ns = p.Namespace("cpp")
+	}
+	return namespacePrefix(ns) + t.Name()
 }
 
 func (g *Generator) generateJavaDocstringComment(out *strings.Builder, contents string) {
