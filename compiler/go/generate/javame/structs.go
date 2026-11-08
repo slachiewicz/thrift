@@ -210,7 +210,6 @@ func (g *Generator) generateJavaStructDefinition(out *strings.Builder, s *sema.S
 	g.generateJavaStructClear(out, s)
 
 	g.generateJavaBeanBoilerplate(out, s)
-	g.generateGenericFieldGettersSetters(out, s)
 
 	g.generateJavaStructEquality(out, s)
 	g.generateJavaStructCompareTo(out, s)
@@ -564,28 +563,6 @@ func (g *Generator) generateReflectionSetters(out *strings.Builder, t sema.Type,
 	g.indentDown()
 }
 
-// generateGenericFieldGettersSetters is
-// generate_generic_field_getters_setters. In the C++ source it builds
-// both a getter and setter body into local ostringstreams and then never
-// writes them anywhere (out is unused, cast to void), so despite the
-// balanced indent_up()/indent_down() calls this has no effect on the
-// generated file; this port keeps that no-op shape for fidelity.
-func (g *Generator) generateGenericFieldGettersSetters(out *strings.Builder, s *sema.Struct) {
-	_ = out
-	var getterStream, setterStream strings.Builder
-
-	for _, f := range s.Members() {
-		t := trueType(f.Type())
-		fieldName := f.Name()
-		capName := getCapName(fieldName)
-
-		g.indentUp()
-		g.generateReflectionSetters(&setterStream, t, fieldName, capName)
-		g.generateReflectionGetters(&getterStream, t, fieldName, capName)
-		g.indentDown()
-	}
-}
-
 // generateJavaBeanBoilerplate is generate_java_bean_boilerplate: a set of
 // Java Bean boilerplate functions (setters, getters, etc.) for the given
 // struct.
@@ -776,88 +753,6 @@ func (g *Generator) generateJavaStructToString(out *strings.Builder, s *sema.Str
 
 	g.indentDown()
 	out.WriteString(g.indent() + "}\n\n")
-}
-
-// getJavaTypeString is get_java_type_string, and generateFieldValueMetaData
-// below is generate_field_value_meta_data. Both are unreachable in
-// t_javame_generator.cc: generate_field_value_meta_data is declared and
-// defined but never invoked from anywhere else in the file, so this port
-// keeps them for fidelity even though they produce no output.
-func (g *Generator) getJavaTypeString(t sema.Type) string {
-	if t.IsList() {
-		return "TType.LIST"
-	} else if t.IsMap() {
-		return "TType.MAP"
-	} else if t.IsSet() {
-		return "TType.SET"
-	} else if t.IsStruct() || t.IsXception() {
-		return "TType.STRUCT"
-	} else if t.IsEnum() {
-		return "TType.ENUM"
-	} else if t.IsTypedef() {
-		return g.getJavaTypeString(t.(*sema.Typedef).Type())
-	} else if t.IsBaseType() {
-		switch baseOf(t) {
-		case sema.TypeVoid:
-			return "TType.VOID"
-		case sema.TypeString:
-			return "TType.STRING"
-		case sema.TypeBool:
-			return "TType.BOOL"
-		case sema.TypeI8:
-			return "TType.BYTE"
-		case sema.TypeI16:
-			return "TType.I16"
-		case sema.TypeI32:
-			return "TType.I32"
-		case sema.TypeI64:
-			return "TType.I64"
-		case sema.TypeDouble:
-			return "TType.DOUBLE"
-		default:
-			emit.Throw("Unknown thrift type \"%s\" passed to t_javame_generator::get_java_type_string!", t.Name())
-		}
-	} else {
-		emit.Throw("Unknown thrift type \"%s\" passed to t_javame_generator::get_java_type_string!", t.Name())
-	}
-	return ""
-}
-
-func (g *Generator) generateFieldValueMetaData(out *strings.Builder, t sema.Type) {
-	out.WriteString("\n")
-	g.indentUp()
-	g.indentUp()
-	if t.IsStruct() || t.IsXception() {
-		out.WriteString(g.indent() + "new StructMetaData(TType.STRUCT, " + g.tn(t) + ".class")
-	} else if t.IsContainer() {
-		if t.IsList() {
-			out.WriteString(g.indent() + "new ListMetaData(TType.LIST, ")
-			g.generateFieldValueMetaData(out, t.(*sema.List).ElemType())
-		} else if t.IsSet() {
-			out.WriteString(g.indent() + "new SetMetaData(TType.SET, ")
-			// The C++ source casts to t_list* here even in the is_set()
-			// branch (reading get_elem_type() through the wrong class);
-			// harmless because this function is unreachable, so this
-			// port uses the correct accessor.
-			g.generateFieldValueMetaData(out, t.(*sema.Set).ElemType())
-		} else { // map
-			out.WriteString(g.indent() + "new MapMetaData(TType.MAP, ")
-			m := t.(*sema.Map)
-			g.generateFieldValueMetaData(out, m.KeyType())
-			out.WriteString(", ")
-			g.generateFieldValueMetaData(out, m.ValType())
-		}
-	} else if t.IsEnum() {
-		out.WriteString(g.indent() + "new EnumMetaData(TType.ENUM, " + g.tn(t) + ".class")
-	} else {
-		out.WriteString(g.indent() + "new FieldValueMetaData(" + g.getJavaTypeString(t))
-		if t.IsTypedef() {
-			out.WriteString(", \"" + t.(*sema.Typedef).Symbolic() + "\"")
-		}
-	}
-	out.WriteString(")")
-	g.indentDown()
-	g.indentDown()
 }
 
 func (g *Generator) generateStructDesc(out *strings.Builder, s *sema.Struct) {
