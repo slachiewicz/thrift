@@ -298,17 +298,9 @@ var langRows = map[string][]optionRow{
 // undefinedInCpp lists, per language, the corpus files on which the C++
 // generator's behaviour is undefined, so that its output is not an
 // oracle. The oracle test skips them, and the golden manifests pin the
-// Go result. (The gv generator's entries left with THRIFT-6332.)
-var undefinedInCpp = map[string]map[string]string{
-	"js": {
-		// t_js_generator::render_const_value's TYPE_UUID case writes
-		// `out << "'" << value << "'"` where value is the t_const_value*
-		// itself, not get_escaped_string(value): it prints the pointer's
-		// address, which differs between runs. ConstantsDemo.thrift
-		// declares `const uuid` values, so this path is reachable.
-		"test/ConstantsDemo.thrift": "render_const_value prints a raw t_const_value* pointer for a uuid constant",
-	},
-}
+// Go result. Empty since THRIFT-6332 (gv) and THRIFT-6336 (js uuid
+// constants) fixed the two cases it held.
+var undefinedInCpp = map[string]map[string]string{}
 
 // generateLang runs a registered generator on one corpus file in-process
 // and returns the output tree, or the error the generator reported.
