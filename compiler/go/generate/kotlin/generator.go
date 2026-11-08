@@ -233,6 +233,24 @@ func (g *Generator) generateKdocComment(out *strings.Builder, doc interface {
 	}
 }
 
+// getDocTypeName is t_kotlin_generator::get_doc_type_name.
+func (g *Generator) getDocTypeName(t sema.Type) string {
+	return g.typeName(t, false, false, true)
+}
+
+// generateJavaDoc is t_kotlin_generator::generate_java_doc: the function's
+// doc followed by one @throws line per declared exception.
+func (g *Generator) generateJavaDoc(out *strings.Builder, f *sema.Function) {
+	var doc strings.Builder
+	if f.HasDoc() {
+		doc.WriteString(f.Doc())
+	}
+	emit.ThrowsDoc(&doc, f, g.getDocTypeName)
+	if doc.Len() > 0 {
+		emit.DocstringComment(out, g.indent(), "/**\n", " * ", doc.String(), " */\n")
+	}
+}
+
 // displayName is t_kotlin_generator::display_name. It names the generator
 // in --help output only and does not affect generated output.
 func displayName() string { return "Kotlin" }

@@ -118,10 +118,7 @@ func formatDouble(f float64) string {
 }
 
 // dReservedWords is d_reserved_words, extracted from
-// https://dlang.org/spec/lex.html and used by suffixIfReserved. The
-// entry "macro " keeps the C++ list's trailing space verbatim: it means
-// std::binary_search, and this lookup, never actually match the
-// identifier "macro".
+// https://dlang.org/spec/lex.html and used by suffixIfReserved.
 var dReservedWords = map[string]bool{
 	"__FILE_FULL_PATH__": true, "__FILE__": true, "__FUNCTION__": true, "__LINE__": true, "__MODULE__": true,
 	"__PRETTY_FUNCTION__": true, "__gshared": true, "__parameters": true, "__traits": true, "__vector": true,
@@ -132,7 +129,7 @@ var dReservedWords = map[string]bool{
 	"export": true, "extern": true, "false": true, "final": true, "finally": true, "float": true, "for": true, "foreach": true,
 	"foreach_reverse": true, "function": true, "goto": true, "idouble": true, "if": true, "ifloat": true, "immutable": true,
 	"import": true, "in": true, "inout": true, "int": true, "interface": true, "invariant": true, "ireal": true, "is": true,
-	"lazy": true, "long": true, "macro ": true, "mixin": true, "module": true, "new": true, "nothrow": true, "null": true, "out": true,
+	"lazy": true, "long": true, "macro": true, "mixin": true, "module": true, "new": true, "nothrow": true, "null": true, "out": true,
 	"override": true, "package": true, "pragma": true, "private": true, "protected": true, "public": true, "pure": true,
 	"real": true, "ref": true, "return": true, "scope": true, "shared": true, "short": true, "static": true, "struct": true,
 	"super": true, "switch": true, "synchronized": true, "template": true, "this": true, "throw": true, "true": true, "try": true,
@@ -622,10 +619,8 @@ func (g *Generator) generateService(tservice *sema.Service) {
 	g.indentUp()
 
 	// Collect all the exception types service methods can throw so we
-	// can emit the necessary aliases later. The C++ compiler orders
-	// these by t_type* pointer identity (a std::set<t_type*>), which is
-	// not a reproducible order; first-encountered order is used here as
-	// the closest deterministic stand-in.
+	// can emit the necessary aliases later, in the order they are first
+	// thrown.
 	var exceptionTypes []sema.Type
 	seenException := map[sema.Type]bool{}
 

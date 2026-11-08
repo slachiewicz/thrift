@@ -89,15 +89,11 @@ func (g *Generator) generateEnum(e *sema.Enum) {
 // generateConsts is t_kotlin_generator::generate_consts. It writes into
 // f_types_ directly, like the C++ source, and closeGenerator flushes it.
 //
-// The is_base_type()/is_enum() checks below run on const_type itself, not
-// on get_true_type(const_type) as typeName does internally: a const
-// declared through a typedef of a base type or an enum falls through to
-// neither branch (the C++ "// TODO" comment) and only "val name: Type =
-// \n" is written, with no value. That is reproduced here rather than
-// fixed.
+// const_type is resolved through get_true_type, so a const declared
+// through a typedef of a base type or an enum renders its value.
 func (g *Generator) generateConsts(consts []*sema.Const) {
 	for _, c := range consts {
-		constType := c.Type()
+		constType := sema.TrueType(c.Type())
 		if constType.IsBaseType() {
 			g.fTypes.WriteString("const ")
 		}

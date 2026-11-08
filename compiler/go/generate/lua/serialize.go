@@ -56,7 +56,7 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, f *sema.Field
 			bt := t.(*sema.BaseType)
 			switch bt.Base() {
 			case sema.TypeVoid:
-				emit.Throw("compiler error: cannot serialize void field in a struct: %s", name)
+				emit.Throw("compiler error: cannot deserialize void field in a struct: %s", name)
 			case sema.TypeString:
 				out.WriteString("readString()")
 			case sema.TypeBool:
@@ -74,7 +74,7 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, f *sema.Field
 			case sema.TypeUUID:
 				out.WriteString("readUuid()")
 			default:
-				emit.Throw("compiler error: no PHP name for base type %s", sema.BaseName(bt.Base()))
+				emit.Throw("compiler error: no Lua name for base type %s", sema.BaseName(bt.Base()))
 			}
 		} else if t.IsEnum() {
 			out.WriteString("readI32()")
@@ -230,7 +230,7 @@ func (g *Generator) generateSerializeField(out *strings.Builder, f *sema.Field, 
 			case sema.TypeUUID:
 				out.WriteString("writeUuid(" + name + ")")
 			default:
-				emit.Throw("compiler error: no PHP name for base type %s", sema.BaseName(bt.Base()))
+				emit.Throw("compiler error: no Lua name for base type %s", sema.BaseName(bt.Base()))
 			}
 		} else if t.IsEnum() {
 			out.WriteString("writeI32(" + name + ")")

@@ -60,7 +60,7 @@ func (g *Generator) generateServiceInterface(svc *sema.Service) {
 	out.WriteString("interface " + svc.Name() + " {\n")
 	g.indentUp()
 	for _, f := range svc.Functions() {
-		g.generateKdocComment(&out, f)
+		g.generateJavaDoc(&out, f)
 		out.WriteString(g.indent() + g.functionSignature(f, "") + "\n")
 	}
 	g.scopeDown(&out)
