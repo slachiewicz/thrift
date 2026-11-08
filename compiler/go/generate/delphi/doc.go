@@ -34,24 +34,16 @@ type docable interface {
 	Doc() string
 }
 
-// xmlEncode is t_delphi_generator::xml_encode.
-func xmlEncode(contents string) string {
-	str := strings.ReplaceAll(contents, "&", "&amp;")
-	str = strings.ReplaceAll(str, "<", "&lt;")
-	str = strings.ReplaceAll(str, ">", "&gt;")
-	return str
-}
-
 // xmlattribEncode is t_delphi_generator::xmlattrib_encode.
 func xmlattribEncode(contents string) string {
-	str := xmlEncode(contents)
+	str := emit.XMLEncode(contents)
 	str = strings.ReplaceAll(str, "\"", "\\\"")
 	return str
 }
 
 // xmldocEncode is t_delphi_generator::xmldoc_encode.
 func xmldocEncode(contents string) string {
-	str := xmlEncode(contents)
+	str := emit.XMLEncode(contents)
 	str = strings.ReplaceAll(str, "\r\n", "\r")
 	str = strings.ReplaceAll(str, "\n", "\r")
 	str = strings.ReplaceAll(str, "\r", "</para>\n<para>")

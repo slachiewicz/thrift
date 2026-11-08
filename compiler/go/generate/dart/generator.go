@@ -361,51 +361,6 @@ func (g *Generator) generateEnum(e *sema.Enum) {
 
 // ---- type mapping ----
 
-// getDartTypeString is t_dart_generator::get_dart_type_string. It is
-// declared and defined in the C++ source but never called; ported for
-// fidelity.
-func getDartTypeString(t sema.Type) string {
-	switch {
-	case t.IsList():
-		return "TType.LIST"
-	case t.IsMap():
-		return "TType.MAP"
-	case t.IsSet():
-		return "TType.SET"
-	case t.IsStruct(), t.IsXception():
-		return "TType.STRUCT"
-	case t.IsEnum():
-		return "TType.I32"
-	case t.IsTypedef():
-		return getDartTypeString(t.(*sema.Typedef).Type())
-	case t.IsBaseType():
-		b := t.(*sema.BaseType)
-		switch b.Base() {
-		case sema.TypeVoid:
-			return "TType.VOID"
-		case sema.TypeString:
-			return "TType.STRING"
-		case sema.TypeBool:
-			return "TType.BOOL"
-		case sema.TypeI8:
-			return "TType.BYTE"
-		case sema.TypeI16:
-			return "TType.I16"
-		case sema.TypeI32:
-			return "TType.I32"
-		case sema.TypeI64:
-			return "TType.I64"
-		case sema.TypeDouble:
-			return "TType.DOUBLE"
-		default:
-			emit.Throw("Unknown thrift type \"%s\" passed to t_dart_generator::get_dart_type_string!", t.Name())
-		}
-	default:
-		emit.Throw("Unknown thrift type \"%s\" passed to t_dart_generator::get_dart_type_string!", t.Name())
-	}
-	return ""
-}
-
 // typeName is t_dart_generator::type_name.
 func (g *Generator) typeName(t sema.Type) string {
 	t = sema.TrueType(t)

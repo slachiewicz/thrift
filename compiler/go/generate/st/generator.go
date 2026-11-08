@@ -157,10 +157,8 @@ func (g *generator) tempName() string {
 }
 
 // generateProgram is t_generator::generate_program's dispatch order,
-// which t_st_generator does not override. init_generator's own enum loop
-// runs first, and generate_program's enum loop runs again right after it:
-// the C++ generator emits every enum twice, and that is reproduced here
-// rather than fixed.
+// which t_st_generator does not override. Each enum is emitted once, by
+// generate_program's enum loop.
 func (g *generator) generateProgram() {
 	g.initGenerator()
 
@@ -197,10 +195,6 @@ func (g *generator) initGenerator() {
 
 	g.stClassDef(&g.sb, g.program.Name())
 	g.generateClassSideDefinition()
-
-	for _, e := range g.program.Enums() {
-		g.generateEnum(e)
-	}
 }
 
 // closeGenerator is t_st_generator::close_generator, minus the file

@@ -246,7 +246,7 @@ func (g *Generator) renderConstValue(t sema.Type, value *sema.ConstValue) string
 				out.WriteString(formatDouble(value.Double()))
 			}
 		case sema.TypeUUID:
-			out.WriteString("TUUIDfromString(" + value.String() + ")")
+			out.WriteString("TUUIDfromString('" + emit.EscapeString(value.String()) + "')")
 		default:
 			emit.Throw("compiler error: no const of base type %s", sema.BaseName(bt.Base()))
 		}
