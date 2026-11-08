@@ -1,5 +1,6 @@
 b5e71c48deba1ed9	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class.xml
 0c146dce25a228c4	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter.xml
+7d425fe72aba595b	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool.xml
 ff28dab7a3bd1d2d	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional.xml
 be8db9b59470aec3	compiler/cpp/tests/cpp/test_string_escapes.thrift	test_string_escapes.xml
 401c13fd47268094	compiler/cpp/tests/cpp/test_template_streamop.thrift	test_template_streamop.xml
@@ -13,7 +14,7 @@ ce5acf8d0664a315	contrib/async-test/aggr.thrift	aggr.xml
 0c9daa6d95e161b5	contrib/zeromq/storage.thrift	storage.xml
 45f5d8a229752537	lib/go/test/BinaryKeyTest.thrift	BinaryKeyTest.xml
 2cc93e3ab7bdcf8a	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest.xml
-dfccb1298586b4ec	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.xml
+276447be5ae8d89a	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.xml
 7de7288099702a41	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictNamespaceServiceTest.xml
 e6a1c5d130d3d247	lib/go/test/ConflictNamespaceTestA.thrift	ConflictNamespaceTestA.xml
 518e8402f6b5e97c	lib/go/test/ConflictNamespaceTestB.thrift	ConflictNamespaceTestB.xml
@@ -32,6 +33,7 @@ b133ee64f3eeb149	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.xml
 19e5d0cbff75de16	lib/go/test/ErrorTest.thrift	ErrorTest.xml
 38a3cc4fe929ec2a	lib/go/test/ForwardType.thrift	ForwardType.xml
 581821e5d46bba08	lib/go/test/GoTagTest.thrift	GoTagTest.xml
+241179c7bc3bfb43	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name.xml
 0183c476df95da8f	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest.xml
 38156e08917d8879	lib/go/test/InitialismsTest.thrift	InitialismsTest.xml
 803c52523d679636	lib/go/test/MultiplexedProtocolTest.thrift	MultiplexedProtocolTest.xml
@@ -41,8 +43,12 @@ b133ee64f3eeb149	lib/go/test/DontExportRWTest.thrift	DontExportRWTest.xml
 6e9fe307977ec915	lib/go/test/OptionalFieldsTest.thrift	OptionalFieldsTest.xml
 e004e6bb7c00b83d	lib/go/test/ProcessorMiddlewareTest.thrift	ProcessorMiddlewareTest.xml
 2d44d37e63635d96	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest.xml
+8da0f92e2b7df048	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias.xml
+c3e3e5a11ff598ce	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient.xml
+a7b9608d15f5a2f2	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost.xml
+f31162002f15eee8	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest.xml
 4f9f1f71f2d36055	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest.xml
-132c33611079ed4e	lib/go/test/ServicesTest.thrift	ServicesTest.xml
+e24787fdc29f28e5	lib/go/test/ServicesTest.thrift	ServicesTest.xml
 7d0308cc00b6f72b	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest.xml
 f6a33b81baf4ea0c	lib/go/test/StructKeyTest.thrift	StructKeyTest.xml
 3651c0c9dc8860f7	lib/go/test/TypedefFieldTest.thrift	TypedefFieldTest.xml
@@ -88,7 +94,7 @@ e14a0666843851d4	test/ReuseObjects.thrift	ReuseObjects.xml
 34a27c97f053e460	test/SmallTest.thrift	SmallTest.xml
 95cebfc8c01e0b2d	test/SpecificNameTest.thrift	SpecificNameTest.xml
 596589e605638a8b	test/StressTest.thrift	StressTest.xml
-67ecf41ebc12acc9	test/ThriftTest.thrift	ThriftTest.xml
+21559028a5787022	test/ThriftTest.thrift	ThriftTest.xml
 cdadb5903b3f03f8	test/TypedefTest.thrift	TypedefTest.xml
 697bfb0b1d9634ce	test/Types.thrift	Types.xml
 5d87227322759439	test/UnsafeTypes.thrift	UnsafeTypes.xml

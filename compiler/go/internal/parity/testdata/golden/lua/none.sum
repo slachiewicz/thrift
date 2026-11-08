@@ -2,6 +2,8 @@
 1ebf9fa7b830a58d	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class_ttypes.lua
 15196bd0f5cea2d9	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter_constants.lua
 51fa44f9704f6aae	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter_ttypes.lua
+15196bd0f5cea2d9	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool_constants.lua
+3eb24e544e8b392c	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool_ttypes.lua
 15196bd0f5cea2d9	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional_constants.lua
 09ebb379f5d362ae	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional_ttypes.lua
 4a5bbde1476e58c6	compiler/cpp/tests/cpp/test_string_escapes.thrift	test_string_escapes_constants.lua
@@ -38,7 +40,7 @@ c6b11400e0a2ff3b	lib/go/test/BinaryKeyTest.thrift	BinaryKeyTest_ttypes.lua
 3766a4303bc82e26	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest_ClientMiddlewareExceptionTest.lua
 15196bd0f5cea2d9	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest_constants.lua
 12756c4c0eac5a00	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest_ttypes.lua
-e546b4ed21349f5c	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest_ConflictArgNamesTest.lua
+1f4730e08106991c	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest_ConflictArgNamesTest.lua
 15196bd0f5cea2d9	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest_constants.lua
 a6015956695ef543	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest_ttypes.lua
 dad78afa701877cd	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictNamespaceServiceTest_ConflictService.lua
@@ -80,6 +82,9 @@ aacdab26f65f4d4d	lib/go/test/EqualsTest.thrift	EqualsTest_ttypes.lua
 e21eb08afbed5806	lib/go/test/ForwardType.thrift	ForwardType_ttypes.lua
 15196bd0f5cea2d9	lib/go/test/GoTagTest.thrift	GoTagTest_constants.lua
 fc373ee4d757130b	lib/go/test/GoTagTest.thrift	GoTagTest_ttypes.lua
+4c389cc0bdbf69ff	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name_HyphenatedService.lua
+15196bd0f5cea2d9	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name_constants.lua
+3a72ef760eb55ca2	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name_ttypes.lua
 15196bd0f5cea2d9	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest_constants.lua
 cdf998d8fd3c5011	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest_ttypes.lua
 15196bd0f5cea2d9	lib/go/test/InitialismsTest.thrift	InitialismsTest_constants.lua
@@ -105,11 +110,20 @@ d8184cf798d3d67b	lib/go/test/OnewayTest.thrift	OnewayTest_ttypes.lua
 049ce0e2b1f70ada	lib/go/test/ProcessorMiddlewareTest.thrift	ProcessorMiddlewareTest_ttypes.lua
 15196bd0f5cea2d9	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest_constants.lua
 5471243af0b25c77	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest_ttypes.lua
+15196bd0f5cea2d9	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias_constants.lua
+2f615575f89659e0	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias_ttypes.lua
+15196bd0f5cea2d9	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient_constants.lua
+f04c622ca5271fab	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient_ttypes.lua
+15196bd0f5cea2d9	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost_constants.lua
+be7ca42645e1f4d0	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost_ttypes.lua
+7c532dad116ae592	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest_ShadowService.lua
+15196bd0f5cea2d9	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest_constants.lua
+13bc4e1d584a09a6	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest_ttypes.lua
 15196bd0f5cea2d9	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest_constants.lua
 531ee750a856ab45	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest_ttypes.lua
 d27b142eb40cbbff	lib/go/test/ServicesTest.thrift	ServicesTest_a_serv.lua
 15196bd0f5cea2d9	lib/go/test/ServicesTest.thrift	ServicesTest_constants.lua
-ff3b5c937237b627	lib/go/test/ServicesTest.thrift	ServicesTest_container_test.lua
+b448ab05aeb58807	lib/go/test/ServicesTest.thrift	ServicesTest_container_test.lua
 1f1e10db599d79f6	lib/go/test/ServicesTest.thrift	ServicesTest_container_test_parent.lua
 bc94df20c9fdc817	lib/go/test/ServicesTest.thrift	ServicesTest_ttypes.lua
 15196bd0f5cea2d9	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest_constants.lua
@@ -156,7 +170,7 @@ b59ace1f1d89f0aa	lib/java/src/test/resources/JavaTypes.thrift	JavaTypes_ttypes.l
 0698fcf0ad030397	test/AnnotationTest.thrift	AnnotationTest_foo_service.lua
 4291a93456f1cb63	test/AnnotationTest.thrift	AnnotationTest_ttypes.lua
 reject	test/BrokenConstants.thrift	test/BrokenConstants.thrift:line 21: This integer is too big: "9876543210987654321"
-0db2e36ff2f56083	test/ConstantsDemo.thrift	ConstantsDemo_constants.lua
+ce5a6f56983d65e0	test/ConstantsDemo.thrift	ConstantsDemo_constants.lua
 562c383bf7055bde	test/ConstantsDemo.thrift	ConstantsDemo_ttypes.lua
 6e9746eabee37263	test/ConstantsDemo.thrift	ConstantsDemo_yowza.lua
 25ca9b62da965518	test/DebugProtoTest.thrift	DebugProtoTest_EmptyService.lua

@@ -134,15 +134,15 @@ public class Implicit implements org.apache.thrift.TBase<Implicit, Implicit._Fie
   {
     this();
     this.a = a;
-    setAIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __A_ISSET_ID, true);
     this.b = b;
-    setBIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __B_ISSET_ID, true);
     this.c = c;
-    setCIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __C_ISSET_ID, true);
     this.d = d;
-    setDIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __D_ISSET_ID, true);
     this.e = e;
-    setEIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __E_ISSET_ID, true);
   }
 
   /**

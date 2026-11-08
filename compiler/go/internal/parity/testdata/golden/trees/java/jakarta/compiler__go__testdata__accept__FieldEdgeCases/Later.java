@@ -98,7 +98,7 @@ public class Later implements org.apache.thrift.TBase<Later, Later._Fields>, jav
   {
     this();
     this.x = x;
-    setXIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __X_ISSET_ID, true);
   }
 
   /**

@@ -98,7 +98,7 @@ public class Err extends org.apache.thrift.TException implements org.apache.thri
   {
     this();
     this.code = code;
-    setCodeIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __CODE_ISSET_ID, true);
   }
 
   /**

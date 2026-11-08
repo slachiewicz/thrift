@@ -12,6 +12,9 @@ public class Args {
 
     public void f(int a, int b, int c, int d) throws org.apache.thrift.TException;
 
+    /**
+     * @throws Err
+     */
     public void g(int a) throws Err, org.apache.thrift.TException;
 
   }
@@ -568,13 +571,13 @@ public class Args {
     {
       this();
       this.a = a;
-      setAIsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __A_ISSET_ID, true);
       this.b = b;
-      setBIsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __B_ISSET_ID, true);
       this.c = c;
-      setCIsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __C_ISSET_ID, true);
       this.d = d;
-      setDIsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __D_ISSET_ID, true);
     }
 
     /**
@@ -1488,7 +1491,7 @@ public class Args {
     {
       this();
       this.a = a;
-      setAIsSet(true);
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __A_ISSET_ID, true);
     }
 
     /**

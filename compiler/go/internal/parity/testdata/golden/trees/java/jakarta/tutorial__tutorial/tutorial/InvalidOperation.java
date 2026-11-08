@@ -111,7 +111,7 @@ public class InvalidOperation extends org.apache.thrift.TException implements or
   {
     this();
     this.whatOp = whatOp;
-    setWhatOpIsSet(true);
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __WHATOP_ISSET_ID, true);
     this.why = why;
   }
 

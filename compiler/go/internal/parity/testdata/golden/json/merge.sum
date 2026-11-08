@@ -1,5 +1,6 @@
 6c81178c87e85f22	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class.json
 7bdd42a9324badd3	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter.json
+4bdf77feb28e063d	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool.json
 632768397fb512c6	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional.json
 fb6ec22fda80a677	compiler/cpp/tests/cpp/test_string_escapes.thrift	test_string_escapes.json
 de9d96d895fe3f22	compiler/cpp/tests/cpp/test_template_streamop.thrift	test_template_streamop.json
@@ -13,7 +14,7 @@ fa587b8a525d6761	contrib/Rebus/sample.thrift	sample.json
 803c32298ac8a9a2	contrib/zeromq/storage.thrift	storage.json
 467b4440c58e39ac	lib/go/test/BinaryKeyTest.thrift	BinaryKeyTest.json
 3ec742e19832f93a	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest.json
-71b80591a9bda8da	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.json
+ee700ccbaa8439fd	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.json
 ff9c4b136e965d4a	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictNamespaceServiceTest.json
 59adc6d28b14685c	lib/go/test/ConflictNamespaceTestA.thrift	ConflictNamespaceTestA.json
 cb398b4115f3443e	lib/go/test/ConflictNamespaceTestB.thrift	ConflictNamespaceTestB.json
@@ -32,6 +33,7 @@ ee26a43ea9480e41	lib/go/test/EqualsTest.thrift	EqualsTest.json
 11aa111a618dcee4	lib/go/test/ErrorTest.thrift	ErrorTest.json
 b274337c3fc78215	lib/go/test/ForwardType.thrift	ForwardType.json
 2b051ac2abea2be6	lib/go/test/GoTagTest.thrift	GoTagTest.json
+58fea28c6665eaee	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name.json
 425c1f4d7cf15df6	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest.json
 8599e72724bebfc3	lib/go/test/InitialismsTest.thrift	InitialismsTest.json
 d3e34bf36185465e	lib/go/test/MultiplexedProtocolTest.thrift	MultiplexedProtocolTest.json
@@ -41,8 +43,12 @@ d397381398219387	lib/go/test/OnewayTest.thrift	OnewayTest.json
 69129201a63f4248	lib/go/test/OptionalFieldsTest.thrift	OptionalFieldsTest.json
 42b6dff6c3ba5be3	lib/go/test/ProcessorMiddlewareTest.thrift	ProcessorMiddlewareTest.json
 0d329a19782cd8ae	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest.json
+fa35823a865c2a92	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias.json
+9c4055bc6d370d4a	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient.json
+1e15bbefc4ea248a	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost.json
+47f92cd91c4205da	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest.json
 a4a4190d872f4b52	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest.json
-755d104a618a9af1	lib/go/test/ServicesTest.thrift	ServicesTest.json
+7a8ff830dc82d380	lib/go/test/ServicesTest.thrift	ServicesTest.json
 db9cf314819d1206	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest.json
 618f442fbea9c37b	lib/go/test/StructKeyTest.thrift	StructKeyTest.json
 4da122d922beba6d	lib/go/test/TypedefFieldTest.thrift	TypedefFieldTest.json
@@ -88,7 +94,7 @@ e2912625fcf61fac	test/OptionalRequiredTest.thrift	OptionalRequiredTest.json
 5ab20260d8f2f940	test/SmallTest.thrift	SmallTest.json
 7409a046d32b0628	test/SpecificNameTest.thrift	SpecificNameTest.json
 ee41d47d7a41425d	test/StressTest.thrift	StressTest.json
-4b89569d269b0baf	test/ThriftTest.thrift	ThriftTest.json
+958c3723a33ecf1a	test/ThriftTest.thrift	ThriftTest.json
 755e269cdbf8b442	test/TypedefTest.thrift	TypedefTest.json
 32c9d4f07e10d464	test/Types.thrift	Types.json
 67417e2c207f5713	test/UnsafeTypes.thrift	UnsafeTypes.json

@@ -1,5 +1,6 @@
 ac09c10fa82079b2	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class_xsd.php
 a0df9ed00f2f6985	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter_xsd.php
+a53081b46a345544	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool_xsd.php
 ac09c10fa82079b2	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional_xsd.php
 ac09c10fa82079b2	compiler/cpp/tests/cpp/test_string_escapes.thrift	test_string_escapes_xsd.php
 ac09c10fa82079b2	compiler/cpp/tests/cpp/test_template_streamop.thrift	test_template_streamop_xsd.php
@@ -46,6 +47,8 @@ reject	lib/go/test/EqualsTest.thrift	compiler error: no XSD base type name for b
 1b5ebab218d4a9ea	lib/go/test/ErrorTest.thrift	ErrorTest_xsd.php
 ac09c10fa82079b2	lib/go/test/ForwardType.thrift	ForwardType_xsd.php
 ac09c10fa82079b2	lib/go/test/GoTagTest.thrift	GoTagTest_xsd.php
+736fed140723047f	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name_xsd.php
+bc6e114c3052dbc5	lib/go/test/Hyphenated-Name.thrift	HyphenatedService.xsd
 ac09c10fa82079b2	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest_xsd.php
 ac09c10fa82079b2	lib/go/test/InitialismsTest.thrift	InitialismsTest_xsd.php
 73b96c1c51ff1f47	lib/go/test/MultiplexedProtocolTest.thrift	First.xsd
@@ -62,10 +65,15 @@ ac09c10fa82079b2	lib/go/test/OnewayTest.thrift	OnewayTest_xsd.php
 ac09c10fa82079b2	lib/go/test/ProcessorMiddlewareTest.thrift	ProcessorMiddlewareTest_xsd.php
 ef817a65de599fc2	lib/go/test/ProcessorMiddlewareTest.thrift	Service.xsd
 ae351f1942ae0c54	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest_xsd.php
+ac09c10fa82079b2	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias_xsd.php
+ac09c10fa82079b2	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient_xsd.php
+ac09c10fa82079b2	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost_xsd.php
+ac09c10fa82079b2	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest_xsd.php
+99e347490aa8cbe4	lib/go/test/RemoteShadowTest.thrift	ShadowService.xsd
 ac09c10fa82079b2	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest_xsd.php
 f2b191315030b026	lib/go/test/ServicesTest.thrift	ServicesTest_xsd.php
 c50d72399464dfff	lib/go/test/ServicesTest.thrift	a_serv.xsd
-40f147ea60017469	lib/go/test/ServicesTest.thrift	container_test.xsd
+503ddfa868bfc6a5	lib/go/test/ServicesTest.thrift	container_test.xsd
 ecc6b145a8d2e8e7	lib/go/test/ServicesTest.thrift	container_test_parent.xsd
 ac09c10fa82079b2	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest_xsd.php
 54a78feb411cf0fb	lib/go/test/StructKeyTest.thrift	StructKeyTest_xsd.php

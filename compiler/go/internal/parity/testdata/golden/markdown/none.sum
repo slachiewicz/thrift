@@ -2,6 +2,8 @@ f6a857cdc54b09e8	compiler/cpp/tests/cpp/test_enum_class.thrift	index.md
 983ed5e01014a7bb	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class.md
 88f79777c0896edc	compiler/cpp/tests/cpp/test_forward_setter.thrift	index.md
 ba864531adb3a155	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter.md
+b3ce00b000120f67	compiler/cpp/tests/cpp/test_list_bool.thrift	index.md
+1e2002ec8740e790	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool.md
 84f583c846bfeb2f	compiler/cpp/tests/cpp/test_private_optional.thrift	index.md
 c56657815c213f73	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional.md
 17f9f635a3cdcd88	compiler/cpp/tests/cpp/test_string_escapes.thrift	index.md
@@ -28,7 +30,7 @@ c66dcb38f0179cbe	lib/go/test/BinaryKeyTest.thrift	BinaryKeyTest.md
 4228a5ee360346d4	lib/go/test/BinaryKeyTest.thrift	index.md
 ef2780c200b51642	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest.md
 3c51d18119867cea	lib/go/test/ClientMiddlewareExceptionTest.thrift	index.md
-7941dcb1a5e8ee15	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.md
+43163f16a833b96d	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.md
 f4904135d87ba66d	lib/go/test/ConflictArgNamesTest.thrift	index.md
 ca383362a8a47a96	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictNamespaceServiceTest.md
 a263505361b0aeb3	lib/go/test/ConflictNamespaceServiceTest.thrift	index.md
@@ -66,6 +68,8 @@ ea98104230e8204b	lib/go/test/ErrorTest.thrift	ErrorTest.md
 037447f8970a0cb8	lib/go/test/ForwardType.thrift	index.md
 80a851b7efef74a7	lib/go/test/GoTagTest.thrift	GoTagTest.md
 3421e4409f0a3d15	lib/go/test/GoTagTest.thrift	index.md
+659adf86e44bb669	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name.md
+815d810a5e39801d	lib/go/test/Hyphenated-Name.thrift	index.md
 b8f07d335f3ddb51	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest.md
 36d76adbc1df44ad	lib/go/test/IgnoreInitialismsTest.thrift	index.md
 3a81a05c74e9debd	lib/go/test/InitialismsTest.thrift	InitialismsTest.md
@@ -84,10 +88,18 @@ b174e468674b6698	lib/go/test/ProcessorMiddlewareTest.thrift	ProcessorMiddlewareT
 02f6e1ac3d3e4de9	lib/go/test/ProcessorMiddlewareTest.thrift	index.md
 f4835079815b77f7	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest.md
 39562446de54cb82	lib/go/test/RefAnnotationFieldsTest.thrift	index.md
+853a11e11abebdcd	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias.md
+e384f9a292a2e0dd	lib/go/test/RemoteShadowAlias.thrift	index.md
+3bd8fc9dd8ceac37	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient.md
+e6c3dacd2e17f3d9	lib/go/test/RemoteShadowClient.thrift	index.md
+f6f76e418dde8103	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost.md
+5b95ba6ae5bdd664	lib/go/test/RemoteShadowHost.thrift	index.md
+646c7967d0ce80d8	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest.md
+18e9a60e1cfac502	lib/go/test/RemoteShadowTest.thrift	index.md
 3b9d2afa6120be16	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest.md
 ade83b7f66becd0b	lib/go/test/RequiredFieldTest.thrift	index.md
-277df15b855e7f7f	lib/go/test/ServicesTest.thrift	ServicesTest.md
-98607a37f24b04cc	lib/go/test/ServicesTest.thrift	index.md
+c9d736750119104b	lib/go/test/ServicesTest.thrift	ServicesTest.md
+2e342f6d4fb74930	lib/go/test/ServicesTest.thrift	index.md
 e27602be845d8069	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest.md
 2a40d9783db89743	lib/go/test/StringParseAllocationTest.thrift	index.md
 194eedc31e7b068c	lib/go/test/StructKeyTest.thrift	StructKeyTest.md
@@ -177,7 +189,7 @@ b733267e7e84e9d5	test/SpecificNameTest.thrift	SpecificNameTest.md
 fb10e6863bb3e20b	test/SpecificNameTest.thrift	index.md
 f837381f9430838b	test/StressTest.thrift	StressTest.md
 0748368caa58db9c	test/StressTest.thrift	index.md
-2e31cab6ffe97731	test/ThriftTest.thrift	ThriftTest.md
+11ef09d819be50f1	test/ThriftTest.thrift	ThriftTest.md
 228e9aaec1af48c7	test/ThriftTest.thrift	index.md
 212ddd65ff2deb36	test/TypedefTest.thrift	TypedefTest.md
 bd404fd78777800a	test/TypedefTest.thrift	index.md

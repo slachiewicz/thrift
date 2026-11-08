@@ -2,6 +2,8 @@ cde4312f2ebe4dfb	compiler/cpp/tests/cpp/test_enum_class.thrift	index.html
 d9cef33bd903cd29	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class.html
 14a3cb1a4dd007d8	compiler/cpp/tests/cpp/test_forward_setter.thrift	index.html
 9b721f68df6a08bc	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter.html
+7862a5075b9ce73b	compiler/cpp/tests/cpp/test_list_bool.thrift	index.html
+26dc0c9fee913690	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool.html
 8b3a30642d98eec3	compiler/cpp/tests/cpp/test_private_optional.thrift	index.html
 74a0e63279a4c724	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional.html
 957de40946f03496	compiler/cpp/tests/cpp/test_string_escapes.thrift	index.html
@@ -28,7 +30,7 @@ c24fb11bbd38a97f	contrib/zeromq/storage.thrift	storage.html
 c909dc1c876f1618	lib/go/test/BinaryKeyTest.thrift	index.html
 87e289a28c754edd	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest.html
 b7761d61ba4c570d	lib/go/test/ClientMiddlewareExceptionTest.thrift	index.html
-83c4d4810612f3b7	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.html
+b6c858468da364f9	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest.html
 4d01985c2738f874	lib/go/test/ConflictArgNamesTest.thrift	index.html
 c2f7015c315899e1	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictNamespaceServiceTest.html
 8a24afbdac6a013b	lib/go/test/ConflictNamespaceServiceTest.thrift	index.html
@@ -66,6 +68,8 @@ cbcf5ab81845d5ed	lib/go/test/ForwardType.thrift	ForwardType.html
 1f40f8048d602b36	lib/go/test/ForwardType.thrift	index.html
 71c8a843c4b0f6e3	lib/go/test/GoTagTest.thrift	GoTagTest.html
 e6ab2fa3fed2b0ab	lib/go/test/GoTagTest.thrift	index.html
+0d6e30f39f7466b5	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name.html
+e834b218d93985ef	lib/go/test/Hyphenated-Name.thrift	index.html
 dfb44e581b3ada8a	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest.html
 c48eb3747af31a9c	lib/go/test/IgnoreInitialismsTest.thrift	index.html
 5834900d92067881	lib/go/test/InitialismsTest.thrift	InitialismsTest.html
@@ -84,10 +88,18 @@ a9d1a1ca838fba5d	lib/go/test/OnewayTest.thrift	index.html
 e7a0105b330f52ba	lib/go/test/ProcessorMiddlewareTest.thrift	index.html
 99c6403a24faf885	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest.html
 e00885840651289f	lib/go/test/RefAnnotationFieldsTest.thrift	index.html
+eaed590a6da6481d	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias.html
+ac771e2bf057bbd2	lib/go/test/RemoteShadowAlias.thrift	index.html
+43ba3e812631dea8	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient.html
+e3a6191a1bc1b7e1	lib/go/test/RemoteShadowClient.thrift	index.html
+d3a58b98f3d8f81f	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost.html
+91b237713f47ec29	lib/go/test/RemoteShadowHost.thrift	index.html
+a3906ff52729d0eb	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest.html
+ee56f4fbe3786c35	lib/go/test/RemoteShadowTest.thrift	index.html
 228d418cffbf8c6a	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest.html
 6c5f56e6171fe906	lib/go/test/RequiredFieldTest.thrift	index.html
-0cddb37ffc70032a	lib/go/test/ServicesTest.thrift	ServicesTest.html
-a7d2f5d9106758e7	lib/go/test/ServicesTest.thrift	index.html
+2c9afe41bf9c407c	lib/go/test/ServicesTest.thrift	ServicesTest.html
+385262da2c814247	lib/go/test/ServicesTest.thrift	index.html
 cb394250791de2e9	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest.html
 fb44e793ed1dd5e1	lib/go/test/StringParseAllocationTest.thrift	index.html
 9e79bdbe519aafa6	lib/go/test/StructKeyTest.thrift	StructKeyTest.html
@@ -177,7 +189,7 @@ fa8c0d692c3dfb23	test/NameConflictTest.thrift	index.html
 b94f12a55f0b86db	test/SpecificNameTest.thrift	index.html
 d65f1ec3773edb37	test/StressTest.thrift	StressTest.html
 7646cfaf6f82ecae	test/StressTest.thrift	index.html
-c7b762efbf5d1d94	test/ThriftTest.thrift	ThriftTest.html
+03f4ef05bd0e6a41	test/ThriftTest.thrift	ThriftTest.html
 8f02cf345b0119a1	test/ThriftTest.thrift	index.html
 da5f0e14dc565b24	test/TypedefTest.thrift	TypedefTest.html
 0b86f9832db3c582	test/TypedefTest.thrift	index.html

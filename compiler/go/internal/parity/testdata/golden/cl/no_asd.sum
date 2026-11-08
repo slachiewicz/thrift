@@ -2,6 +2,8 @@ b40374a1af0bbbdf	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class/t
 d3decabc842bb6fc	compiler/cpp/tests/cpp/test_enum_class.thrift	test_enum_class/test_enum_class-vars.lisp
 bccb68cdb1a9cc4c	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter/test_forward_setter-types.lisp
 d3decabc842bb6fc	compiler/cpp/tests/cpp/test_forward_setter.thrift	test_forward_setter/test_forward_setter-vars.lisp
+2c55d380bf7bc86c	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool/test_list_bool-types.lisp
+d3decabc842bb6fc	compiler/cpp/tests/cpp/test_list_bool.thrift	test_list_bool/test_list_bool-vars.lisp
 be9bea6509b58621	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional/test_private_optional-types.lisp
 d3decabc842bb6fc	compiler/cpp/tests/cpp/test_private_optional.thrift	test_private_optional/test_private_optional-vars.lisp
 8a410eda0c3cdc9b	compiler/cpp/tests/cpp/test_string_escapes.thrift	test_string_escapes/test_string_escapes-types.lisp
@@ -28,7 +30,7 @@ c4435e30a876c9e1	lib/go/test/BinaryKeyTest.thrift	BinaryKeyTest/BinaryKeyTest-ty
 d3decabc842bb6fc	lib/go/test/BinaryKeyTest.thrift	BinaryKeyTest/BinaryKeyTest-vars.lisp
 7ade23d0d3a7b922	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest/ClientMiddlewareExceptionTest-types.lisp
 d3decabc842bb6fc	lib/go/test/ClientMiddlewareExceptionTest.thrift	ClientMiddlewareExceptionTest/ClientMiddlewareExceptionTest-vars.lisp
-d6ee748cc2ccd9d0	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest/ConflictArgNamesTest-types.lisp
+4bb4c5187522bf73	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest/ConflictArgNamesTest-types.lisp
 d3decabc842bb6fc	lib/go/test/ConflictArgNamesTest.thrift	ConflictArgNamesTest/ConflictArgNamesTest-vars.lisp
 22062d0a642862ff	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictNamespaceServiceTest/ConflictNamespaceServiceTest-types.lisp
 d3decabc842bb6fc	lib/go/test/ConflictNamespaceServiceTest.thrift	ConflictNamespaceServiceTest/ConflictNamespaceServiceTest-vars.lisp
@@ -66,6 +68,8 @@ d3decabc842bb6fc	lib/go/test/ErrorTest.thrift	ErrorTest/ErrorTest-vars.lisp
 d3decabc842bb6fc	lib/go/test/ForwardType.thrift	ForwardType/ForwardType-vars.lisp
 afa6c3353d7297a6	lib/go/test/GoTagTest.thrift	GoTagTest/GoTagTest-types.lisp
 d3decabc842bb6fc	lib/go/test/GoTagTest.thrift	GoTagTest/GoTagTest-vars.lisp
+ca60095227290040	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name/Hyphenated-Name-types.lisp
+d3decabc842bb6fc	lib/go/test/Hyphenated-Name.thrift	Hyphenated-Name/Hyphenated-Name-vars.lisp
 e396d7642563d2c8	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest/IgnoreInitialismsTest-types.lisp
 d3decabc842bb6fc	lib/go/test/IgnoreInitialismsTest.thrift	IgnoreInitialismsTest/IgnoreInitialismsTest-vars.lisp
 5813548cc90aae9e	lib/go/test/InitialismsTest.thrift	InitialismsTest/InitialismsTest-types.lisp
@@ -84,9 +88,17 @@ f1a19def076dc546	lib/go/test/ProcessorMiddlewareTest.thrift	ProcessorMiddlewareT
 d3decabc842bb6fc	lib/go/test/ProcessorMiddlewareTest.thrift	ProcessorMiddlewareTest/ProcessorMiddlewareTest-vars.lisp
 58caac5184837d37	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest/RefAnnotationFieldsTest-types.lisp
 d3decabc842bb6fc	lib/go/test/RefAnnotationFieldsTest.thrift	RefAnnotationFieldsTest/RefAnnotationFieldsTest-vars.lisp
+d0831610c0a63a16	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias/RemoteShadowAlias-types.lisp
+d3decabc842bb6fc	lib/go/test/RemoteShadowAlias.thrift	RemoteShadowAlias/RemoteShadowAlias-vars.lisp
+691854c07891b64a	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient/RemoteShadowClient-types.lisp
+d3decabc842bb6fc	lib/go/test/RemoteShadowClient.thrift	RemoteShadowClient/RemoteShadowClient-vars.lisp
+7b9cd9683e846a37	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost/RemoteShadowHost-types.lisp
+d3decabc842bb6fc	lib/go/test/RemoteShadowHost.thrift	RemoteShadowHost/RemoteShadowHost-vars.lisp
+071bf7d67e5babc2	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest/RemoteShadowTest-types.lisp
+d3decabc842bb6fc	lib/go/test/RemoteShadowTest.thrift	RemoteShadowTest/RemoteShadowTest-vars.lisp
 e43adf4da24ab92e	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest/RequiredFieldTest-types.lisp
 d3decabc842bb6fc	lib/go/test/RequiredFieldTest.thrift	RequiredFieldTest/RequiredFieldTest-vars.lisp
-3daa33ff411a6a39	lib/go/test/ServicesTest.thrift	ServicesTest/ServicesTest-types.lisp
+a6f67d7e8884a721	lib/go/test/ServicesTest.thrift	ServicesTest/ServicesTest-types.lisp
 d3decabc842bb6fc	lib/go/test/ServicesTest.thrift	ServicesTest/ServicesTest-vars.lisp
 5a3a60af1945846c	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest/StringParseAllocationTest-types.lisp
 d3decabc842bb6fc	lib/go/test/StringParseAllocationTest.thrift	StringParseAllocationTest/StringParseAllocationTest-vars.lisp
@@ -176,7 +188,7 @@ c3c195bac8b39feb	test/SmallTest.thrift	SmallTest/SmallTest-vars.lisp
 d3decabc842bb6fc	test/SpecificNameTest.thrift	SpecificNameTest/SpecificNameTest-vars.lisp
 cde5e0d5296473fa	test/StressTest.thrift	StressTest/StressTest-types.lisp
 d3decabc842bb6fc	test/StressTest.thrift	StressTest/StressTest-vars.lisp
-8a4384d8413742f8	test/ThriftTest.thrift	ThriftTest/ThriftTest-types.lisp
+e29ffd7f76caef7a	test/ThriftTest.thrift	ThriftTest/ThriftTest-types.lisp
 7f86c65270126016	test/ThriftTest.thrift	ThriftTest/ThriftTest-vars.lisp
 a518a4ce7e9ad3d0	test/TypedefTest.thrift	TypedefTest/TypedefTest-types.lisp
 d3decabc842bb6fc	test/TypedefTest.thrift	TypedefTest/TypedefTest-vars.lisp
