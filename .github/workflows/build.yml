@@ -312,12 +312,14 @@ jobs:
           chmod a+x compiler/cpp/thrift
           compiler/cpp/thrift -version
 
-      # The Go-native compiler front end and Go generator. The parity tests
-      # find the C++ oracle at compiler/cpp/thrift, downloaded above.
+      # The Go-native compiler front end and its 29 generators. The parity
+      # tests find the C++ oracle at compiler/cpp/thrift, downloaded above,
+      # and run every generator over the IDL corpus: longer than go test's
+      # default 10-minute limit.
       - name: Run go vet and go test for compiler/go
         run: |
           go vet ./compiler/go/...
-          go test ./compiler/go/...
+          go test -timeout 45m ./compiler/go/...
 
       - name: Build thrift-go
         run: go build -o compiler/go/thrift-go ./compiler/go/cmd/thrift-go
