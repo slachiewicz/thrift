@@ -292,6 +292,19 @@ func TestEmptyDocIsStillADoc(t *testing.T) {
 	}
 }
 
+func TestDocNulEndsText(t *testing.T) {
+	// The C++ lexer strdup()s the comment, so a NUL byte ends its text
+	// (THRIFT-6238): the rest of the comment is not part of the doc, and a
+	// NUL right after the opening leaves no doc at all.
+	s := one(t, "/** ab\x00cd */\nstruct S {}").(*ast.Struct)
+	if !s.HasDoc || s.Doc != "ab\n" {
+		t.Fatalf("NUL inside: HasDoc=%v Doc=%q", s.HasDoc, s.Doc)
+	}
+	if u := one(t, "/**\x00 x */\nstruct U {}").(*ast.Struct); u.HasDoc {
+		t.Fatalf("NUL first: Doc=%q", u.Doc)
+	}
+}
+
 func TestProgramDocRules(t *testing.T) {
 	// The first doc comment is the program's only when a header separates
 	// it from the first definition; otherwise the definition takes it.
