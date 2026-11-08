@@ -237,5 +237,11 @@ func (l *Loader) parse(prog *Program, parent *Program) {
 	}
 	b.build(tree)
 
+	// A type used before it is declared is a forward typedef, resolved on
+	// first use. Resolve every type the program refers to here, so that a
+	// target that is never declared, or a typedef that refers to itself, is
+	// reported before any generator has written a file.
+	prog.ResolveTypes()
+
 	delete(l.known, path)
 }

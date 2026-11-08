@@ -443,18 +443,30 @@ func TestServiceRules(t *testing.T) {
 	}
 }
 
-func TestUnknownTypeFailsOnFirstUse(t *testing.T) {
-	// An unknown name is a forward reference, which fails only when
-	// something asks for the type, as t_typedef::get_type does. The
-	// generator is the first to ask, so the reject corpus covers the
-	// end-to-end failure.
+func TestUnknownTypeFailsAtLoad(t *testing.T) {
+	// An unknown name is a forward reference. t_program::resolve_types
+	// resolves every one at the end of the file's parse (THRIFT-6333), so
+	// the load fails before any generator runs.
 	for _, src := range []string{
 		`struct S { 1: Nope n }`,
 		`typedef Nope T struct S { 1: T n }`,
 	} {
-		prog, _ := mustLoad(t, &Loader{}, map[string]string{"m.thrift": src}, "m.thrift")
-		err := catch(func() { TrueType(prog.Structs()[0].Members()[0].Type()) })
+		_, _, err := load(t, &Loader{}, map[string]string{"m.thrift": src}, "m.thrift")
 		if err == nil || !strings.Contains(err.Error(), `Type "Nope" not defined`) {
+			t.Fatalf("%s: err = %v", src, err)
+		}
+	}
+}
+
+func TestTypedefCycleFailsAtLoad(t *testing.T) {
+	// A typedef that reaches itself, directly or through a container, used
+	// to send TrueType or a generator round forever (THRIFT-6337).
+	for _, src := range []string{
+		`typedef B A typedef A B`,
+		`typedef list<B> A typedef A B struct S { 1: A a }`,
+	} {
+		_, _, err := load(t, &Loader{}, map[string]string{"m.thrift": src}, "m.thrift")
+		if err == nil || !strings.Contains(err.Error(), `Type "A" refers to itself`) {
 			t.Fatalf("%s: err = %v", src, err)
 		}
 	}

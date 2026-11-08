@@ -49,6 +49,10 @@ type docState struct {
 
 // onDoc is the lexer action for a doc comment.
 func (d *docState) onDoc(raw string, line int) {
+	// The C++ lexer strdup()s the text, so a NUL byte ends it there.
+	if nul := strings.IndexByte(raw, 0); nul >= 0 {
+		raw = raw[:nul]
+	}
 	cleaned, ok := cleanUpDoctext(raw)
 	d.pending, d.hasPending = cleaned, ok
 	d.lastDocLine = line
