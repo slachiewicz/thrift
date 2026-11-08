@@ -200,7 +200,7 @@ func (g *Generator) generateServiceClient(s *sema.Service) {
 		argsName := g.tmp("_args")
 		out.WriteString("var " + argsName + " " + argsType + "\n")
 		for _, fld := range fields {
-			out.WriteString(argsName + "." + g.publicize(fld.Name()) + " = " + variableNameToGoName(fld.Name()) + "\n")
+			out.WriteString(argsName + "." + g.publicize(fld.Name()) + " = " + argumentNameToGoName(fld.Name()) + "\n")
 		}
 		if !f.IsOneway() {
 			metaName := g.tmp("_meta")
