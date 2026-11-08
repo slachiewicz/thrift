@@ -56,7 +56,8 @@ func (g *Generator) generateDeserializeField(out *strings.Builder, field *sema.F
 					out.WriteString(g.indent() + "$len = unpack('N', " + itrans + "->readAll(4));\n" +
 						g.indent() + "$len = $len[1];\n" + g.indent() + "if ($len > 0x7fffffff) {\n" +
 						g.indent() + "    $len = 0 - (($len - 1) ^ 0xffffffff);\n" + g.indent() +
-						"}\n" + g.indent() + "$" + name + " = " + itrans + "->readAll($len);\n")
+						"}\n" + g.indent() + itrans + "->checkStringSize($len);\n" +
+						g.indent() + "$" + name + " = " + itrans + "->readAll($len);\n")
 				case sema.TypeBool:
 					// Stage through a local; the typed property would
 					// reject the intermediate `array|false` returned
