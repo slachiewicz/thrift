@@ -298,9 +298,9 @@ func (g *generator) renderResultStructToResultMethod(s *sema.Struct) {
 				branchStatement = "} else if"
 			}
 
-			g.line(branchStatement + " " + fieldName + ".is_some() {")
+			g.line(branchStatement + " let Some(e) = " + fieldName + " {")
 			g.up()
-			g.line("Err(thrift::Error::User(Box::new(" + fieldName + ".unwrap())))")
+			g.line("Err(thrift::Error::User(Box::new(e)))")
 			g.down()
 
 			renderedBranchCount++
@@ -327,9 +327,9 @@ func (g *generator) renderResultStructToResultMethod(s *sema.Struct) {
 		if renderedBranchCount != 0 {
 			branchStatement = "} else if"
 		}
-		g.line(branchStatement + " self." + serviceResultVariable + ".is_some() {")
+		g.line(branchStatement + " let Some(r) = self." + serviceResultVariable + " {")
 		g.up()
-		g.line("Ok(self." + serviceResultVariable + ".unwrap())")
+		g.line("Ok(r)")
 		g.down()
 		g.line("} else {")
 		g.up()

@@ -72,6 +72,20 @@ func init() {
 	}
 }
 
+// rustRawIdentifierWords is RUST_RAW_IDENTIFIER_WORDS_SET: keywords added by later
+// editions (async, await, dyn and try with Rust 2018, gen with Rust 2024). They
+// become raw identifiers (r#gen), which name the same thing, so code written for
+// an earlier edition keeps compiling.
+var rustRawIdentifierWords = map[string]bool{
+	"async": true, "await": true, "dyn": true, "gen": true, "try": true,
+}
+
+// rustUnreservedWords is RUST_UNRESERVED_WORDS_SET: words Rust no longer
+// reserves. Method names were never escaped, so methods with these names keep them.
+var rustUnreservedWords = map[string]bool{
+	"alignof": true, "offsetof": true, "proc": true, "pure": true, "sizeof": true,
+}
+
 // generator is t_rs_generator for one program.
 type generator struct {
 	program     *sema.Program
@@ -285,6 +299,8 @@ func isReserved(name string) bool { return rustReservedWords[name] }
 func rustSafeName(name string) string {
 	if isReserved(name) {
 		return name + "_"
+	} else if rustRawIdentifierWords[name] {
+		return "r#" + name
 	}
 	return name
 }
@@ -587,7 +603,11 @@ func canGenerateConstHolder(t sema.Type) bool {
 // ---- service call / trait / struct names ----
 
 func serviceCallClientFunctionName(fn *sema.Function) string {
-	return rustSnakeCase(fn.Name())
+	functionName := rustSnakeCase(fn.Name())
+	if rustUnreservedWords[functionName] {
+		return functionName
+	}
+	return rustSafeName(functionName)
 }
 
 func serviceCallHandlerFunctionName(fn *sema.Function) string {
