@@ -47,10 +47,36 @@ func one(t *testing.T, src string) ast.Definition {
 	return prog.Definitions[0]
 }
 
+// expectEqual compares the trees with every ast.Mark cleared: the marks
+// are checked by TestMarks.
 func expectEqual(t *testing.T, got, want interface{}) {
 	t.Helper()
+	clearMarks(reflect.ValueOf(got))
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("\n got %#v\nwant %#v", got, want)
+	}
+}
+
+func clearMarks(v reflect.Value) {
+	switch v.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		if !v.IsNil() {
+			clearMarks(v.Elem())
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			clearMarks(v.Index(i))
+		}
+	case reflect.Struct:
+		if v.Type() == reflect.TypeOf(ast.Mark{}) {
+			if v.CanSet() {
+				v.Set(reflect.Zero(v.Type()))
+			}
+			return
+		}
+		for i := 0; i < v.NumField(); i++ {
+			clearMarks(v.Field(i))
+		}
 	}
 }
 

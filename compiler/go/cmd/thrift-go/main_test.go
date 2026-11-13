@@ -264,6 +264,66 @@ func TestLegacyFormStillWorks(t *testing.T) {
 	}
 }
 
+// TestLegacyFailureForm checks the diagnostics of the legacy form against
+// what the C++ compiler prints: yyerror() as "[ERROR:path:line] (last
+// token was ...)" and the message, failure() as "[FAILURE:path:line]
+// message" with its newline on stdout, each at the lexer state of the
+// grammar action that detects the problem, and warnings on stdout.
+func TestLegacyFailureForm(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, src string) string {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		real, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return real
+	}
+	for _, c := range []struct {
+		name, src      string
+		stdout, stderr string
+	}{
+		{
+			name:   "dup.thrift",
+			src:    "struct S { 1: i32 a }\nstruct S { 1: i32 b }\n\n\nconst i32 Z = 1\n",
+			stdout: "[WARNING:%[1]s:5] Duplicate typename S found in dup\n",
+			stderr: "[ERROR:%[1]s:5] (last token was 'const')\nType \"S\" is already defined.\n",
+		},
+		{
+			name:   "undef.thrift",
+			src:    "struct S {\n 1: Nope n\n}\n\n\nconst i32 Z = 1\n",
+			stdout: "\n",
+			stderr: "[FAILURE:%[1]s:7] Type \"Nope\" not defined",
+		},
+		{
+			name:   "syntax.thrift",
+			src:    "struct S {\n 1: i32\n\n\n}\n",
+			stdout: "\n",
+			stderr: "[ERROR:%[1]s:5] (last token was '}')\nsyntax error\n[FAILURE:%[1]s:5] Parser error during include pass.",
+		},
+		{
+			name:   "lex.thrift",
+			src:    "struct S {\n 1: i32 a = @\n}\n",
+			stderr: "[ERROR:%[1]s:2] (last token was '@')\nUnexpected token in input: \"@\"\n\n",
+		},
+	} {
+		path := write(c.name, c.src)
+		r := run(t, nil, "-out", dir, "--gen", "json", path)
+		place := func(format string) string { return strings.ReplaceAll(format, "%[1]s", path) }
+		if want := place(c.stderr); r.code != exitError || r.stderr != want || r.stdout != place(c.stdout) {
+			t.Errorf("%s: exit %d\nstdout %q\nstderr %q\nwant   %q", c.name, r.code, r.stdout, r.stderr, want)
+		}
+	}
+	// The subcommand form names the same line.
+	r := run(t, nil, "check", filepath.Join(dir, "undef.thrift"))
+	if !strings.Contains(r.stderr, "undef.thrift:7: error: Type \"Nope\" not defined") {
+		t.Errorf("check: stderr %q", r.stderr)
+	}
+}
+
 func TestDecodeCommand(t *testing.T) {
 	// A binary struct {1: i32 7, 2: string "hi"}.
 	data := []byte{0x08, 0x00, 0x01, 0x00, 0x00, 0x00, 0x07, 0x0b, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 'h', 'i', 0x00}

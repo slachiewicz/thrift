@@ -31,9 +31,16 @@ import (
 // Error is a generator failure, the string a C++ generator throws.
 type Error struct {
 	Msg string
+	// Direct is set for an error the C++ compiler reports by calling
+	// failure() itself, as t_generator::validate_id does, rather than by
+	// throwing to generate(), which prefixes "Error: ".
+	Direct bool
 }
 
 func (e *Error) Error() string { return e.Msg }
+
+// IsDirect reports Direct, for callers outside the generate tree.
+func (e *Error) IsDirect() bool { return e.Direct }
 
 // Throw aborts generation with an Error; the generator's entry point
 // recovers it.

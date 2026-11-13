@@ -533,7 +533,7 @@ func (s *Struct) validateUnionMember(f *Field) {
 		s.unionValidated = true
 		if f.req != Optional {
 			if f.req != OptInReqOut {
-				s.warn("Union %s field %s: union members must be optional, ignoring specified requiredness.", s.name, f.name)
+				s.warn("Union %s field %s: union members must be optional, ignoring specified requiredness.\n", s.name, f.name)
 			}
 			f.req = Optional
 		}
@@ -551,7 +551,7 @@ func (s *Struct) validateMethodExceptionField(f *Field) {
 		s.xceptsValidated = true
 		if f.req == Required {
 			f.req = OptInReqOut
-			s.warn("Exception field %s: \"required\" is illegal here, ignoring.", f.name)
+			s.warn("Exception field %s: \"required\" is illegal here, ignoring.\n", f.name)
 		}
 	}
 }
@@ -599,7 +599,7 @@ func NewFunction(returnType Type, name string, arglist, xceptions *Struct, onewa
 		fail("Oneway methods can't throw exceptions.")
 	}
 	if oneway && !returnType.IsVoid() && diag != nil {
-		diag.warn(1, "Oneway methods should return void.")
+		diag.warn(1, "Oneway methods should return void.\n")
 	}
 	return f
 }

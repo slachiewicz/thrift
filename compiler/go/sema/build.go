@@ -78,16 +78,19 @@ func (b *builder) build(prog *ast.Program) {
 	}
 	for _, d := range prog.Definitions {
 		switch d := d.(type) {
+		// Each definition's action runs once bison has read the token
+		// after it, which is where the C++ compiler reports what the
+		// action finds wrong.
 		case *ast.Const:
-			b.constDef(d)
+			at(b.p.Path(), d.Next, func() { b.constDef(d) })
 		case *ast.Typedef:
-			b.typedefDef(d)
+			at(b.p.Path(), d.Next, func() { b.typedefDef(d) })
 		case *ast.Enum:
-			b.enumDef(d)
+			at(b.p.Path(), d.Next, func() { b.enumDef(d) })
 		case *ast.Struct:
-			b.structDef(d)
+			at(b.p.Path(), d.Next, func() { b.structDef(d) })
 		case *ast.Service:
-			b.serviceDef(d)
+			at(b.p.Path(), d.Next, func() { b.serviceDef(d) })
 		}
 	}
 	if prog.HasDoc {
@@ -95,14 +98,18 @@ func (b *builder) build(prog *ast.Program) {
 	}
 }
 
-// addType is the Definition -> TypeDefinition action.
-func (b *builder) addType(t Type) {
+// addType is the Definition -> TypeDefinition action. line is where the
+// C++ lexer is when it runs, for the duplicate-typename warnings.
+func (b *builder) addType(t Type, line int) {
 	b.p.Scope.AddType(t.Name(), t)
 	if b.parent != nil {
 		b.parent.AddType(b.prefix+t.Name(), t)
 	}
+	if b.diag != nil {
+		b.diag.Line = line
+	}
 	if !b.p.IsUniqueTypename(t) {
-		fail("Type \"%s\" is already defined.", t.Name())
+		failYacc("Type \"%s\" is already defined.", t.Name())
 	}
 }
 
@@ -129,7 +136,7 @@ func (b *builder) typedefDef(d *ast.Typedef) {
 	td := NewTypedef(b.p, typ, d.Name)
 	td.setAnnotations(toAnnotations(d.Annotations))
 	b.p.addTypedef(td)
-	b.addType(td)
+	b.addType(td, d.Next.Line)
 	if d.HasDoc {
 		td.SetDoc(d.Doc)
 	}
@@ -140,15 +147,22 @@ func (b *builder) enumDef(d *ast.Enum) {
 	b.enumVal = -1
 	for _, v := range d.Values {
 		if v.HasValue {
-			if v.Value < math.MinInt32 || v.Value > math.MaxInt32 {
-				fail("64-bit value supplied for enum %s will be truncated.", v.Name)
-			}
+			// The EnumValue action runs on its last token.
+			at(b.p.Path(), v.End, func() {
+				if v.Value < math.MinInt32 || v.Value > math.MaxInt32 {
+					fail("64-bit value supplied for enum %s will be truncated.", v.Name)
+				}
+			})
 			b.enumVal = int32(v.Value)
 		} else {
-			validateSimpleIdentifier(v.Name)
-			if b.enumVal == math.MaxInt32 {
-				fail("enum value overflow at enum %s", v.Name)
-			}
+			// The C++ checks and numbers implicit values in the Enum
+			// action, which runs on the closing brace.
+			at(b.p.Path(), d.Close, func() {
+				validateSimpleIdentifier(v.Name)
+				if b.enumVal == math.MaxInt32 {
+					fail("enum value overflow at enum %s", v.Name)
+				}
+			})
 			b.enumVal++
 		}
 		ev := &EnumValue{name: v.Name, value: b.enumVal}
@@ -171,7 +185,7 @@ func (b *builder) enumDef(d *ast.Enum) {
 		}
 	}
 	b.p.addEnum(e)
-	b.addType(e)
+	b.addType(e, d.Next.Line)
 	if d.HasDoc {
 		e.SetDoc(d.Doc)
 	}
@@ -195,7 +209,7 @@ func (b *builder) structDef(d *ast.Struct) {
 	} else {
 		b.p.addStruct(s)
 	}
-	b.addType(s)
+	b.addType(s, d.Next.Line)
 	if d.HasDoc {
 		s.SetDoc(d.Doc)
 	}
@@ -206,10 +220,12 @@ func (b *builder) structDef(d *ast.Struct) {
 func (b *builder) fieldList(s *Struct, fields []*ast.Field) {
 	b.fieldVal = -1
 	for _, fd := range fields {
-		f := b.field(fd)
-		if !s.Append(f) {
-			fail("\"%d: %s\" - field identifier/name has already been used", f.Key(), f.Name())
-		}
+		at(b.p.Path(), fd.Next, func() {
+			f := b.field(fd)
+			if !s.Append(f) {
+				failYacc("\"%d: %s\" - field identifier/name has already been used", f.Key(), f.Name())
+			}
+		})
 	}
 }
 
@@ -221,12 +237,12 @@ func (b *builder) field(d *ast.Field) *Field {
 		if d.ID <= 0 {
 			if b.allowNegFieldKeys {
 				if int32(d.ID) != b.fieldVal {
-					b.warn(d.Line, 1, "Nonpositive field key (%d) differs from what would be auto-assigned by thrift (%d).", d.ID, b.fieldVal)
+					b.warn(d.Line, 1, "Nonpositive field key (%d) differs from what would be auto-assigned by thrift (%d).\n", d.ID, b.fieldVal)
 				}
 				b.fieldVal = int32(d.ID - 1)
 				key = int32(d.ID)
 			} else {
-				b.warn(d.Line, 1, "Nonpositive value (%d) not allowed as a field key.", d.ID)
+				b.warn(d.Line, 1, "Nonpositive value (%d) not allowed as a field key.\n", d.ID)
 				key = b.fieldVal
 				b.fieldVal--
 				autoAssigned = true
@@ -240,12 +256,13 @@ func (b *builder) field(d *ast.Field) *Field {
 		autoAssigned = true
 	}
 	if key < math.MinInt16 || key > math.MaxInt16 {
-		b.warn(d.Line, 1, "Field key (%d) exceeds allowed range (%d..%d).", key, math.MinInt16, math.MaxInt16)
+		b.warn(d.Line, 1, "Field key (%d) exceeds allowed range (%d..%d).\n", key, math.MinInt16, math.MaxInt16)
 	}
 
 	// Field
 	if autoAssigned {
-		b.warn(d.Line, 1, "No field key specified for %s, resulting protocol may have conflicts or not be backwards compatible!", d.Name)
+		// The Field action runs once the token after the field is read.
+		b.warn(d.Next.Line, 1, "No field key specified for %s, resulting protocol may have conflicts or not be backwards compatible!\n", d.Name)
 		if b.strict >= 192 {
 			fail("Implicit field keys are deprecated and not allowed with -strict")
 		}
@@ -259,7 +276,7 @@ func (b *builder) field(d *ast.Field) *Field {
 		f.req = Required
 	case ast.ReqOptional:
 		if b.inArglist {
-			b.warn(d.Line, 1, "optional keyword is ignored in argument lists.")
+			b.warn(d.Line, 1, "optional keyword is ignored in argument lists.\n")
 			f.req = OptInReqOut
 		} else {
 			f.req = Optional
@@ -292,13 +309,13 @@ func (b *builder) serviceDef(d *ast.Service) {
 	if d.HasExtends {
 		extends = b.p.Scope.GetService(d.Extends)
 		if extends == nil {
-			fail("Service \"%s\" has not been defined.", d.Extends)
+			at(b.p.Path(), d.ExtendsAt, func() { failYacc("Service \"%s\" has not been defined.", d.Extends) })
 		}
 	}
 	s := NewService(b.p)
 	b.inArglist = true
 	for _, fd := range d.Functions {
-		s.addFunction(b.function(fd))
+		at(b.p.Path(), fd.Next, func() { s.addFunction(b.function(fd)) })
 	}
 	b.inArglist = false
 	validateSimpleIdentifier(d.Name)
@@ -310,8 +327,11 @@ func (b *builder) serviceDef(d *ast.Service) {
 		b.parent.AddService(b.prefix+d.Name, s)
 	}
 	b.p.addService(s)
+	if b.diag != nil {
+		b.diag.Line = d.Next.Line
+	}
 	if !b.p.IsUniqueTypename(s) {
-		fail("Type \"%s\" is already defined.", d.Name)
+		failYacc("Type \"%s\" is already defined.", d.Name)
 	}
 	if d.HasDoc {
 		s.SetDoc(d.Doc)
@@ -329,7 +349,7 @@ func (b *builder) function(d *ast.Function) *Function {
 	if d.HasThrows {
 		b.fieldList(throws, d.Throws)
 		if !validateThrows(throws) {
-			fail("Throws clause may not contain non-exception types")
+			at(b.p.Path(), d.ThrowsEnd, func() { failYacc("Throws clause may not contain non-exception types") })
 		}
 	}
 	validateSimpleIdentifier(d.Name)
@@ -402,7 +422,7 @@ func (b *builder) resolveType(ref ast.TypeRef) Type {
 		}
 		if r.HasTrailingCpp {
 			l.setCppName(r.TrailingCppType)
-			b.warn(r.Line, 1, "The syntax 'list<type> cpp_type \"c++ type\"' is deprecated. Use 'list cpp_type \"c++ type\" <type>' instead.")
+			b.warn(r.Line, 1, "The syntax 'list<type> cpp_type \"c++ type\"' is deprecated. Use 'list cpp_type \"c++ type\" <type>' instead.\n")
 		}
 		if r.Annotations != nil {
 			l.setAnnotations(toAnnotations(r.Annotations))
@@ -420,7 +440,7 @@ func (b *builder) constValue(v *ast.ConstValue) *ConstValue {
 	case ast.ConstInt:
 		cv.SetInteger(v.Int)
 		if !b.allow64BitConsts && (v.Int < math.MinInt32 || v.Int > math.MaxInt32) {
-			b.warn(v.Line, 1, "64-bit constant \"%d\" may not work in all languages.", v.Int)
+			b.warn(v.Line, 1, "64-bit constant \"%d\" may not work in all languages.\n", v.Int)
 		}
 	case ast.ConstDouble:
 		cv.SetDouble(v.Double)

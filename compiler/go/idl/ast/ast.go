@@ -32,6 +32,15 @@ type Annotation struct {
 }
 
 // Program is one parsed file.
+// Mark is the C++ lexer's state at one point of the parse: yylineno and
+// yytext. The C++ compiler's diagnostics name the line, and its yyerror()
+// diagnostics the text, of whatever token the lexer last read when the
+// grammar action that detects the problem runs.
+type Mark struct {
+	Line int
+	Text string
+}
+
 type Program struct {
 	Path        string
 	Headers     []Header
@@ -41,6 +50,8 @@ type Program struct {
 	// HasDoc is set when a doc comment was captured, even an empty one;
 	// the C++ compiler distinguishes a NULL doc from an empty string.
 	HasDoc bool
+	// EOF is the lexer state at the end of the file.
+	EOF Mark
 }
 
 // Header is an include, namespace, or cpp_include declaration.
@@ -148,6 +159,9 @@ type Typedef struct {
 	Doc         string
 	HasDoc      bool
 	Line        int
+	// End is the lexer state at the construct's last token, Next at the
+	// token after it.
+	End, Next Mark
 }
 
 // Enum is `enum Name { values } (annotations)`.
@@ -158,6 +172,11 @@ type Enum struct {
 	Doc         string
 	HasDoc      bool
 	Line        int
+	// End is the lexer state at the construct's last token, Next at the
+	// token after it.
+	End, Next Mark
+	// Close is the lexer state at the closing brace.
+	Close Mark
 }
 
 // EnumValue is one enum member. HasValue is false when the value was left
@@ -170,6 +189,9 @@ type EnumValue struct {
 	Doc         string
 	HasDoc      bool
 	Line        int
+	// End is the lexer state at the construct's last token, Next at the
+	// token after it.
+	End, Next Mark
 }
 
 // Const is `const Type Name = Value`.
@@ -180,6 +202,9 @@ type Const struct {
 	Doc    string
 	HasDoc bool
 	Line   int
+	// End is the lexer state at the construct's last token, Next at the
+	// token after it.
+	End, Next Mark
 }
 
 // StructKind distinguishes struct, union and exception declarations.
@@ -202,6 +227,9 @@ type Struct struct {
 	Doc         string
 	HasDoc      bool
 	Line        int
+	// End is the lexer state at the construct's last token, Next at the
+	// token after it.
+	End, Next Mark
 }
 
 // Requiredness is the explicit requiredness keyword on a field.
@@ -232,6 +260,9 @@ type Field struct {
 	Doc         string
 	HasDoc      bool
 	Line        int
+	// End is the lexer state at the construct's last token, Next at the
+	// token after it.
+	End, Next Mark
 }
 
 // Service is `service Name extends Base { functions } (annotations)`.
@@ -244,6 +275,11 @@ type Service struct {
 	Doc         string
 	HasDoc      bool
 	Line        int
+	// End is the lexer state at the construct's last token, Next at the
+	// token after it.
+	End, Next Mark
+	// ExtendsAt is the lexer state at the extended service's name.
+	ExtendsAt Mark
 }
 
 // Function is one service method. ReturnType is nil for void.
@@ -258,6 +294,11 @@ type Function struct {
 	Doc         string
 	HasDoc      bool
 	Line        int
+	// End is the lexer state at the construct's last token, Next at the
+	// token after it.
+	End, Next Mark
+	// ThrowsEnd is the lexer state at the throws clause's closing paren.
+	ThrowsEnd Mark
 }
 
 func (*Typedef) definition() {}
