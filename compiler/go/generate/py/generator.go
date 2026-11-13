@@ -1041,62 +1041,7 @@ func (g *Generator) generatePythonDocstring(out *strings.Builder, doc docHaver) 
 	}
 }
 
-// pyDocstringComment is generate_docstring_comment, ported precisely
-// enough to reproduce a real quirk of the C++ getline loop it drives: when
-// contents ends with a newline and linePrefix is empty, the loop runs one
-// extra iteration that hits end-of-file with zero characters extracted
-// (std::istream::getline still sets an empty buffer in that case) and,
-// because the empty-prefix branch is not gated on eof, prints one more
-// bare blank line before the closing comment. emit.DocstringComment does
-// not reproduce this, because it stops as soon as its remaining-string
-// slice becomes empty; the generators that share it never call it with an
-// empty linePrefix and trailing-newline content the way this one does.
+// pyDocstringComment is generate_docstring_comment.
 func (g *Generator) pyDocstringComment(out *strings.Builder, commentStart, linePrefix, contents, commentEnd string) {
-	if commentStart != "" {
-		out.WriteString(g.indent() + commentStart)
-	}
-	pos := 0
-	n := len(contents)
-	eof := false
-	for {
-		if pos >= n {
-			// getline() finds nothing left to extract: it sets both
-			// eofbit and failbit but still leaves an empty buffer, and
-			// that iteration's body still runs once before the loop
-			// condition is re-checked.
-			if linePrefix == "" {
-				out.WriteString("\n")
-			}
-			break
-		}
-		nl := strings.IndexByte(contents[pos:], '\n')
-		var line string
-		truncate := false
-		switch {
-		case nl >= 0 && nl < 1023:
-			line = contents[pos : pos+nl]
-			pos = pos + nl + 1
-		case nl < 0 && n-pos < 1024:
-			line = contents[pos:]
-			pos = n
-			eof = true // ran out of input while searching for the delimiter
-		default:
-			line = contents[pos : pos+1023]
-			pos += 1023
-			truncate = true
-		}
-		if len(line) > 0 {
-			out.WriteString(g.indent() + linePrefix + line + "\n")
-		} else if linePrefix == "" {
-			out.WriteString("\n")
-		} else if !eof {
-			out.WriteString(g.indent() + linePrefix + "\n")
-		}
-		if truncate || eof {
-			break
-		}
-	}
-	if commentEnd != "" {
-		out.WriteString(g.indent() + commentEnd)
-	}
+	emit.DocstringComment(out, g.indent(), commentStart, linePrefix, contents, commentEnd)
 }

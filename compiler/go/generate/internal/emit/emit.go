@@ -93,40 +93,41 @@ func DoubleFixed16(v float64) string {
 	return strconv.FormatFloat(v, 'f', 16, 64)
 }
 
-// DocstringComment is t_generator::generate_docstring_comment. It
-// reproduces the getline loop: a line of 1024 characters or more makes
-// the stream fail and drops the rest, an empty line prints the prefix
-// alone unless it was produced by hitting the end of the input, and
-// eofbit is only set when a read runs out of input rather than when it
-// consumes the final newline.
+// DocstringComment is t_generator::generate_docstring_comment, with the
+// semantics of its loop over std::istream::getline(line, 1024):
+//
+//   - getline stores up to 1023 characters and extracts the newline that
+//     ends them, even right after the 1023rd; a longer line sets failbit
+//     and keeps its first 1023 characters, and the loop stops;
+//   - running out of input sets eofbit, and failbit as well when nothing
+//     was extracted, but the body still runs once on the empty buffer: so
+//     contents that end in a newline, or are empty, print one more blank
+//     line when linePrefix is empty;
+//   - an empty line prints the prefix alone unless it came from running
+//     out of input.
 func DocstringComment(out *strings.Builder, indent, commentStart, linePrefix, contents, commentEnd string) {
 	if commentStart != "" {
 		out.WriteString(indent + commentStart)
 	}
-	rest := contents
-	for rest != "" {
-		var line string
+	for pos, done := 0, false; !done; {
+		rest := contents[pos:]
 		nl := strings.IndexByte(rest, '\n')
-		truncated := false
+		var line string
+		eof := false
 		switch {
-		case nl >= 0 && nl < 1023:
-			line, rest = rest[:nl], rest[nl+1:]
-		case nl < 0 && len(rest) < 1024:
-			line, rest = rest, ""
+		case nl >= 0 && nl <= 1023:
+			line, pos = rest[:nl], pos+nl+1
+		case nl < 0 && len(rest) <= 1023:
+			line, pos, eof, done = rest, len(contents), true, true
 		default:
-			line, rest = rest[:1023], ""
-			truncated = true
+			line, done = rest[:1023], true
 		}
-		eof := nl < 0
 		if len(line) > 0 {
 			out.WriteString(indent + linePrefix + line + "\n")
 		} else if linePrefix == "" {
 			out.WriteString("\n")
 		} else if !eof {
 			out.WriteString(indent + linePrefix + "\n")
-		}
-		if truncated {
-			break
 		}
 	}
 	if commentEnd != "" {
