@@ -146,7 +146,7 @@ func (l *Loader) includeFile(curdir, filename string) string {
 			return rp
 		}
 		if l.Diag != nil {
-			l.Diag.warn(0, "Cannot open include file "+filename)
+			l.Diag.warn(0, "Cannot open include file "+filename+"\n")
 		}
 		return ""
 	}
@@ -160,7 +160,7 @@ func (l *Loader) includeFile(curdir, filename string) string {
 		fail("Could not find include file %s", filename)
 	}
 	if l.Diag != nil {
-		l.Diag.warn(0, "Could not find include file "+filename)
+		l.Diag.warn(0, "Could not find include file "+filename+"\n")
 	}
 	return ""
 }
@@ -201,6 +201,8 @@ func (l *Loader) parse(prog *Program, parent *Program) {
 		e := &Error{Msg: path + ":" + perr.Error(), Path: path, Text: perr.Error()}
 		if pe, ok := perr.(*parser.Error); ok {
 			e.Pos, e.Text = pe.Pos, pe.Msg
+			// The C++ lexer and parser report through yyerror().
+			e.Line, e.Last, e.Yacc, e.Syntax = pe.Line, pe.Last, true, pe.Syntax
 		}
 		panic(e)
 	}
@@ -212,12 +214,19 @@ func (l *Loader) parse(prog *Program, parent *Program) {
 		if !ok {
 			continue
 		}
+		if l.Diag != nil {
+			// The Include action reports a missing file on its own line.
+			l.Diag.Path, l.Diag.Line = path, inc.Line
+		}
 		if p := l.includeFile(curdir, inc.Path); p != "" {
 			prog.AddInclude(p, inc.Path)
 		}
 	}
+	// The C++ compiler parses the includes after this file's include
+	// pass, so what it reports there without a place of its own, such as
+	// a recursive include, names this file at its end.
 	for _, inc := range prog.Includes() {
-		l.parse(inc, prog)
+		at(path, tree.EOF, func() { l.parse(inc, prog) })
 	}
 
 	// Program pass.
@@ -241,7 +250,7 @@ func (l *Loader) parse(prog *Program, parent *Program) {
 	// first use. Resolve every type the program refers to here, so that a
 	// target that is never declared, or a typedef that refers to itself, is
 	// reported before any generator has written a file.
-	prog.ResolveTypes()
+	at(path, tree.EOF, prog.ResolveTypes)
 
 	delete(l.known, path)
 }

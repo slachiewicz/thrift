@@ -24,7 +24,7 @@ import "strings"
 // validateSimpleIdentifier is validate_simple_identifier in main.cc.
 func validateSimpleIdentifier(id string) {
 	if strings.Contains(id, ".") {
-		fail("Identifier %s can't have a dot.", id)
+		failYacc("Identifier %s can't have a dot.", id)
 	}
 }
 

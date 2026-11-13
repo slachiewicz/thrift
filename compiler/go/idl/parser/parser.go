@@ -42,6 +42,11 @@ type Error struct {
 	// stopped.
 	Pos token.Pos
 	Msg string
+	// Last is the C++ lexer's yytext when it reports the error.
+	Last string
+	// Syntax is set for a parse error, which the C++ compiler reports as
+	// bison's "syntax error"; a lexical error leaves it unset.
+	Syntax bool
 }
 
 func (e *Error) Error() string {
@@ -53,7 +58,9 @@ type Parser struct {
 	sc     *scanner.Scanner
 	tok    token.Token
 	hasTok bool
-	doc    docState
+	// prev is the token next() returned last.
+	prev token.Token
+	doc  docState
 	// Warn receives the warnings that the C++ lexer prints.
 	Warn func(line, level int, msg string)
 }
@@ -71,7 +78,7 @@ func Parse(path string, src []byte, warn func(line, level int, msg string)) (pro
 				return
 			}
 			if e, ok := r.(*scanner.Error); ok {
-				prog, err = nil, &Error{Line: e.Line, Pos: e.Pos, Msg: e.Msg}
+				prog, err = nil, &Error{Line: e.Line, Pos: e.Pos, Msg: e.Msg, Last: e.Last}
 				return
 			}
 			panic(r)
@@ -83,7 +90,7 @@ func Parse(path string, src []byte, warn func(line, level int, msg string)) (pro
 }
 
 func (p *Parser) fail(t token.Token, format string, args ...interface{}) {
-	panic(&Error{Line: t.Line, Pos: t.Pos, Msg: fmt.Sprintf(format, args...)})
+	panic(&Error{Line: t.Line, Pos: t.Pos, Msg: fmt.Sprintf(format, args...), Last: t.Raw, Syntax: true})
 }
 
 // peek returns the lookahead token, reading it if necessary.
@@ -101,8 +108,18 @@ func (p *Parser) peek() token.Token {
 func (p *Parser) next() token.Token {
 	t := p.peek()
 	p.hasTok = false
+	p.prev = t
 	return t
 }
+
+// mark is the lexer state a token leaves behind.
+func mark(t token.Token) ast.Mark { return ast.Mark{Line: t.Line, Text: t.Raw} }
+
+// end and after are the lexer state at the last token consumed and at the
+// lookahead token. Every construct ends with a peek (a separator or the
+// annotations check), so after reads nothing the parser would not read.
+func (p *Parser) end() ast.Mark   { return mark(p.prev) }
+func (p *Parser) after() ast.Mark { return mark(p.peek()) }
 
 func (p *Parser) expect(k token.Kind) token.Token {
 	t := p.peek()
@@ -146,6 +163,7 @@ func (p *Parser) parseProgram(prog *ast.Program) {
 	if t := p.peek(); t.Kind != token.EOF {
 		p.fail(t, "syntax error: unexpected %s", t)
 	}
+	prog.EOF = p.after()
 	if doc, ok := p.doc.programDoc(); ok {
 		prog.Doc, prog.HasDoc = doc, true
 		p.doc.setDoc()
@@ -240,8 +258,9 @@ func (p *Parser) parseTypedef() *ast.Typedef {
 	typ := p.parseFieldType()
 	name := p.expect(token.Identifier)
 	ann := p.parseTypeAnnotations()
+	end := p.end()
 	p.separator()
-	return &ast.Typedef{Type: typ, Name: name.Text, Annotations: ann, Line: name.Line}
+	return &ast.Typedef{Type: typ, Name: name.Text, Annotations: ann, Line: name.Line, End: end, Next: p.after()}
 }
 
 // Enum: enum identifier { EnumDefList } TypeAnnotations
@@ -260,7 +279,9 @@ func (p *Parser) parseEnum() *ast.Enum {
 			v.Value, v.HasValue = iv.Int, true
 		}
 		v.Annotations = p.parseTypeAnnotations()
+		v.End = p.end()
 		p.separator()
+		v.Next = p.after()
 		if hasDoc {
 			v.Doc, v.HasDoc = doc, true
 			p.doc.setDoc()
@@ -268,7 +289,9 @@ func (p *Parser) parseEnum() *ast.Enum {
 		e.Values = append(e.Values, v)
 	}
 	p.expect(token.RBrace)
+	e.Close = p.end()
 	e.Annotations = p.parseTypeAnnotations()
+	e.End, e.Next = p.end(), p.after()
 	return e
 }
 
@@ -279,8 +302,9 @@ func (p *Parser) parseConst() *ast.Const {
 	name := p.expect(token.Identifier)
 	p.expect(token.Equals)
 	val := p.parseConstValue()
+	end := p.end()
 	p.separator()
-	return &ast.Const{Type: typ, Name: name.Text, Value: val, Line: name.Line}
+	return &ast.Const{Type: typ, Name: name.Text, Value: val, Line: name.Line, End: end, Next: p.after()}
 }
 
 // ConstValue: int | double | literal | identifier | ConstList | ConstMap
@@ -339,6 +363,7 @@ func (p *Parser) parseStruct() *ast.Struct {
 	s.Fields = p.parseFieldList(token.RBrace)
 	p.expect(token.RBrace)
 	s.Annotations = p.parseTypeAnnotations()
+	s.End, s.Next = p.end(), p.after()
 	return s
 }
 
@@ -351,6 +376,7 @@ func (p *Parser) parseXception() *ast.Struct {
 	s.Fields = p.parseFieldList(token.RBrace)
 	p.expect(token.RBrace)
 	s.Annotations = p.parseTypeAnnotations()
+	s.End, s.Next = p.end(), p.after()
 	return s
 }
 
@@ -362,6 +388,7 @@ func (p *Parser) parseService() *ast.Service {
 	if p.accept(token.Extends) {
 		base := p.expect(token.Identifier)
 		s.Extends, s.HasExtends = base.Text, true
+		s.ExtendsAt = mark(base)
 	}
 	p.expect(token.LBrace)
 	for p.peek().Kind != token.RBrace {
@@ -369,6 +396,7 @@ func (p *Parser) parseService() *ast.Service {
 	}
 	p.expect(token.RBrace)
 	s.Annotations = p.parseTypeAnnotations()
+	s.End, s.Next = p.end(), p.after()
 	return s
 }
 
@@ -395,9 +423,12 @@ func (p *Parser) parseFunction() *ast.Function {
 		f.Throws = p.parseFieldList(token.RParen)
 		f.HasThrows = true
 		p.expect(token.RParen)
+		f.ThrowsEnd = p.end()
 	}
 	f.Annotations = p.parseTypeAnnotations()
+	f.End = p.end()
 	p.separator()
+	f.Next = p.after()
 	if hasDoc {
 		f.Doc, f.HasDoc = doc, true
 		p.doc.setDoc()
@@ -450,7 +481,9 @@ func (p *Parser) parseField() *ast.Field {
 		p.expect(token.RBrace)
 	}
 	f.Annotations = p.parseTypeAnnotations()
+	f.End = p.end()
 	p.separator()
+	f.Next = p.after()
 	if hasDoc {
 		f.Doc, f.HasDoc = doc, true
 		p.doc.setDoc()

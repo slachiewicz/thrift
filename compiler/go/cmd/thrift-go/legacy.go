@@ -85,14 +85,54 @@ func help() {
 	os.Exit(0)
 }
 
+// place is g_curpath and yylineno outside a parse: "arguments" while the
+// command line is read, "generation" while the generators run.
+var place = struct {
+	path string
+	line int
+}{"arguments", 1}
+
+// failure is failure() in main.cc. Its closing newline goes to stdout.
 func failure(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "[FAILURE] "+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, "[FAILURE:%s:%d] "+format, append([]interface{}{place.path, place.line}, args...)...)
+	fmt.Fprint(os.Stdout, "\n")
+	os.Exit(1)
+}
+
+// loadFailure reports an error from loading a file the way the C++
+// compiler does where it detects it: yyerror() for what the lexer and the
+// grammar report, followed for a parse error by the failure() of parse(),
+// and failure() for the rest, each at the file and line of the lexer state
+// the error carries.
+func loadFailure(err error) {
+	e, ok := err.(*sema.Error)
+	if !ok || e.Line == 0 {
+		failure("%s", err.Error())
+	}
+	place.path, place.line = e.Path, e.Line
+	if !e.Yacc {
+		failure("%s", e.Msg)
+	}
+	msg := e.Msg
+	switch {
+	case e.Syntax:
+		msg = "syntax error"
+	case e.Text != "":
+		// A lexical error: every message of the C++ lexer ends in its own
+		// newline.
+		msg = e.Text + "\n"
+	}
+	fmt.Fprintf(os.Stderr, "[ERROR:%s:%d] (last token was '%s')\n%s\n", e.Path, e.Line, e.Last, msg)
+	if e.Syntax {
+		failure("Parser error during include pass.")
+	}
 	os.Exit(1)
 }
 
 // runLegacy is main() in main.cc.
 func runLegacy() {
-	loader := &sema.Loader{Diag: &sema.Diagnostics{Out: os.Stderr, WarnLevel: 1, Path: "arguments"}}
+	// pwarning() prints to stdout.
+	loader := &sema.Loader{Diag: &sema.Diagnostics{Out: os.Stdout, WarnLevel: 1, Path: "arguments"}}
 	var generatorStrings []string
 	auditMode := false
 	auditFatal := true
@@ -217,7 +257,7 @@ func runLegacy() {
 		}
 		oldProgram, err := loader.Load(oldInputFile)
 		if err != nil {
-			failure("%s", err.Error())
+			loadFailure(err)
 		}
 		loader.IncludeDirs = shared
 		if newIncludePath != "" {
@@ -225,7 +265,7 @@ func runLegacy() {
 		}
 		newProgram, err := loader.Load(last)
 		if err != nil {
-			failure("%s", err.Error())
+			loadFailure(err)
 		}
 		if audit.Audit(newProgram, oldProgram, auditOpts) && auditFatal {
 			os.Exit(2)
@@ -249,13 +289,14 @@ func runLegacy() {
 
 	program, err := loader.Load(last)
 	if err != nil {
-		failure("%s", err.Error())
+		loadFailure(err)
 	}
 	if outPath != "" {
 		program.SetOutPath(outPath, outPathIsAbsolute)
 	}
 	loader.Diag.Path = "generation"
 	loader.Diag.Line = 1
+	place.path, place.line = "generation", 1
 	generateAll(program, generators, recurse)
 }
 
@@ -272,7 +313,10 @@ func generateAll(program *sema.Program, generators []generate.Runner, recurse bo
 	}
 	for _, g := range generators {
 		if err := g.Run(program, false); err != nil {
-			failure("Error: %s", err.Error())
+			if d, ok := err.(interface{ IsDirect() bool }); ok && d.IsDirect() {
+				failure("%s", err.Error())
+			}
+			failure("Error: %s\n", err.Error())
 		}
 	}
 }

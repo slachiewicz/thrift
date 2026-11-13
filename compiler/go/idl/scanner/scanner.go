@@ -42,6 +42,9 @@ type Error struct {
 	Line int
 	Pos  token.Pos
 	Msg  string
+	// Last is what flex's yytext holds when the C++ lexer reports the
+	// error: the text its current rule matched.
+	Last string
 }
 
 func (e *Error) Error() string {
@@ -50,8 +53,8 @@ func (e *Error) Error() string {
 
 // Warnings the lexer can raise, with the text the C++ compiler prints.
 const (
-	ByteAliasWarning = `The "byte" type is a compatibility alias for "i8". Use "i8" to emphasize the signedness of this type.`
-	AsyncWarning     = `"async" is deprecated.  It is called "oneway" now.`
+	ByteAliasWarning = `The "byte" type is a compatibility alias for "i8". Use "i8" to emphasize the signedness of this type.` + "\n"
+	AsyncWarning     = `"async" is deprecated.  It is called "oneway" now.` + "\n"
 )
 
 // Scanner produces tokens from a byte slice.
@@ -59,6 +62,8 @@ type Scanner struct {
 	src  []byte
 	off  int
 	line int
+	// yytext is the text the current C++ lexer rule matched, for errors.
+	yytext string
 	// lineStart is the offset of the first byte of the current line.
 	lineStart int
 
@@ -86,7 +91,7 @@ func New(src []byte) *Scanner {
 func (s *Scanner) Line() int { return s.line }
 
 func (s *Scanner) errorf(format string, args ...interface{}) error {
-	return &Error{Line: s.line, Pos: s.pos(), Msg: fmt.Sprintf(format, args...)}
+	return &Error{Line: s.line, Pos: s.pos(), Msg: fmt.Sprintf(format, args...), Last: s.yytext}
 }
 
 // pos is the position of the next byte.
@@ -277,12 +282,21 @@ func (s *Scanner) Next() (token.Token, error) {
 	if err := s.skipTrivia(); err != nil {
 		return token.Token{}, err
 	}
-	start := s.pos()
+	start, startOff := s.pos(), s.off
 	tok, err := s.scanToken()
 	if err != nil {
 		return token.Token{}, err
 	}
 	tok.Pos = start
+	switch tok.Kind {
+	case token.EOF:
+	case token.Literal:
+		// literal_begin matches the opening quote alone; the action reads
+		// the rest with yyinput(), so yytext stays the quote.
+		tok.Raw = string(s.src[startOff])
+	default:
+		tok.Raw = string(s.src[startOff:s.off])
+	}
 	return tok, nil
 }
 
@@ -375,6 +389,7 @@ func (s *Scanner) scanToken() (token.Token, error) {
 		case il == best:
 			v, err := strconv.ParseInt(text, 10, 64)
 			if err != nil {
+				s.yytext = text
 				return token.Token{}, s.errorf("This integer is too big: %q", text)
 			}
 			return token.Token{Kind: token.IntConstant, Line: s.line, Int: v, Text: text}, nil
@@ -383,6 +398,7 @@ func (s *Scanner) scanToken() (token.Token, error) {
 			digits := strings.TrimLeft(text, "+-")[2:]
 			v, err := strconv.ParseInt(digits, 16, 64)
 			if err != nil {
+				s.yytext = text
 				return token.Token{}, s.errorf("This integer is too big: %q", text)
 			}
 			if neg {
@@ -404,6 +420,7 @@ func (s *Scanner) scanToken() (token.Token, error) {
 		}
 	}
 
+	s.yytext = string(c)
 	return token.Token{}, s.errorf("Unexpected token in input: %q", string(c))
 }
 
@@ -446,8 +463,10 @@ func (s *Scanner) blockComment() error {
 	}
 
 	isDoc := false
+	s.yytext = "/*"
 	if c, _ := s.peekByte(2); c == '*' {
 		isDoc = true
+		s.yytext = "/**"
 		s.advance(3)
 	} else {
 		s.advance(2)
@@ -487,6 +506,7 @@ func (s *Scanner) blockComment() error {
 
 func (s *Scanner) literal() (token.Token, error) {
 	mark, _ := s.peekByte(0)
+	s.yytext = string(mark)
 	s.advance(1)
 	var result []byte
 	for {

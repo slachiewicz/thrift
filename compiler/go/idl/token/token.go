@@ -233,6 +233,10 @@ type Token struct {
 	Pos Pos
 	// Text is the identifier or the decoded string literal.
 	Text string
+	// Raw is flex's yytext for the token: its source text, except that a
+	// string literal is its opening quote alone. The C++ compiler's
+	// "(last token was ...)" prints it.
+	Raw string
 	// Int is the value of an IntConstant.
 	Int int64
 	// Float is the value of a DubConstant.

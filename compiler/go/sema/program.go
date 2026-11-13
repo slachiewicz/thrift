@@ -21,6 +21,7 @@ package sema
 
 import (
 	"fmt"
+	"github.com/apache/thrift/compiler/go/idl/ast"
 	"io"
 	"sort"
 	"strings"
@@ -40,6 +41,18 @@ type Error struct {
 	Path string
 	Pos  token.Pos
 	Text string
+
+	// Line and Last are the C++ lexer's yylineno and yytext when the
+	// grammar action that reports the error runs; Line is 0 when the error
+	// is not tied to a place in a file. Yacc is set when the C++ compiler
+	// reports it through yyerror() as "[ERROR:path:line] (last token was
+	// 'Last')" rather than through failure(), and Syntax when it is a
+	// parse error, which failure() then follows with "Parser error during
+	// include pass.".
+	Line   int
+	Last   string
+	Yacc   bool
+	Syntax bool
 }
 
 func (e *Error) Error() string { return e.Msg }
@@ -47,6 +60,25 @@ func (e *Error) Error() string { return e.Msg }
 // fail aborts the current load with an Error. Load recovers it.
 func fail(format string, args ...interface{}) {
 	panic(&Error{Msg: fmt.Sprintf(format, args...)})
+}
+
+// failYacc is fail for an error the C++ grammar reports with yyerror().
+func failYacc(format string, args ...interface{}) {
+	panic(&Error{Msg: fmt.Sprintf(format, args...), Yacc: true})
+}
+
+// at runs fn and gives an Error raised in it, which has no place yet, the
+// place the C++ compiler reports it at: path and the lexer state m.
+func at(path string, m ast.Mark, fn func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(*Error); ok && e.Line == 0 {
+				e.Path, e.Line, e.Last = path, m.Line, m.Text
+			}
+			panic(r)
+		}
+	}()
+	fn()
 }
 
 // Diagnostics collects warnings. Level follows pwarning: 0 always shown
@@ -72,7 +104,9 @@ func (d *Diagnostics) warn(level int, msg string) {
 	}
 	d.Count++
 	if d.Plain {
-		fmt.Fprintf(d.Out, "%s:%d: warning: %s\n", d.Path, d.Line, msg)
+		// Some C++ messages end in their own newline, which pwarning()
+		// follows with another; the plain form is one line.
+		fmt.Fprintf(d.Out, "%s:%d: warning: %s\n", d.Path, d.Line, strings.TrimRight(msg, "\n"))
 		return
 	}
 	fmt.Fprintf(d.Out, "[WARNING:%s:%d] %s\n", d.Path, d.Line, msg)
@@ -290,21 +324,35 @@ func (p *Program) typenameCollision(prog *Program, existing, t Type) int {
 }
 
 // isCommonNamespace is t_program::is_common_namespace. Only guaranteed
-// collisions return true; the warnings for possible ones are dropped.
+// collisions return true; possible ones are reported as warnings.
 func (p *Program) isCommonNamespace(prog *Program, t Type) bool {
-	if prog == t.Program() {
+	tp := t.Program()
+	// Case 1: the typenames are in the same program [collision].
+	if prog == tp {
+		p.diag.warn(1, fmt.Sprintf("Duplicate typename %s found in %s", t.Name(), tp.Name()))
 		return true
 	}
+	// Case 2: both programs have identical namespace scope/name
+	// declarations [collision].
 	match := true
 	for _, k := range prog.NamespaceKeys() {
-		if prog.namespaces[k] != t.Program().Namespace(k) {
+		if prog.namespaces[k] == tp.Namespace(k) {
+			p.diag.warn(1, fmt.Sprintf("Duplicate typename %s found in %s,%s,%s and %s,%s,%s [file,scope,ns]",
+				t.Name(), tp.Name(), k, prog.namespaces[k], prog.Name(), k, prog.namespaces[k]))
+		} else {
 			match = false
 		}
 	}
-	for _, k := range t.Program().NamespaceKeys() {
-		if t.Program().namespaces[k] != prog.Namespace(k) {
+	for _, k := range tp.NamespaceKeys() {
+		if tp.namespaces[k] == prog.Namespace(k) {
+			p.diag.warn(1, fmt.Sprintf("Duplicate typename %s found in %s,%s,%s and %s,%s,%s [file,scope,ns]",
+				t.Name(), tp.Name(), k, tp.namespaces[k], prog.Name(), k, tp.namespaces[k]))
+		} else {
 			match = false
 		}
+	}
+	if len(prog.namespaces) == 0 && len(tp.namespaces) == 0 {
+		p.diag.warn(1, fmt.Sprintf("Duplicate typename %s found in %s and %s", t.Name(), tp.Name(), prog.Name()))
 	}
 	return match
 }

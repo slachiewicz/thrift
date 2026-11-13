@@ -773,7 +773,7 @@ var phpKeywords = langKeywordsForValidation()
 func validatePHPIdentifiers(p *sema.Program) error {
 	check := func(name string) error {
 		if phpKeywords[name] {
-			return &emit.Error{Msg: "Cannot use reserved language keyword \"" + name + "\" with target language PHP"}
+			return &emit.Error{Msg: "Cannot use reserved language keyword \"" + name + "\" with target language PHP", Direct: true}
 		}
 		return nil
 	}

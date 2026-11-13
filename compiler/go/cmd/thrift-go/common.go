@@ -100,13 +100,18 @@ func (f *loaderFlags) loader() *sema.Loader {
 }
 
 // report prints a load or generation error in the path:line:col form
-// when the error carries a position.
+// when the error carries a position: a syntax or lexical error names the
+// offending token, a semantic error the line where the C++ compiler
+// reports it.
 func report(err error) {
 	if e, ok := err.(*sema.Error); ok && e.Path != "" {
-		if e.Pos.Line > 0 {
+		switch {
+		case e.Pos.Line > 0:
 			fmt.Fprintf(os.Stderr, "%s:%d:%d: error: %s\n", e.Path, e.Pos.Line, e.Pos.Col, e.Text)
-		} else {
-			fmt.Fprintf(os.Stderr, "%s: error: %s\n", e.Path, e.Text)
+		case e.Line > 0:
+			fmt.Fprintf(os.Stderr, "%s:%d: error: %s\n", e.Path, e.Line, e.Msg)
+		default:
+			fmt.Fprintf(os.Stderr, "%s: error: %s\n", e.Path, e.Msg)
 		}
 		return
 	}
