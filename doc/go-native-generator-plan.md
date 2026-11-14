@@ -144,6 +144,39 @@ hand-written recursive-descent parser instead, for the reasons in
 [section 5.2](#52-idl-scanner-and-parser). goyacc is the fallback if the PMC
 wants a grammar file kept as a fidelity artifact.
 
+### Why not thriftgo
+
+cloudwego/thriftgo is also a complete Go code generator, the one Kitex uses,
+so the PMC may ask why the official tool does not adopt it. Running thriftgo
+0.4.5 over the parity corpus (164 files, 2026-11-14) answers that:
+
+- **It targets the 0.13 runtime API.** The Go it writes for
+  `tutorial/tutorial.thrift` builds against `github.com/apache/thrift v0.13.0`
+  and fails against the current `lib/go`: its templates call `TProtocol`
+  methods without the `context.Context` argument added in 0.14.0, and no
+  generator option changes that. Its options serve Kitex (`apache_adaptor`,
+  `no_processor`, `apache_warning`).
+- **It writes invalid Go for some container keys.** A `set<i32>` map key in
+  `test/ThriftTest.thrift` becomes `map[[]int32]…`; `t_go_generator` writes
+  `[]thrift.MapEntry[[]int32, …]`.
+- **It rejects 20 corpus files that `t_go_generator` accepts.** Six use the
+  `uuid` type (Thrift 0.19). Nine hit grammar gaps, each reproduced by a
+  one-line IDL file: reference fields (`S & r`), annotations without a value,
+  negative hex constants, `typedef string MyString;`, a string literal ending
+  in an escaped backslash, and a double default that is only a sign. Two
+  crash with a nil-pointer panic (`lib/go/test/ConstOptionalField.thrift`,
+  `test/v0.16/DebugProtoTest.thrift`), and three fail name or constant
+  resolution.
+- **Exported names mostly agree.** On `tutorial.thrift`, only the Apache
+  output has `Equals`, `Validate`, `LogValue`, `IsDefined`, `MarshalText`, the
+  `…Ptr` helpers and `…Values`; only thriftgo has `InitDefault`, and it names
+  the service helper types `…Args_` and `…Result_`. Method signatures differ
+  by the context argument.
+
+Adopting thriftgo would mean rewriting its templates for the current runtime
+and closing its grammar gaps, which is a fork rather than reuse. Wire
+compatibility, runtime behaviour and performance were not compared.
+
 ## 5. Design
 
 ### 5.1 Module and package layout
